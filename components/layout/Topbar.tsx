@@ -34,6 +34,9 @@ export function Topbar({ perfil }: TopbarProps) {
               className="h-9 w-auto object-contain"
               priority
             />
+            <span className="hidden sm:block text-white font-bold tracking-widest text-sm uppercase">
+              Flipping Houses
+            </span>
           </Link>
           {perfil?.rol === 'admin' && (
             <Link
