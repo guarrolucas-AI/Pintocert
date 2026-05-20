@@ -56,7 +56,7 @@ export default function LoginPage() {
         <CardHeader className="text-center pb-4 pt-8">
           <div className="flex justify-center mb-6">
             <Image
-              src="/Logo Flipping Nuevo.png"
+              src="/logo.png"
               alt="Flipping Houses"
               width={200}
               height={60}

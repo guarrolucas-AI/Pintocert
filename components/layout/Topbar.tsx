@@ -27,7 +27,7 @@ export function Topbar({ perfil }: TopbarProps) {
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-3">
             <Image
-              src="/Logo Flipping Nuevo.png"
+              src="/logo.png"
               alt="Flipping Houses"
               width={140}
               height={36}
@@ -57,7 +57,7 @@ export function Topbar({ perfil }: TopbarProps) {
             variant="outline"
             size="sm"
             onClick={handleLogout}
-            className="border-white/20 text-white hover:bg-white/10 hover:text-white"
+            className="bg-transparent border-white/30 text-white hover:bg-white/10 hover:text-white"
           >
             Salir
           </Button>

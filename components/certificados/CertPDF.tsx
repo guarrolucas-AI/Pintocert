@@ -115,7 +115,7 @@ export function CertPDF({ cert }: Props) {
         {/* Encabezado */}
         <View style={s.header}>
           <View style={s.headerLeft}>
-            <Image src="/Logo Flipping Nuevo.png" style={s.logo} />
+            <Image src="/logo.png" style={s.logo} />
             <Text style={s.empresa}>{EMPRESA_NOMBRE}</Text>
             <Text style={s.cuit}>CUIT: {EMPRESA_CUIT}</Text>
           </View>
