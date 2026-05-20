@@ -31,7 +31,7 @@ export function Topbar({ perfil }: TopbarProps) {
               alt="Flipping Houses"
               width={140}
               height={36}
-              className="h-9 w-auto object-contain"
+              className="h-9 w-auto object-contain brightness-0 invert"
               priority
             />
             <span className="hidden sm:block text-white font-bold tracking-widest text-sm uppercase">

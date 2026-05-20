@@ -60,7 +60,7 @@ export default function LoginPage() {
               alt="Flipping Houses"
               width={200}
               height={60}
-              className="h-14 w-auto object-contain"
+              className="h-14 w-auto object-contain brightness-0 invert"
               priority
             />
           </div>
