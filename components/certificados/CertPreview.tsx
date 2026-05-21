@@ -1,13 +1,26 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { createClient } from '@/lib/supabase/client'
 import { formatARS, nombreMes } from '@/lib/utils'
 import type { CertificadoConItems } from '@/lib/types'
-import { Download } from 'lucide-react'
+import { Download, Pencil, Trash2 } from 'lucide-react'
 
 const CertPDFDownload = dynamic(
   () => import('./CertPDFDownload').then((m) => m.CertPDFDownload),
@@ -16,13 +29,34 @@ const CertPDFDownload = dynamic(
 
 interface CertPreviewProps {
   cert: CertificadoConItems
+  canEdit?: boolean
 }
 
-export function CertPreview({ cert }: CertPreviewProps) {
+export function CertPreview({ cert, canEdit }: CertPreviewProps) {
   const obra = cert.obra!
+  const router = useRouter()
+  const [delOpen, setDelOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
   const totalPeriodo = cert.items.reduce((s, ci) => s + ci.importe_periodo, 0)
   const totalAcumTotal = cert.items.reduce((s, ci) => s + ci.importe_acumulado_total, 0)
   const saldo = obra.presupuesto_total - totalAcumTotal
+
+  async function handleDelete() {
+    setDeleting(true)
+    const supabase = createClient()
+    await supabase.from('certificado_items').delete().eq('certificado_id', cert.id)
+    const { error } = await supabase.from('certificados').delete().eq('id', cert.id)
+    setDeleting(false)
+    setDelOpen(false)
+    if (error) {
+      toast.error('Error al eliminar: ' + error.message)
+    } else {
+      toast.success('Certificado eliminado')
+      router.push(`/obras/${cert.obra_id}`)
+      router.refresh()
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -41,25 +75,77 @@ export function CertPreview({ cert }: CertPreviewProps) {
             </span>
           </div>
         </div>
-        <CertPDFDownload cert={cert} />
+        <div className="flex items-center gap-2">
+          {canEdit && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/obras/${cert.obra_id}/certificados/${cert.id}/editar`)}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive hover:bg-destructive/5"
+                onClick={() => setDelOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Eliminar
+              </Button>
+            </>
+          )}
+          <CertPDFDownload cert={cert} />
+        </div>
       </div>
+
+      <AlertDialog open={delOpen} onOpenChange={setDelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar certificado #{cert.numero}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará el certificado borrador y todos sus ítems. No se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleting ? 'Eliminando…' : 'Eliminar certificado'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Vista previa del certificado */}
       <div className="rounded-lg border bg-white p-6 space-y-5 print:border-0">
         {/* Encabezado empresa */}
-        <div className="text-center border-b pb-4">
-          <h2 className="text-lg font-bold text-slate-900">
-            {process.env.NEXT_PUBLIC_EMPRESA_NOMBRE ?? 'Empresa de Pintura'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            CUIT: {process.env.NEXT_PUBLIC_EMPRESA_CUIT ?? '—'}
-          </p>
-          <h3 className="text-xl font-bold text-slate-900 mt-3">
-            CERTIFICADO DE AVANCE DE OBRA N° {cert.numero}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Emitido el {new Date().toLocaleDateString('es-AR')}
-          </p>
+        <div className="flex items-center justify-between rounded-lg bg-[#0a0a0a] px-5 py-4 border-b-4 border-[#FFD600] -m-6 mb-0">
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-white.png" alt="Logo" className="h-9 w-auto object-contain" />
+            <div>
+              <p className="text-sm font-bold text-white leading-tight">
+                {process.env.NEXT_PUBLIC_EMPRESA_NOMBRE ?? 'Empresa de Pintura'}
+              </p>
+              <p className="text-xs text-neutral-400">
+                CUIT: {process.env.NEXT_PUBLIC_EMPRESA_CUIT ?? '—'}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-bold text-[#FFD600] leading-tight">
+              CERTIFICADO DE AVANCE DE OBRA N° {cert.numero}
+            </p>
+            <p className="text-xs text-neutral-400">
+              Emitido el {new Date().toLocaleDateString('es-AR')}
+            </p>
+          </div>
         </div>
 
         {/* Datos de la obra */}

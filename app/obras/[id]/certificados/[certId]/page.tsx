@@ -33,6 +33,9 @@ export default async function CertPage({
   if (!obra || !cert) notFound()
 
   const isAdmin = perfil?.rol === 'admin'
+  const canEdit =
+    (perfil?.rol === 'admin' || perfil?.rol === 'capataz') &&
+    (cert as Certificado).estado === 'borrador'
   const itemsMap: Record<string, ItemObra> = {}
   ;(items ?? []).forEach((it: ItemObra) => (itemsMap[it.id] = it))
 
@@ -55,7 +58,7 @@ export default async function CertPage({
         ]}
       />
 
-      <CertPreview cert={certConItems} />
+      <CertPreview cert={certConItems} canEdit={canEdit} />
 
       {isAdmin && (cert as Certificado).estado === 'borrador' && (
         <AprobacionClient certId={certId} obraId={id} />

@@ -17,6 +17,9 @@ interface CertFormProps {
   ultimosCertItems: Record<string, CertificadoItem>
   numeroCert: number
   onSubmit: (data: CertificadoFormData, rows: RowData[]) => Promise<void>
+  initialValues?: CertificadoFormData | null
+  initialPcts?: Record<string, number>
+  submitLabel?: string
 }
 
 export interface RowData {
@@ -35,11 +38,14 @@ export function CertForm({
   ultimosCertItems,
   numeroCert,
   onSubmit,
+  initialValues,
+  initialPcts,
+  submitLabel,
 }: CertFormProps) {
   const now = new Date()
   const [pcts, setPcts] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
-    items.forEach((it) => (init[it.id] = 0))
+    items.forEach((it) => (init[it.id] = initialPcts?.[it.id] ?? 0))
     return init
   })
 
@@ -49,7 +55,7 @@ export function CertForm({
     formState: { errors, isSubmitting },
   } = useForm<CertificadoFormData>({
     resolver: zodResolver(certificadoSchema),
-    defaultValues: {
+    defaultValues: initialValues ?? {
       fecha_medicion: now.toISOString().slice(0, 10),
       periodo_mes: now.getMonth() + 1,
       periodo_anio: now.getFullYear(),
@@ -223,7 +229,7 @@ export function CertForm({
 
       <div className="flex gap-3">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Guardando…' : 'Guardar certificado'}
+          {isSubmitting ? 'Guardando…' : (submitLabel ?? 'Guardar certificado')}
         </Button>
         <Button type="button" variant="outline" onClick={() => history.back()}>
           Cancelar
