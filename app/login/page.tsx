@@ -50,17 +50,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a] px-4 gap-6">
+      {/* Logo sobre el fondo oscuro */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo-white.png"
+        alt="Flipping Houses"
+        className="h-16 w-auto object-contain"
+      />
       <Card className="w-full max-w-md border-0 shadow-2xl">
-        <CardHeader className="text-center pb-4 pt-8">
-          <div className="flex justify-center mb-6">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-white.png"
-              alt="Flipping Houses"
-              className="h-14 w-auto object-contain"
-            />
-          </div>
+        <CardHeader className="text-center pb-4 pt-6">
           <p className="text-sm text-[#737373]">Sistema de certificados de avance de obra</p>
         </CardHeader>
         <CardContent>
