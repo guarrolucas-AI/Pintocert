@@ -62,8 +62,7 @@ export function EditCertClient({ cert, items, ultimosCertItems, initialPcts }: P
     }
 
     toast.success('Certificado actualizado')
-    router.push(`/obras/${cert.obra_id}/certificados/${cert.id}`)
-    router.refresh()
+    window.location.href = `/obras/${cert.obra_id}/certificados/${cert.id}`
   }
 
   return (

@@ -53,8 +53,7 @@ export function CertPreview({ cert, canEdit }: CertPreviewProps) {
       toast.error('Error al eliminar: ' + error.message)
     } else {
       toast.success('Certificado eliminado')
-      router.push(`/obras/${cert.obra_id}`)
-      router.refresh()
+      window.location.href = `/obras/${cert.obra_id}`
     }
   }
 
