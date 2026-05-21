@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -55,13 +54,11 @@ export default function LoginPage() {
       <Card className="w-full max-w-md border-0 shadow-2xl">
         <CardHeader className="text-center pb-4 pt-8">
           <div className="flex justify-center mb-6">
-            <Image
-              src="/logo.png"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-white.png"
               alt="Flipping Houses"
-              width={200}
-              height={60}
-              className="h-14 w-auto object-contain brightness-0 invert"
-              priority
+              className="h-14 w-auto object-contain"
             />
           </div>
           <p className="text-sm text-[#737373]">Sistema de certificados de avance de obra</p>
