@@ -17,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { createClient } from '@/lib/supabase/client'
 import { formatARS, nombreMes } from '@/lib/utils'
 import type { CertificadoConItems } from '@/lib/types'
 import { Download, Pencil, Trash2 } from 'lucide-react'
@@ -44,13 +43,14 @@ export function CertPreview({ cert, canEdit }: CertPreviewProps) {
 
   async function handleDelete() {
     setDeleting(true)
-    const supabase = createClient()
-    await supabase.from('certificado_items').delete().eq('certificado_id', cert.id)
-    const { error } = await supabase.from('certificados').delete().eq('id', cert.id)
+    const { deleteCertificado } = await import(
+      '@/app/obras/[id]/certificados/[certId]/actions'
+    )
+    const { error } = await deleteCertificado(cert.id, cert.obra_id)
     setDeleting(false)
     setDelOpen(false)
     if (error) {
-      toast.error('Error al eliminar: ' + error.message)
+      toast.error('Error al eliminar: ' + error)
     } else {
       toast.success('Certificado eliminado')
       window.location.href = `/obras/${cert.obra_id}`
