@@ -96,6 +96,26 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
 
   const { label, variant, icon: EstadoIcon } = ESTADO_CONFIG[presupuesto.estado]
 
+  async function handleRefresh() {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('presupuestos')
+      .select('*')
+      .eq('id', presupuesto.id)
+      .single()
+
+    if (error) {
+      console.error('❌ Error al refrescar:', error)
+      toast.error('Error al actualizar: ' + error.message)
+      return
+    }
+
+    if (data) {
+      setPresupuesto(data as Presupuesto)
+      toast.success('Presupuesto actualizado')
+    }
+  }
+
   async function handleDataGenerada(tipo: string, datos: unknown) {
     console.log('📥 handleDataGenerada llamado:', { tipo, datosRecibidos: datos })
 
@@ -336,7 +356,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
             editMode={editMode}
             onEditChange={handleEditChange}
             onEdit={() => setEditMode(true)}
-            onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
+            onRefresh={handleRefresh}
           />
         </>
       )}
@@ -899,10 +919,12 @@ function HerramientasView({ data }: { data: HerramientasData }) {
 }
 
 function AnalisisView({ data }: { data: AnalisisData }) {
+  // Default values if data is incomplete
+  const rentabilidad = data?.rentabilidad_sobre_ventas ?? 0
   const rentabilidadColor =
-    data.rentabilidad_sobre_ventas >= 25
+    rentabilidad >= 25
       ? 'text-green-700'
-      : data.rentabilidad_sobre_ventas >= 10
+      : rentabilidad >= 10
       ? 'text-yellow-700'
       : 'text-red-700'
 
@@ -910,12 +932,12 @@ function AnalisisView({ data }: { data: AnalisisData }) {
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard label="Precio de venta" value={formatARS(data.precio_venta)} />
-        <KpiCard label="Costo total" value={formatARS(data.costo_total)} />
-        <KpiCard label="Ganancia bruta" value={formatARS(data.ganancia_bruta)} />
+        <KpiCard label="Precio de venta" value={formatARS(data?.precio_venta ?? 0)} />
+        <KpiCard label="Costo total" value={formatARS(data?.costo_total ?? 0)} />
+        <KpiCard label="Ganancia bruta" value={formatARS(data?.ganancia_bruta ?? 0)} />
         <KpiCard
           label="Rentabilidad s/ ventas"
-          value={`${data.rentabilidad_sobre_ventas.toFixed(1)}%`}
+          value={`${rentabilidad.toFixed(1)}%`}
           className={rentabilidadColor}
         />
       </div>
