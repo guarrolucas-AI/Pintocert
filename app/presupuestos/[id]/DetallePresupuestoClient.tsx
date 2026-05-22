@@ -631,7 +631,7 @@ function TabAgente({
         </div>
         <AgentChat
           modo={modo}
-          contexto={{ presupuesto }}
+          contexto={{ presupuesto, erroresPrevios: undefined }}
           mensajesIniciales={mensajesIniciales}
           onDataGenerada={onDataGenerada}
           onMensajesActualizados={onMensajesActualizados}

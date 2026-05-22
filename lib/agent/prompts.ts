@@ -30,9 +30,19 @@ export function getSystemPrompt(modo: ModuloAgente, contexto?: Record<string, un
 // ─── MÓDULO: PRESUPUESTO ──────────────────────────────────────────────────────
 
 function promptPresupuesto(ctx?: Record<string, unknown>) {
+  const notas = ctx?.erroresPrevios ? `\nERRORES A EVITAR (de iteraciones anteriores):\n${ctx.erroresPrevios}` : ''
+
   return `${BASE_CONTEXT}
 
 Tu tarea es ayudar a confeccionar un presupuesto de obra de construcción/refacción para enviarle al cliente.
+
+${notas}
+
+REGLAS CRÍTICAS PARA CÁLCULOS:
+1. subtotal = cantidad × precio_unitario (NO multiplicar dos veces).
+2. Cada línea es UN trabajo, NO desgloses del mismo trabajo.
+3. IVA = subtotal_total × 0.21.
+4. Total = subtotal_total + IVA.
 
 FLUJO:
 1. Si el primer mensaje del usuario es "__INIT__", preséntate brevemente y hacé la primera pregunta.
@@ -101,26 +111,42 @@ Antes de generar el JSON, avisá al usuario que ya tenés toda la info y mostrá
 
 function promptMateriales(ctx?: Record<string, unknown>) {
   const obra = ctx?.presupuesto as Partial<Presupuesto> | undefined
-  const items = obra?.items?.map(i => `- ${i.descripcion} (${i.cantidad} ${i.unidad})`).join('\n') ?? ''
+  const obraDesc = obra?.obra_descripcion ?? ''
+  const items = obra?.items?.map(i => `- ${i.descripcion}: ${i.cantidad} ${i.unidad}`).join('\n') ?? ''
+  const notas = ctx?.erroresPrevios ? `\nERRORES A EVITAR (de iteraciones anteriores):\n${ctx.erroresPrevios}` : ''
 
   return `${BASE_CONTEXT}
 
-Tu tarea es generar una lista de materiales y orden de compra para esta obra de construcción.
+Tu tarea es generar una lista COMPLETA de materiales con precios actuales para esta obra.
 
-${items ? `TRABAJOS DE LA OBRA:\n${items}\n` : ''}
+OBRA:
+Descripción: ${obraDesc}
+
+TRABAJOS Y CANTIDADES A CUBRIR:
+${items}
+
+${notas}
+
+REGLAS CRÍTICAS:
+1. USA WEB_SEARCH para CADA material (excepto lo que claramente no se puede buscar).
+   - Busca en MercadoLibre, Sodimac, Easy, ferreterías argentinas.
+   - Busca precios REALES de mayo 2026.
+2. SIEMPRE incluye precio_estimado en cada material (NO vacío).
+3. Calcula total_estimado como suma de (cantidad × precio_estimado).
+4. No duplicar ni multiplicar cantidades — cada línea es material independiente.
+
+PREGUNTAS CLAVE (máx. 3):
+- ¿Prefieren marcas premium o estándar?
+- ¿Compran de contado (descuento) o con financiación?
+- ¿Tienen ferretería/proveedor habitual o buscan mejor precio?
 
 FLUJO:
-1. Si el primer mensaje es "__INIT__", preséntate y hacé las primeras preguntas.
-2. Preguntá lo necesario para estimar materiales.
-3. Usá la herramienta web_search para buscar precios actuales en MercadoLibre, Sodimac, Easy o ferreterías argentinas.
-4. Cuando tengas todo, generá el JSON.
-
-PREGUNTAS CLAVE:
-- ¿Tienen proveedores fijos o buscan los mejores precios del mercado?
-- ¿Capacidad de almacenamiento (compra en cantidad vs. por etapas)?
-- ¿Preferencia de marcas? (ej: Sherwin-Williams, Alba, Sinteplast, etc.)
-
-Para cada material, buscá precios y presentá alternativas (económico vs. premium).
+1. Si es "__INIT__", preséntate y hacé las 3 preguntas.
+2. Basándote en la obra, identifica todos los materiales necesarios.
+3. Para CADA material, hace web_search. Ejemplo:
+   - "pintura látex interior blanca 20 litros MercadoLibre Argentina 2026"
+   - "masilla Sinteplast 1kg ferretería Argentina precio"
+4. Compone el JSON con todos los materiales y precios reales.
 
 CUANDO TENGAS TODA LA INFO, generá el JSON al final:
 
@@ -154,32 +180,45 @@ CUANDO TENGAS TODA LA INFO, generá el JSON al final:
 
 function promptPersonal(ctx?: Record<string, unknown>) {
   const obra = ctx?.presupuesto as Partial<Presupuesto> | undefined
-  const items = obra?.items?.map(i => `- ${i.descripcion}`).join('\n') ?? ''
+  const obraDesc = obra?.obra_descripcion ?? ''
+  const items = obra?.items?.map(i => `- ${i.descripcion} (${i.cantidad} ${i.unidad})`).join('\n') ?? ''
+  const notas = ctx?.erroresPrevios ? `\nERRORES A EVITAR:\n${ctx.erroresPrevios}` : ''
 
   return `${BASE_CONTEXT}
 
-Tu tarea es estimar la cantidad y tipo de colaboradores necesarios para esta obra.
+Tu tarea es estimar la cantidad, tipo y costo de colaboradores (mano de obra) para esta obra.
 
-${items ? `TRABAJOS DE LA OBRA:\n${items}\n` : ''}
+OBRA Y TRABAJOS:
+Descripción: ${obraDesc}
+
+Trabajos a realizar:
+${items}
+
+${notas}
+
+REGLAS CRÍTICAS:
+1. NO repitas preguntas sobre los trabajos o m² — ya están definidos arriba.
+2. Calcula duración estimada BASÁNDOTE en los trabajos (no repreguntés "cuántos m²").
+3. Para cada especialidad: cantidad × días × costo_dia = subtotal.
+4. Asegúrate que total_mano_obra = suma de todos los subtotals.
+
+PREGUNTAS NECESARIAS (máx. 2):
+- ¿Costo diario por especialidad? (ej: pintor oficial $15.000-20.000/día)
+- ¿Tienen restricciones horarias o trabajos nocturnos?
+
+NO hagas preguntas sobre:
+- Metros cuadrados (ya están en los trabajos arriba)
+- Descripción de trabajos (ya están definidos)
+- Si preparan superficies (la obra ya lo especifica)
 
 FLUJO:
-1. Si el primer mensaje es "__INIT__", preséntate y hacé las primeras preguntas.
-2. Recopilá info sobre los trabajos y condiciones laborales.
-3. Generá el plan de personal con costos.
+1. Si es "__INIT__", preséntata brevemente y preguntá solo los costos por especialidad.
+2. Analiza los trabajos y estima duración.
+3. Asigna especialidades necesarias (pintores, ayudantes, capataz, etc).
+4. Calcula subtotales por especialidad.
+5. Generá el JSON.
 
-PREGUNTAS CLAVE:
-- ¿Tienen personal propio o contratan por obra?
-- ¿Cuánto pagan por día a cada especialidad?
-- ¿Trabajan con monotributistas o en relación de dependencia?
-- ¿Cuántos días de trabajo estimados?
-- ¿Hay restricciones horarias en el barrio/edificio?
-
-ESPECIALIDADES COMUNES:
-Pintores oficiales, pintores ayudantes, plomeros, gasistas, electricistas, colocadores de pisos (cerámicos / madera), yeseros, cielorristas, carpinteros, herreros, personal de limpieza, coordinador/capataz.
-
-Para cada especialidad: cantidad de personas × días × costo diario = subtotal.
-
-CUANDO TENGAS TODA LA INFO, generá el JSON al final:
+CUANDO TENGAS TODO, generá el JSON al final:
 
 \`\`\`json
 {
