@@ -97,8 +97,15 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
   const { label, variant, icon: EstadoIcon } = ESTADO_CONFIG[presupuesto.estado]
 
   async function handleDataGenerada(tipo: string, datos: unknown) {
+    console.log('📥 handleDataGenerada llamado:', { tipo, datosRecibidos: datos })
+
     const campo = MODULO_CAMPO[tipo]
-    if (!campo) return
+    console.log('🔍 Campo mapeado:', campo)
+
+    if (!campo) {
+      console.warn('⚠️ Tipo no reconocido:', tipo)
+      return
+    }
 
     const supabase = createClient()
     const { error } = await supabase
@@ -107,10 +114,12 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
       .eq('id', presupuesto.id)
 
     if (error) {
+      console.error('❌ Error en Supabase:', error)
       toast.error('Error al guardar datos: ' + error.message)
       return
     }
 
+    console.log('✅ Datos guardados en Supabase')
     setPresupuesto((prev) => ({ ...prev, [campo]: datos }))
     toast.success('Datos guardados correctamente')
   }
