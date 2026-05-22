@@ -109,7 +109,7 @@ export interface MaterialItem {
   descripcion: string
   unidad: string
   cantidad: number
-  precio_estimado: number
+  precio_estimado?: number
   precio_minimo?: number
   precio_maximo?: number
   proveedores?: { nombre: string; precio: number; url?: string }[]

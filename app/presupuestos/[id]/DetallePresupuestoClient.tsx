@@ -679,7 +679,7 @@ function MaterialesView({ data }: { data: MaterialesData }) {
       <div className="flex justify-between items-center">
         <h3 className="font-semibold text-slate-800">Lista de materiales</h3>
         <span className="text-sm font-bold text-slate-900">
-          Total estimado: {formatARS(data.total_estimado)}
+          Total estimado: {data.total_estimado && data.total_estimado > 0 ? formatARS(data.total_estimado) : '-'}
         </span>
       </div>
       <div className="rounded-lg border overflow-hidden">
@@ -694,20 +694,26 @@ function MaterialesView({ data }: { data: MaterialesData }) {
             </tr>
           </thead>
           <tbody>
-            {data.materiales.map((m, i) => (
-              <tr key={i} className="border-b last:border-0 hover:bg-slate-50/50">
-                <td className="px-3 py-2 font-medium text-slate-800">
-                  {m.descripcion}
-                  {m.notas && <p className="text-slate-400 font-normal text-[10px]">{m.notas}</p>}
-                </td>
-                <td className="px-3 py-2 text-center text-slate-500">{m.unidad}</td>
-                <td className="px-3 py-2 text-right text-slate-600">{m.cantidad}</td>
-                <td className="px-3 py-2 text-right text-slate-600">{formatARS(m.precio_estimado)}</td>
-                <td className="px-3 py-2 text-right font-bold text-slate-800">
-                  {formatARS(m.precio_estimado * m.cantidad)}
-                </td>
-              </tr>
-            ))}
+            {data.materiales.map((m, i) => {
+              const precioValido = m.precio_estimado != null && m.precio_estimado > 0
+              const totalItem = precioValido && m.precio_estimado != null ? m.precio_estimado * m.cantidad : 0
+              return (
+                <tr key={i} className="border-b last:border-0 hover:bg-slate-50/50">
+                  <td className="px-3 py-2 font-medium text-slate-800">
+                    {m.descripcion}
+                    {m.notas && <p className="text-slate-400 font-normal text-[10px]">{m.notas}</p>}
+                  </td>
+                  <td className="px-3 py-2 text-center text-slate-500">{m.unidad}</td>
+                  <td className="px-3 py-2 text-right text-slate-600">{m.cantidad}</td>
+                  <td className="px-3 py-2 text-right text-slate-600">
+                    {precioValido && m.precio_estimado != null ? formatARS(m.precio_estimado) : '-'}
+                  </td>
+                  <td className="px-3 py-2 text-right font-bold text-slate-800">
+                    {precioValido ? formatARS(totalItem) : '-'}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
