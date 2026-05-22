@@ -112,7 +112,8 @@ export function PresupuestoPDF({ presupuesto: p }: Props) {
   const subtotal = p.items.reduce((acc, item) => acc + item.subtotal, 0)
   const iva = subtotal * (p.iva_porcentaje / 100)
   const total = subtotal + iva
-  const anticipo = total * 0.35
+  // Usar el anticipo del presupuesto si existe, sino calcular como 35%
+  const anticipo = p.anticipo ?? (total * 0.35)
 
   return (
     <Document>
@@ -230,7 +231,7 @@ export function PresupuestoPDF({ presupuesto: p }: Props) {
 
         {/* Anticipo */}
         <View style={s.anticipoBox}>
-          <Text style={s.anticipoLabel}>ANTICIPO DE OBRA (35% del total)</Text>
+          <Text style={s.anticipoLabel}>ANTICIPO DE OBRA</Text>
           <Text style={s.anticipoValue}>{formatARS(anticipo)}</Text>
         </View>
 
