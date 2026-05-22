@@ -634,7 +634,7 @@ function TabAgente({
           <span className="text-sm font-semibold text-slate-700">
             {datosGenerados ? 'Datos generados' : 'Esperando resultados...'}
           </span>
-          {datosGenerados && (
+          {!!datosGenerados && (
             <Button
               size="sm"
               variant="outline"
