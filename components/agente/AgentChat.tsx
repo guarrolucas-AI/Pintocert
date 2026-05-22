@@ -147,16 +147,27 @@ export default function AgentChat({
   )
 
   function detectarJSON(texto: string) {
-    const regex = /```json\n([\s\S]*?)\n```/g
+    // Intenta 3 formatos de bloque JSON:
+    // 1. ```json\n...JSON...\n```
+    // 2. ```json\r\n...JSON...\r\n```
+    // 3. ```json ...JSON... ``` (sin saltos de línea estrictos)
+    const regex = /```json\s*([\s\S]*?)\s*```/g
     let match
     while ((match = regex.exec(texto)) !== null) {
       try {
-        const obj = JSON.parse(match[1]) as { tipo?: string; datos?: unknown }
+        const jsonStr = match[1].trim()
+        const obj = JSON.parse(jsonStr) as { tipo?: string; datos?: unknown }
         if (obj.tipo && obj.datos) {
           onDataGenerada?.(obj.tipo, obj.datos)
+          if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+            console.log(`✓ JSON detectado: tipo=${obj.tipo}`)
+          }
         }
-      } catch {
-        // ignorar JSON inválido
+      } catch (err) {
+        // Log para debug en development
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+          console.warn('⚠ JSON inválido detectado:', match[1].slice(0, 100), err)
+        }
       }
     }
   }
