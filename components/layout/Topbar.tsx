@@ -38,6 +38,12 @@ export function Topbar({ perfil }: TopbarProps) {
               Flipping Houses
             </span>
           </Link>
+          <Link
+            href="/presupuestos"
+            className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block"
+          >
+            Presupuestos
+          </Link>
           {perfil?.rol === 'admin' && (
             <Link
               href="/usuarios"

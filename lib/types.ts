@@ -90,3 +90,138 @@ export interface Pago {
   created_by: string
   created_at: string
 }
+
+// ─── Presupuestos ───────────────────────────────────────────────────────────
+
+export type EstadoPresupuesto = 'borrador' | 'pendiente' | 'aprobado' | 'rechazado'
+export type ModuloAgente = 'presupuesto' | 'materiales' | 'personal' | 'herramientas' | 'analisis'
+
+export interface ItemPresupuesto {
+  descripcion: string
+  unidad: string       // 'm²', 'm lineal', 'global', 'unidad', etc.
+  cantidad: number
+  precio_unitario: number
+  subtotal: number
+}
+
+// Estructuras generadas por el agente IA
+export interface MaterialItem {
+  descripcion: string
+  unidad: string
+  cantidad: number
+  precio_estimado: number
+  precio_minimo?: number
+  precio_maximo?: number
+  proveedores?: { nombre: string; precio: number; url?: string }[]
+  notas?: string
+}
+
+export interface MaterialesData {
+  materiales: MaterialItem[]
+  total_estimado: number
+  notas?: string
+}
+
+export interface ColaboradorPlan {
+  especialidad: string
+  cantidad: number
+  dias: number
+  costo_dia: number
+  subtotal: number
+}
+
+export interface PersonalData {
+  colaboradores: ColaboradorPlan[]
+  total_mano_obra: number
+  duracion_total_dias: number
+  notas?: string
+}
+
+export interface HerramientaItem {
+  nombre: string
+  tipo: 'propio' | 'alquiler'
+  costo_estimado?: number
+  observaciones?: string
+}
+
+export interface MedidaSeguridad {
+  categoria: string
+  medidas: string[]
+  normativa?: string
+}
+
+export interface HerramientasData {
+  herramientas: HerramientaItem[]
+  medidas_seguridad: MedidaSeguridad[]
+  notas?: string
+}
+
+export interface AnalisisData {
+  costos_directos: { materiales: number; mano_obra: number; subtotal: number }
+  costos_indirectos: { descripcion: string; monto: number }[]
+  contingencias_porcentaje: number
+  contingencias_monto: number
+  costo_total: number
+  precio_venta: number
+  ganancia_bruta: number
+  rentabilidad_sobre_costos: number
+  rentabilidad_sobre_ventas: number
+  flujo_caja: { concepto: string; monto: number; cuando: string }[]
+  notas?: string
+  recomendaciones?: string[]
+}
+
+export interface PlanEjecucionData {
+  duracion_semanas: number
+  anticipo_porcentaje: number
+  anticipo_monto: number
+  semanas: {
+    numero: number
+    descripcion: string
+    items_incluidos: string[]
+    porcentaje_avance: number
+    monto_certificar: number
+  }[]
+}
+
+export interface Presupuesto {
+  id: string
+  estado: EstadoPresupuesto
+  cliente: string
+  cliente_email: string | null
+  cliente_telefono: string | null
+  obra_descripcion: string
+  obra_direccion: string
+  obra_localidad: string
+  obra_provincia: string
+  items: ItemPresupuesto[]
+  iva_porcentaje: number
+  subtotal: number
+  monto_iva: number
+  total: number
+  validez_dias: number
+  notas: string | null
+  lista_materiales: MaterialesData | null
+  plan_personal: PersonalData | null
+  herramientas_seguridad: HerramientasData | null
+  analisis_economico: AnalisisData | null
+  obra_id: string | null
+  fecha_aprobacion: string | null
+  plan_ejecucion: PlanEjecucionData | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MensajeChat {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface PresupuestoMensajes {
+  id: string
+  presupuesto_id: string
+  modulo: ModuloAgente
+  messages: MensajeChat[]
+  updated_at: string
+}

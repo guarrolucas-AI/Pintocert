@@ -1,0 +1,767 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import dynamic from 'next/dynamic'
+import { createClient } from '@/lib/supabase/client'
+import AgentChat from '@/components/agente/AgentChat'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { formatARS } from '@/lib/utils'
+import { aprobarPresupuesto, cambiarEstadoPresupuesto } from './actions'
+import type {
+  Presupuesto,
+  PresupuestoMensajes,
+  ModuloAgente,
+  MensajeChat,
+  EstadoPresupuesto,
+  MaterialesData,
+  PersonalData,
+  HerramientasData,
+  AnalisisData,
+} from '@/lib/types'
+import {
+  FileText,
+  Bot,
+  Package,
+  Users,
+  HardHat,
+  BarChart3,
+  ExternalLink,
+  CheckCircle,
+  Clock,
+  XCircle,
+  AlertCircle,
+} from 'lucide-react'
+
+const PresupuestoPDFDownload = dynamic(
+  () => import('@/components/presupuestos/PresupuestoPDFDownload'),
+  { ssr: false }
+)
+
+const ESTADO_CONFIG: Record<
+  EstadoPresupuesto,
+  { label: string; variant: 'success' | 'warning' | 'muted' | 'destructive'; icon: React.ElementType }
+> = {
+  borrador: { label: 'Borrador', variant: 'muted', icon: AlertCircle },
+  pendiente: { label: 'Pendiente aprobación', variant: 'warning', icon: Clock },
+  aprobado: { label: 'Aprobado', variant: 'success', icon: CheckCircle },
+  rechazado: { label: 'Rechazado', variant: 'destructive', icon: XCircle },
+}
+
+type TabId = 'resumen' | ModuloAgente
+
+const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: 'resumen', label: 'Resumen', icon: FileText },
+  { id: 'materiales', label: 'Materiales', icon: Package },
+  { id: 'personal', label: 'Personal', icon: Users },
+  { id: 'herramientas', label: 'Herramientas', icon: HardHat },
+  { id: 'analisis', label: 'Análisis', icon: BarChart3 },
+]
+
+const MODULO_CAMPO: Record<string, keyof Presupuesto> = {
+  materiales_completo: 'lista_materiales',
+  personal_completo: 'plan_personal',
+  herramientas_completo: 'herramientas_seguridad',
+  analisis_completo: 'analisis_economico',
+}
+
+const MODULO_TAB: Record<string, ModuloAgente> = {
+  materiales_completo: 'materiales',
+  personal_completo: 'personal',
+  herramientas_completo: 'herramientas',
+  analisis_completo: 'analisis',
+}
+
+interface Props {
+  presupuesto: Presupuesto
+  mensajesPorModulo: Partial<Record<ModuloAgente, PresupuestoMensajes>>
+  userId: string
+}
+
+export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorModulo, userId }: Props) {
+  const router = useRouter()
+  const [tab, setTab] = useState<TabId>('resumen')
+  const [presupuesto, setPresupuesto] = useState(initialP)
+  const [isPending, startTransition] = useTransition()
+
+  const { label, variant, icon: EstadoIcon } = ESTADO_CONFIG[presupuesto.estado]
+
+  async function handleDataGenerada(tipo: string, datos: unknown) {
+    const campo = MODULO_CAMPO[tipo]
+    if (!campo) return
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('presupuestos')
+      .update({ [campo]: datos })
+      .eq('id', presupuesto.id)
+
+    if (error) {
+      toast.error('Error al guardar datos: ' + error.message)
+      return
+    }
+
+    setPresupuesto((prev) => ({ ...prev, [campo]: datos }))
+    toast.success('Datos guardados correctamente')
+  }
+
+  async function handleMensajesActualizados(modulo: ModuloAgente, mensajes: MensajeChat[]) {
+    const supabase = createClient()
+    await supabase.from('presupuesto_mensajes').upsert(
+      { presupuesto_id: presupuesto.id, modulo, messages: mensajes },
+      { onConflict: 'presupuesto_id,modulo' }
+    )
+  }
+
+  function handleAprobar() {
+    startTransition(async () => {
+      const { error, obraId } = await aprobarPresupuesto(presupuesto.id)
+      if (error) {
+        toast.error('Error: ' + error)
+        return
+      }
+      toast.success('Presupuesto aprobado. Obra creada correctamente.')
+      if (obraId) {
+        router.push(`/obras/${obraId}`)
+      } else {
+        router.refresh()
+      }
+    })
+  }
+
+  function handleCambiarEstado(estado: 'pendiente' | 'rechazado' | 'borrador') {
+    startTransition(async () => {
+      const { error } = await cambiarEstadoPresupuesto(presupuesto.id, estado)
+      if (error) {
+        toast.error('Error: ' + error)
+        return
+      }
+      setPresupuesto((prev) => ({ ...prev, estado }))
+      toast.success('Estado actualizado')
+    })
+  }
+
+  return (
+    <div>
+      {/* Encabezado */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h1 className="text-2xl font-bold text-slate-900">
+              {presupuesto.cliente || 'Sin nombre'}
+            </h1>
+            <Badge variant={variant} className="flex items-center gap-1">
+              <EstadoIcon className="w-3 h-3" />
+              {label}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">{presupuesto.obra_direccion}</p>
+          <p className="text-sm text-muted-foreground">
+            {presupuesto.obra_localidad}, {presupuesto.obra_provincia}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {presupuesto.obra_id && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/obras/${presupuesto.obra_id}`}>
+                <ExternalLink className="w-4 h-4" />
+                Ver obra
+              </Link>
+            </Button>
+          )}
+          <PresupuestoPDFDownload
+            presupuesto={presupuesto}
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium h-9"
+          />
+          {presupuesto.estado === 'borrador' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleCambiarEstado('pendiente')}
+              disabled={isPending}
+            >
+              Enviar para aprobación
+            </Button>
+          )}
+          {presupuesto.estado === 'pendiente' && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleCambiarEstado('rechazado')}
+                disabled={isPending}
+                className="border-red-200 text-red-600 hover:bg-red-50"
+              >
+                Rechazar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleAprobar}
+                disabled={isPending}
+                className="bg-green-600 hover:bg-green-500 text-white"
+              >
+                {isPending ? 'Aprobando...' : 'Aprobar y crear obra'}
+              </Button>
+            </>
+          )}
+          {presupuesto.estado === 'rechazado' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleCambiarEstado('borrador')}
+              disabled={isPending}
+            >
+              Volver a borrador
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-slate-200 mb-6">
+        <nav className="-mb-px flex gap-0 overflow-x-auto">
+          {TABS.map(({ id, label: tabLabel, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                tab === id
+                  ? 'border-yellow-400 text-slate-900'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tabLabel}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Contenido del tab */}
+      {tab === 'resumen' && <TabResumen presupuesto={presupuesto} />}
+      {tab === 'materiales' && (
+        <TabAgente
+          modo="materiales"
+          presupuesto={presupuesto}
+          mensajesIniciales={mensajesPorModulo['materiales']?.messages}
+          onDataGenerada={handleDataGenerada}
+          onMensajesActualizados={(m) => handleMensajesActualizados('materiales', m)}
+          datosGenerados={presupuesto.lista_materiales}
+          renderDatos={(d) => <MaterialesView data={d as MaterialesData} />}
+        />
+      )}
+      {tab === 'personal' && (
+        <TabAgente
+          modo="personal"
+          presupuesto={presupuesto}
+          mensajesIniciales={mensajesPorModulo['personal']?.messages}
+          onDataGenerada={handleDataGenerada}
+          onMensajesActualizados={(m) => handleMensajesActualizados('personal', m)}
+          datosGenerados={presupuesto.plan_personal}
+          renderDatos={(d) => <PersonalView data={d as PersonalData} />}
+        />
+      )}
+      {tab === 'herramientas' && (
+        <TabAgente
+          modo="herramientas"
+          presupuesto={presupuesto}
+          mensajesIniciales={mensajesPorModulo['herramientas']?.messages}
+          onDataGenerada={handleDataGenerada}
+          onMensajesActualizados={(m) => handleMensajesActualizados('herramientas', m)}
+          datosGenerados={presupuesto.herramientas_seguridad}
+          renderDatos={(d) => <HerramientasView data={d as HerramientasData} />}
+        />
+      )}
+      {tab === 'analisis' && (
+        <TabAgente
+          modo="analisis"
+          presupuesto={presupuesto}
+          mensajesIniciales={mensajesPorModulo['analisis']?.messages}
+          onDataGenerada={handleDataGenerada}
+          onMensajesActualizados={(m) => handleMensajesActualizados('analisis', m)}
+          datosGenerados={presupuesto.analisis_economico}
+          renderDatos={(d) => <AnalisisView data={d as AnalisisData} />}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Tab Resumen ──────────────────────────────────────────────────────────────
+
+function TabResumen({ presupuesto: p }: { presupuesto: Presupuesto }) {
+  const anticipo = p.total * 0.35
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-5">
+      {/* Resumen financiero */}
+      <div className="lg:col-span-2 space-y-4">
+        <div className="rounded-lg border bg-white p-5">
+          <h3 className="text-sm font-semibold text-slate-700 mb-4">Resumen financiero</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between text-slate-600">
+              <span>Subtotal sin IVA</span>
+              <span className="font-semibold">{formatARS(p.subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-slate-600">
+              <span>IVA ({p.iva_porcentaje}%)</span>
+              <span className="font-semibold">{formatARS(p.monto_iva)}</span>
+            </div>
+            <div className="flex justify-between py-2 px-3 rounded-lg bg-slate-900 text-white mt-2">
+              <span className="font-bold">TOTAL</span>
+              <span className="font-bold text-base">{formatARS(p.total)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-yellow-400 p-4 flex justify-between items-center">
+          <div>
+            <p className="text-xs font-bold text-black/70">ANTICIPO (35%)</p>
+            <p className="text-xl font-black text-black">{formatARS(anticipo)}</p>
+          </div>
+          <p className="text-xs text-black/60 text-right">
+            Al inicio<br />de la obra
+          </p>
+        </div>
+
+        <div className="rounded-lg border bg-white p-5">
+          <h3 className="text-sm font-semibold text-slate-700 mb-3">Condiciones</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Validez</span>
+              <span className="font-medium">{p.validez_dias} días</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Moneda</span>
+              <span className="font-medium">ARS</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Forma de pago</span>
+              <span className="font-medium text-right">35% anticipo + cert. semanales</span>
+            </div>
+          </div>
+        </div>
+
+        {p.fecha_aprobacion && (
+          <div className="rounded-lg border bg-green-50 border-green-200 p-4">
+            <p className="text-xs text-green-700 font-semibold">Aprobado el</p>
+            <p className="text-green-900 font-bold">
+              {new Date(p.fecha_aprobacion).toLocaleDateString('es-AR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Tabla de ítems */}
+      <div className="lg:col-span-3">
+        <div className="rounded-lg border bg-white overflow-hidden">
+          <div className="px-5 py-3 border-b bg-slate-50">
+            <h3 className="text-sm font-semibold text-slate-700">
+              Detalle de trabajos ({p.items.length} ítems)
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="text-left px-4 py-2.5 text-slate-500 font-semibold">#</th>
+                  <th className="text-left px-4 py-2.5 text-slate-500 font-semibold">Descripción</th>
+                  <th className="text-center px-4 py-2.5 text-slate-500 font-semibold">Unidad</th>
+                  <th className="text-right px-4 py-2.5 text-slate-500 font-semibold">Cant.</th>
+                  <th className="text-right px-4 py-2.5 text-slate-500 font-semibold">P.U.</th>
+                  <th className="text-right px-4 py-2.5 text-slate-500 font-semibold">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.items.map((item, idx) => (
+                  <tr key={idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                    <td className="px-4 py-2.5 text-slate-400">{idx + 1}</td>
+                    <td className="px-4 py-2.5 font-medium text-slate-800">{item.descripcion}</td>
+                    <td className="px-4 py-2.5 text-center text-slate-500">{item.unidad}</td>
+                    <td className="px-4 py-2.5 text-right text-slate-600">{item.cantidad}</td>
+                    <td className="px-4 py-2.5 text-right text-slate-600">{formatARS(item.precio_unitario)}</td>
+                    <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatARS(item.subtotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-slate-50 border-t border-slate-200">
+                  <td colSpan={5} className="px-4 py-2.5 font-bold text-slate-700 text-right">TOTAL SIN IVA</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-slate-900">{formatARS(p.subtotal)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {p.notas && (
+          <div className="mt-4 rounded-lg border bg-white p-5">
+            <h3 className="text-sm font-semibold text-slate-700 mb-2">Notas y condiciones adicionales</h3>
+            <p className="text-sm text-slate-600 whitespace-pre-wrap">{p.notas}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Tab con Agente ───────────────────────────────────────────────────────────
+
+interface TabAgenteProps {
+  modo: ModuloAgente
+  presupuesto: Presupuesto
+  mensajesIniciales?: MensajeChat[]
+  onDataGenerada: (tipo: string, datos: unknown) => void
+  onMensajesActualizados: (mensajes: MensajeChat[]) => void
+  datosGenerados: unknown
+  renderDatos: (datos: unknown) => React.JSX.Element
+}
+
+function TabAgente({
+  modo,
+  presupuesto,
+  mensajesIniciales,
+  onDataGenerada,
+  onMensajesActualizados,
+  datosGenerados,
+  renderDatos,
+}: TabAgenteProps) {
+  return (
+    <div className="flex gap-4" style={{ height: 'calc(100vh - 260px)', minHeight: '480px' }}>
+      {/* Chat */}
+      <div className="w-5/12 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
+        <div className="shrink-0 px-4 py-3 border-b bg-[#0a0a0a] flex items-center gap-2">
+          <Bot className="w-4 h-4 text-yellow-400" />
+          <span className="text-sm font-semibold text-white">Agente IA</span>
+          {!!datosGenerados && (
+            <CheckCircle className="w-4 h-4 text-green-400 ml-auto" />
+          )}
+        </div>
+        <AgentChat
+          modo={modo}
+          contexto={{ presupuesto }}
+          mensajesIniciales={mensajesIniciales}
+          onDataGenerada={onDataGenerada}
+          onMensajesActualizados={onMensajesActualizados}
+        />
+      </div>
+
+      {/* Resultado */}
+      <div className="flex-1 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
+        <div className="shrink-0 px-4 py-3 border-b bg-slate-50">
+          <span className="text-sm font-semibold text-slate-700">
+            {datosGenerados ? 'Datos generados' : 'Esperando resultados...'}
+          </span>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          {datosGenerados ? (
+            renderDatos(datosGenerados)
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-slate-400">
+              <div className="text-4xl opacity-30">💬</div>
+              <p className="text-sm">Conversá con el agente para generar esta sección.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Vistas de datos generados ────────────────────────────────────────────────
+
+function MaterialesView({ data }: { data: MaterialesData }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="font-semibold text-slate-800">Lista de materiales</h3>
+        <span className="text-sm font-bold text-slate-900">
+          Total estimado: {formatARS(data.total_estimado)}
+        </span>
+      </div>
+      <div className="rounded-lg border overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-slate-50 border-b">
+              <th className="text-left px-3 py-2 text-slate-500 font-semibold">Material</th>
+              <th className="text-center px-3 py-2 text-slate-500 font-semibold">Unidad</th>
+              <th className="text-right px-3 py-2 text-slate-500 font-semibold">Cant.</th>
+              <th className="text-right px-3 py-2 text-slate-500 font-semibold">Precio est.</th>
+              <th className="text-right px-3 py-2 text-slate-500 font-semibold">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.materiales.map((m, i) => (
+              <tr key={i} className="border-b last:border-0 hover:bg-slate-50/50">
+                <td className="px-3 py-2 font-medium text-slate-800">
+                  {m.descripcion}
+                  {m.notas && <p className="text-slate-400 font-normal text-[10px]">{m.notas}</p>}
+                </td>
+                <td className="px-3 py-2 text-center text-slate-500">{m.unidad}</td>
+                <td className="px-3 py-2 text-right text-slate-600">{m.cantidad}</td>
+                <td className="px-3 py-2 text-right text-slate-600">{formatARS(m.precio_estimado)}</td>
+                <td className="px-3 py-2 text-right font-bold text-slate-800">
+                  {formatARS(m.precio_estimado * m.cantidad)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {data.notas && (
+        <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">{data.notas}</div>
+      )}
+    </div>
+  )
+}
+
+function PersonalView({ data }: { data: PersonalData }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-lg bg-slate-50 p-4 text-center">
+          <p className="text-xs text-slate-500">Costo total</p>
+          <p className="text-lg font-bold text-slate-900">{formatARS(data.total_mano_obra)}</p>
+        </div>
+        <div className="rounded-lg bg-slate-50 p-4 text-center">
+          <p className="text-xs text-slate-500">Duración</p>
+          <p className="text-lg font-bold text-slate-900">{data.duracion_total_dias} días</p>
+        </div>
+        <div className="rounded-lg bg-slate-50 p-4 text-center">
+          <p className="text-xs text-slate-500">Especialidades</p>
+          <p className="text-lg font-bold text-slate-900">{data.colaboradores.length}</p>
+        </div>
+      </div>
+      <div className="rounded-lg border overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-slate-50 border-b">
+              <th className="text-left px-3 py-2 text-slate-500 font-semibold">Especialidad</th>
+              <th className="text-right px-3 py-2 text-slate-500 font-semibold">Cant.</th>
+              <th className="text-right px-3 py-2 text-slate-500 font-semibold">Días</th>
+              <th className="text-right px-3 py-2 text-slate-500 font-semibold">Costo/día</th>
+              <th className="text-right px-3 py-2 text-slate-500 font-semibold">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.colaboradores.map((c, i) => (
+              <tr key={i} className="border-b last:border-0 hover:bg-slate-50/50">
+                <td className="px-3 py-2 font-medium text-slate-800">{c.especialidad}</td>
+                <td className="px-3 py-2 text-right text-slate-600">{c.cantidad}</td>
+                <td className="px-3 py-2 text-right text-slate-600">{c.dias}</td>
+                <td className="px-3 py-2 text-right text-slate-600">{formatARS(c.costo_dia)}</td>
+                <td className="px-3 py-2 text-right font-bold text-slate-800">{formatARS(c.subtotal)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-slate-50 border-t">
+              <td colSpan={4} className="px-3 py-2 font-bold text-slate-700 text-right">TOTAL</td>
+              <td className="px-3 py-2 text-right font-bold text-slate-900">{formatARS(data.total_mano_obra)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {data.notas && (
+        <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">{data.notas}</div>
+      )}
+    </div>
+  )
+}
+
+function HerramientasView({ data }: { data: HerramientasData }) {
+  return (
+    <div className="space-y-6">
+      {/* Herramientas */}
+      <div>
+        <h3 className="font-semibold text-slate-800 mb-3">Herramientas y equipamiento</h3>
+        <div className="space-y-2">
+          {data.herramientas.map((h, i) => (
+            <div key={i} className="flex items-start justify-between p-3 rounded-lg border bg-slate-50/50 text-sm">
+              <div>
+                <p className="font-medium text-slate-800">{h.nombre}</p>
+                {h.observaciones && (
+                  <p className="text-xs text-slate-500 mt-0.5">{h.observaciones}</p>
+                )}
+              </div>
+              <div className="text-right ml-4 shrink-0">
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  h.tipo === 'alquiler' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                }`}>
+                  {h.tipo === 'alquiler' ? 'Alquiler' : 'Propio'}
+                </span>
+                {h.costo_estimado != null && h.costo_estimado > 0 && (
+                  <p className="text-xs font-bold text-slate-700 mt-1">{formatARS(h.costo_estimado)}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Seguridad */}
+      <div>
+        <h3 className="font-semibold text-slate-800 mb-3">Medidas de seguridad</h3>
+        <div className="space-y-3">
+          {data.medidas_seguridad.map((ms, i) => (
+            <div key={i} className="rounded-lg border p-4">
+              <div className="flex items-start justify-between mb-2">
+                <p className="font-semibold text-slate-800 text-sm">{ms.categoria}</p>
+                {ms.normativa && (
+                  <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-mono">
+                    {ms.normativa}
+                  </span>
+                )}
+              </div>
+              <ul className="space-y-1">
+                {ms.medidas.map((m, j) => (
+                  <li key={j} className="flex items-start gap-2 text-sm text-slate-600">
+                    <span className="text-yellow-500 mt-0.5">·</span>
+                    {m}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {data.notas && (
+        <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">{data.notas}</div>
+      )}
+    </div>
+  )
+}
+
+function AnalisisView({ data }: { data: AnalisisData }) {
+  const rentabilidadColor =
+    data.rentabilidad_sobre_ventas >= 25
+      ? 'text-green-700'
+      : data.rentabilidad_sobre_ventas >= 10
+      ? 'text-yellow-700'
+      : 'text-red-700'
+
+  return (
+    <div className="space-y-6">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiCard label="Precio de venta" value={formatARS(data.precio_venta)} />
+        <KpiCard label="Costo total" value={formatARS(data.costo_total)} />
+        <KpiCard label="Ganancia bruta" value={formatARS(data.ganancia_bruta)} />
+        <KpiCard
+          label="Rentabilidad s/ ventas"
+          value={`${data.rentabilidad_sobre_ventas.toFixed(1)}%`}
+          className={rentabilidadColor}
+        />
+      </div>
+
+      {/* Costos */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-lg border bg-white p-4">
+          <h4 className="text-sm font-semibold text-slate-700 mb-3">Costos directos</h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between text-slate-600">
+              <span>Materiales</span>
+              <span className="font-medium">{formatARS(data.costos_directos.materiales)}</span>
+            </div>
+            <div className="flex justify-between text-slate-600">
+              <span>Mano de obra</span>
+              <span className="font-medium">{formatARS(data.costos_directos.mano_obra)}</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t font-semibold text-slate-800">
+              <span>Subtotal directo</span>
+              <span>{formatARS(data.costos_directos.subtotal)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-white p-4">
+          <h4 className="text-sm font-semibold text-slate-700 mb-3">Costos indirectos y contingencias</h4>
+          <div className="space-y-2 text-sm">
+            {data.costos_indirectos.map((ci, i) => (
+              <div key={i} className="flex justify-between text-slate-600">
+                <span>{ci.descripcion}</span>
+                <span className="font-medium">{formatARS(ci.monto)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between text-slate-600">
+              <span>Contingencias ({data.contingencias_porcentaje}%)</span>
+              <span className="font-medium">{formatARS(data.contingencias_monto)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Flujo de caja */}
+      {data.flujo_caja && data.flujo_caja.length > 0 && (
+        <div>
+          <h4 className="text-sm font-semibold text-slate-700 mb-3">Flujo de caja proyectado</h4>
+          <div className="rounded-lg border overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b">
+                  <th className="text-left px-3 py-2 text-slate-500 font-semibold">Concepto</th>
+                  <th className="text-right px-3 py-2 text-slate-500 font-semibold">Monto</th>
+                  <th className="text-left px-3 py-2 text-slate-500 font-semibold">Cuándo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.flujo_caja.map((fc, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="px-3 py-2 font-medium text-slate-800">{fc.concepto}</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900">{formatARS(fc.monto)}</td>
+                    <td className="px-3 py-2 text-slate-500">{fc.cuando}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Recomendaciones */}
+      {data.recomendaciones && data.recomendaciones.length > 0 && (
+        <div className="rounded-lg bg-blue-50 border border-blue-100 p-4">
+          <h4 className="text-sm font-semibold text-blue-800 mb-2">Recomendaciones</h4>
+          <ul className="space-y-1.5">
+            {data.recomendaciones.map((r, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-blue-700">
+                <span className="text-blue-400 mt-0.5">·</span>
+                {r}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {data.notas && (
+        <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">{data.notas}</div>
+      )}
+    </div>
+  )
+}
+
+function KpiCard({
+  label,
+  value,
+  className = '',
+}: {
+  label: string
+  value: string
+  className?: string
+}) {
+  return (
+    <div className="rounded-lg border bg-white p-4">
+      <p className="text-xs text-slate-500 mb-1">{label}</p>
+      <p className={`text-lg font-bold ${className || 'text-slate-900'}`}>{value}</p>
+    </div>
+  )
+}
