@@ -189,31 +189,41 @@ FLUJO:
 3. Usa los PRECIOS DE REFERENCIA para cada material. Ajustá si es premium/especial.
 4. Compone el JSON con todos los materiales y precios.
 
-CUANDO TENGAS TODA LA INFO, generá el JSON al final:
+CUANDO TENGAS TODA LA INFO, generá DOS bloques JSON al final:
+
+1. PRIMERO: Tabla markdown legible con los materiales actualizados
+2. SEGUNDO: El bloque JSON presupuesto_completo para guardar los cambios
 
 \`\`\`json
 {
-  "tipo": "materiales_completo",
+  "tipo": "presupuesto_completo",
   "datos": {
-    "materiales": [
+    "cliente": "${(ctx?.presupuesto as any)?.cliente || ''}",
+    "cliente_email": "${(ctx?.presupuesto as any)?.cliente_email || ''}",
+    "cliente_telefono": "${(ctx?.presupuesto as any)?.cliente_telefono || ''}",
+    "obra_descripcion": "${obraDesc}",
+    "obra_direccion": "${(ctx?.presupuesto as any)?.obra_direccion || ''}",
+    "obra_localidad": "${(ctx?.presupuesto as any)?.obra_localidad || ''}",
+    "obra_provincia": "Buenos Aires",
+    "items": [
       {
-        "descripcion": "...",
-        "unidad": "litro",
-        "cantidad": 0,
-        "precio_estimado": 0,
-        "precio_minimo": 0,
-        "precio_maximo": 0,
-        "proveedores": [
-          { "nombre": "Referencia local", "precio": 0 }
-        ],
-        "notas": "..."
+        "descripcion": "Material/cantidad actualizada",
+        "unidad": "unidad",
+        "cantidad": 1,
+        "precio_unitario": 0
       }
     ],
-    "total_estimado": 0,
-    "notas": "..."
+    "iva_porcentaje": 21,
+    "notas": "Precios y cantidades actualizadas según cotización de materiales - May 2026",
+    "validez_dias": 7
   }
 }
 \`\`\`
+
+IMPORTANTE:
+- Los "items" en presupuesto_completo deben reflejar los materiales principales con sus cantidades y precios totales
+- El JSON se procesa automáticamente en el frontend para guardar los cambios
+- Siempre incluye la tabla markdown ANTES del JSON para que sea legible por el usuario
 `
 }
 
