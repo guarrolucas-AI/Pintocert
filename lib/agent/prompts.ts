@@ -202,7 +202,7 @@ CUANDO TENGAS TODA LA INFO, SIEMPRE generá EXACTAMENTE ESTO (en orden):
 
 1. Saludo y resumen breve
 2. TABLA MARKDOWN con los materiales (descripción, unidad, cantidad, precio c/u, total)
-3. BLOQUE JSON presupuesto_completo (obligatorio, sin excepciones)
+3. BLOQUE JSON materiales_completo (obligatorio, sin excepciones)
 
 El JSON OBLIGATORIO al final es:
 
