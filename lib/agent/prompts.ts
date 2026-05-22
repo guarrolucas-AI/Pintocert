@@ -208,31 +208,37 @@ El JSON OBLIGATORIO al final es:
 
 \`\`\`json
 {
-  "tipo": "presupuesto_completo",
+  "tipo": "materiales_completo",
   "datos": {
-    "cliente": "NOMBRE_DEL_CLIENTE_DEL_PRESUPUESTO_ORIGINAL",
-    "cliente_email": "EMAIL_SI_EXISTE",
-    "cliente_telefono": "TELEFONO_SI_EXISTE",
-    "obra_descripcion": "DESCRIPCION_DE_LA_OBRA",
-    "obra_direccion": "DIRECCION_SI_EXISTE",
-    "obra_localidad": "LOCALIDAD_SI_EXISTE",
-    "obra_provincia": "Buenos Aires",
-    "items": ${itemsJsonString},
-    "iva_porcentaje": 21,
-    "notas": "Cotización de materiales actualizada",
-    "validez_dias": 7
+    "materiales": [
+      {
+        "descripcion": "Descripción exacta del material",
+        "unidad": "litro/bolsa/balde/m²",
+        "cantidad": NUMERO,
+        "precio_estimado": PRECIO_NUMERO,
+        "precio_minimo": PRECIO_NUMERO,
+        "precio_maximo": PRECIO_NUMERO,
+        "proveedores": [
+          { "nombre": "Proveedor", "precio": NUMERO }
+        ],
+        "notas": "Observaciones opcionales"
+      }
+    ],
+    "total_estimado": SUMA_TOTAL,
+    "notas": "Notas generales de la cotización"
   }
 }
 \`\`\`
 
 REGLAS CRÍTICAS PARA EL JSON:
-1. DEBE tener "tipo": "presupuesto_completo" (EXACTAMENTE así, sin cambios)
-2. Los "items" array DEBE contener TODOS los materiales de la tabla
-3. Cada item DEBE tener: descripcion, unidad, cantidad, precio_unitario (números, no strings)
-4. El JSON DEBE ser válido (pueda parsearse con JSON.parse)
-5. SIEMPRE incluye cliente, obra_descripcion, items (no pueden estar vacíos)
-6. Mostrar tabla ANTES de generar el JSON
-7. NUNCA omitas el JSON — ES OBLIGATORIO para guardar los cambios en el frontend
+1. DEBE tener "tipo": "materiales_completo" (EXACTAMENTE así)
+2. TODOS los materiales de la tabla van en el array "materiales"
+3. CADA material DEBE tener: descripcion, unidad, cantidad, precio_estimado, precio_minimo, precio_maximo, proveedores[]
+4. total_estimado = suma de (cantidad × precio_estimado) de cada material
+5. Los números NO llevan $ ni símbolos (solo cifras)
+6. El JSON DEBE ser válido (parsearse con JSON.parse)
+7. Mostrar tabla markdown ANTES del JSON
+8. NUNCA omitas el JSON — ES OBLIGATORIO para guardar en el frontend
 `
 }
 

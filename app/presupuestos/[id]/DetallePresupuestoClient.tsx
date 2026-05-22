@@ -99,29 +99,6 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
   async function handleDataGenerada(tipo: string, datos: unknown) {
     console.log('📥 handleDataGenerada llamado:', { tipo, datosRecibidos: datos })
 
-    // Caso especial: presupuesto_completo (actualiza items del presupuesto)
-    if (tipo === 'presupuesto_completo') {
-      const presupuestoData = datos as any
-      const nuevosItems = presupuestoData.items || []
-
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('presupuestos')
-        .update({ items: nuevosItems })
-        .eq('id', presupuesto.id)
-
-      if (error) {
-        console.error('❌ Error en Supabase:', error)
-        toast.error('Error al guardar items: ' + error.message)
-        return
-      }
-
-      console.log('✅ Items actualizados en Supabase')
-      setPresupuesto((prev) => ({ ...prev, items: nuevosItems }))
-      toast.success('Presupuesto actualizado correctamente')
-      return
-    }
-
     const campo = MODULO_CAMPO[tipo]
     console.log('🔍 Campo mapeado:', campo)
 
