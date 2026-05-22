@@ -77,7 +77,11 @@ export async function POST(req: NextRequest) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const tools = usaWebSearch
-            ? ([{ type: 'web_search_20260209', name: 'web_search' }] as any[])
+            ? ([{
+                type: 'web_search_20260209',
+                name: 'web_search',
+                allowed_callers: ['direct'],
+              }] as any[])
             : undefined
 
           const msgStream = anthropic.messages.stream({
