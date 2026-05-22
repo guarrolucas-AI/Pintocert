@@ -147,42 +147,28 @@ export default function AgentChat({
   )
 
   function detectarJSON(texto: string) {
-    console.log('🔎 detectarJSON: buscando bloques JSON en el texto...')
-    console.log('Primeros 200 chars:', texto.slice(0, 200))
-
     // Intenta 3 formatos de bloque JSON:
     // 1. ```json\n...JSON...\n```
     // 2. ```json\r\n...JSON...\r\n```
     // 3. ```json ...JSON... ``` (sin saltos de línea estrictos)
     const regex = /```json\s*([\s\S]*?)\s*```/g
     let match
-    let encontrados = 0
-
     while ((match = regex.exec(texto)) !== null) {
-      encontrados++
-      console.log(`📦 Bloque JSON #${encontrados} encontrado`)
       try {
         const jsonStr = match[1].trim()
-        console.log('Parseando JSON:', jsonStr.slice(0, 150), '...')
         const obj = JSON.parse(jsonStr) as { tipo?: string; datos?: unknown }
-        console.log('✅ JSON parseado:', { tipo: obj.tipo, tieneData: !!obj.datos })
-
         if (obj.tipo && obj.datos) {
-          console.log(`📤 Llamando onDataGenerada con tipo=${obj.tipo}`)
           onDataGenerada?.(obj.tipo, obj.datos)
-        } else {
-          console.warn('⚠️ JSON válido pero sin tipo o datos:', obj)
+          if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+            console.log(`✓ JSON detectado: tipo=${obj.tipo}`)
+          }
         }
       } catch (err) {
-        console.error('❌ Error parseando JSON:', err)
-        console.error('JSON raw:', match[1].slice(0, 200))
+        // Log para debug en development
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+          console.warn('⚠ JSON inválido detectado:', match[1].slice(0, 100), err)
+        }
       }
-    }
-
-    if (encontrados === 0) {
-      console.warn('⚠️ No se encontraron bloques JSON en el texto')
-    } else {
-      console.log(`✓ Procesados ${encontrados} bloques JSON`)
     }
   }
 
