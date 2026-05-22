@@ -110,6 +110,9 @@ export default function AgentChat({
               } else if (evento.type === 'done') {
                 // Buscar bloques JSON en el texto final
                 detectarJSON(textoCompleto)
+              } else if (evento.type === 'error') {
+                textoCompleto = `❌ Error del servidor: ${evento.message}`
+                setTextoActual(textoCompleto)
               }
             } catch {
               // ignorar líneas malformadas
@@ -117,11 +120,13 @@ export default function AgentChat({
           }
         }
 
-        // Agregar respuesta del asistente al historial
-        const mensajeAsistente: MensajeChat = { role: 'assistant', content: textoCompleto }
-        const historialFinal = [...nuevosMensajes, mensajeAsistente]
-        setMensajes(historialFinal)
-        onMensajesActualizados?.(historialFinal)
+        // Agregar respuesta del asistente al historial (solo si tiene contenido)
+        if (textoCompleto.trim()) {
+          const mensajeAsistente: MensajeChat = { role: 'assistant', content: textoCompleto }
+          const historialFinal = [...nuevosMensajes, mensajeAsistente]
+          setMensajes(historialFinal)
+          onMensajesActualizados?.(historialFinal)
+        }
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : 'Error desconocido'
         const historialConError = [
