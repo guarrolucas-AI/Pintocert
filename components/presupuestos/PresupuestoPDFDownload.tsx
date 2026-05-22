@@ -1,16 +1,8 @@
 'use client'
 
-import dynamic from 'next/dynamic'
+import { PDFDownloadLink } from '@react-pdf/renderer'
+import { PresupuestoPDF } from './PresupuestoPDF'
 import type { Presupuesto } from '@/lib/types'
-
-const PDFDownloadLink = dynamic(
-  () => import('@react-pdf/renderer').then((m) => m.PDFDownloadLink),
-  { ssr: false }
-)
-const PresupuestoPDFComp = dynamic(
-  () => import('./PresupuestoPDF').then((m) => m.PresupuestoPDF),
-  { ssr: false }
-)
 
 interface Props {
   presupuesto: Presupuesto
@@ -22,7 +14,7 @@ export default function PresupuestoPDFDownload({ presupuesto, className = '' }: 
 
   return (
     <PDFDownloadLink
-      document={<PresupuestoPDFComp presupuesto={presupuesto} />}
+      document={<PresupuestoPDF presupuesto={presupuesto} />}
       fileName={nombre}
       className={className}
     >
