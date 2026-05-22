@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import AgentChat from '@/components/agente/AgentChat'
 import { Button } from '@/components/ui/button'
-import { formatARS } from '@/lib/utils'
+import { formatARS, calculateItemSubtotal, calculatePresupuestoTotals } from '@/lib/utils'
 import type { MensajeChat, Presupuesto, ItemPresupuesto } from '@/lib/types'
 import { Save, FileText, Bot, CheckCircle2, RotateCcw, Edit, X } from 'lucide-react'
 
@@ -275,7 +275,8 @@ function PreviewPresupuesto({
   editMode?: boolean
   onEditChange?: (field: keyof Presupuesto, value: any) => void
 }) {
-  const anticipo = p.total * 0.35
+  // Frontend always calculates totals, never trusts agent values
+  const { subtotal, iva, total } = calculatePresupuestoTotals(p)
 
   return (
     <div className="space-y-6 text-sm">
@@ -424,7 +425,7 @@ function PreviewPresupuesto({
                         <span className="text-slate-600">{formatARS(item.precio_unitario)}</span>
                       )}
                     </td>
-                    <td className="p-2.5 text-right font-semibold text-slate-800">{formatARS(item.subtotal)}</td>
+                    <td className="p-2.5 text-right font-semibold text-slate-800">{formatARS(calculateItemSubtotal(item.cantidad, item.precio_unitario))}</td>
                   </tr>
                 )
               })}
@@ -438,15 +439,15 @@ function PreviewPresupuesto({
         <div className="w-64 space-y-1">
           <div className="flex justify-between py-1.5 text-slate-600">
             <span>Subtotal sin IVA</span>
-            <span className="font-semibold">{formatARS(p.subtotal)}</span>
+            <span className="font-semibold">{formatARS(subtotal)}</span>
           </div>
           <div className="flex justify-between py-1.5 text-slate-600">
             <span>IVA ({p.iva_porcentaje}%)</span>
-            <span className="font-semibold">{formatARS(p.monto_iva)}</span>
+            <span className="font-semibold">{formatARS(iva)}</span>
           </div>
           <div className="flex justify-between py-2 px-3 rounded-lg bg-slate-800 text-white">
             <span className="font-bold text-sm">TOTAL</span>
-            <span className="font-bold text-base">{formatARS(p.total)}</span>
+            <span className="font-bold text-base">{formatARS(total)}</span>
           </div>
         </div>
       </div>
@@ -462,7 +463,7 @@ function PreviewPresupuesto({
             className="w-40 border border-yellow-600 rounded px-2 py-1 font-bold text-black text-lg bg-yellow-50"
           />
         ) : (
-          <span className="font-bold text-black text-lg">{formatARS(p.anticipo ?? anticipo)}</span>
+          <span className="font-bold text-black text-lg">{formatARS(p.anticipo ?? (total * 0.35))}</span>
         )}
       </div>
 

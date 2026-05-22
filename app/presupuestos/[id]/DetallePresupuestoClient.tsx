@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import AgentChat from '@/components/agente/AgentChat'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { formatARS } from '@/lib/utils'
+import { formatARS, calculateItemSubtotal, calculatePresupuestoTotals } from '@/lib/utils'
 import { aprobarPresupuesto, cambiarEstadoPresupuesto } from './actions'
 import type {
   Presupuesto,
@@ -407,7 +407,8 @@ function TabResumen({
   onEdit?: () => void
   onRefresh?: () => void
 }) {
-  const anticipo = p.total * 0.35
+  // Frontend always calculates totals, never trusts agent values
+  const { subtotal, iva, total } = calculatePresupuestoTotals(p)
 
   return (
     <div className="grid gap-6 lg:grid-cols-5">
@@ -488,15 +489,15 @@ function TabResumen({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-slate-600">
               <span>Subtotal sin IVA</span>
-              <span className="font-semibold">{formatARS(p.subtotal)}</span>
+              <span className="font-semibold">{formatARS(subtotal)}</span>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>IVA ({p.iva_porcentaje}%)</span>
-              <span className="font-semibold">{formatARS(p.monto_iva)}</span>
+              <span className="font-semibold">{formatARS(iva)}</span>
             </div>
             <div className="flex justify-between py-2 px-3 rounded-lg bg-slate-900 text-white mt-2">
               <span className="font-bold">TOTAL</span>
-              <span className="font-bold text-base">{formatARS(p.total)}</span>
+              <span className="font-bold text-base">{formatARS(total)}</span>
             </div>
           </div>
         </div>
@@ -512,7 +513,7 @@ function TabResumen({
                 className="w-40 border border-yellow-600 rounded px-2 py-1 font-black text-black text-xl bg-yellow-50"
               />
             ) : (
-              <p className="text-xl font-black text-black">{formatARS(p.anticipo ?? anticipo)}</p>
+              <p className="text-xl font-black text-black">{formatARS(p.anticipo ?? (total * 0.35))}</p>
             )}
           </div>
           <p className="text-xs text-black/60 text-right">
@@ -614,7 +615,7 @@ function TabResumen({
                           <span className="text-slate-600">{formatARS(item.precio_unitario)}</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatARS(item.subtotal)}</td>
+                      <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatARS(calculateItemSubtotal(item.cantidad, item.precio_unitario))}</td>
                     </tr>
                   )
                 })}
@@ -622,7 +623,7 @@ function TabResumen({
               <tfoot>
                 <tr className="bg-slate-50 border-t border-slate-200">
                   <td colSpan={5} className="px-4 py-2.5 font-bold text-slate-700 text-right">TOTAL SIN IVA</td>
-                  <td className="px-4 py-2.5 text-right font-bold text-slate-900">{formatARS(p.subtotal)}</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-slate-900">{formatARS(subtotal)}</td>
                 </tr>
               </tfoot>
             </table>

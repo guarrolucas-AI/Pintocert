@@ -6,6 +6,39 @@ Respondé siempre en español rioplatense, de forma concisa y profesional.
 Nunca respondas en inglés.
 `
 
+// ─── PRECIOS DE REFERENCIA (ARS, Mayo 2026) ──────────────────────────────────
+// Matriz de precios para materiales y servicios comunes
+// Dos tiers: "estandar" y "premium" para cada ítem
+const PRECIOS_REFERENCIA = {
+  // PINTURA INTERIOR
+  pintura_interior_estandar: 4500,    // m² látex 2 manos, marcas estándar
+  pintura_interior_premium: 6000,     // m² látex premium, marcas reconocidas
+  pintura_interior_prep_estandar: 1500,  // m² preparación de superficie
+  pintura_interior_prep_premium: 2000,
+
+  // PINTURA EXTERIOR
+  pintura_exterior_estandar: 5500,    // m² frente/fachada, pintura estándar
+  pintura_exterior_premium: 7500,     // m² frente/fachada, pintura premium
+  pintura_exterior_prep_estandar: 1800,
+  pintura_exterior_prep_premium: 2500,
+
+  // PISOS Y REVESTIMIENTOS
+  barnizado_parquet_estandar: 6000,   // m² barnizado de pisos de madera
+  barnizado_parquet_premium: 9000,
+  ceramicos_colocacion_estandar: 8000, // m² colocación de cerámicos
+  ceramicos_colocacion_premium: 12000,
+  porcellanato_colocacion_estandar: 10000, // m² porcelánico
+  porcellanato_colocacion_premium: 15000,
+
+  // OTROS SERVICIOS (por m² o global)
+  cieloraso_yeso_estandar: 3500,      // m² cielorraso de yeso
+  cieloraso_yeso_premium: 5000,
+  plomeria_basica: 50000,             // presupuesto global para instalación básica
+  plomeria_compleja: 80000,           // instalación con cambios de layout
+  electricidad_basica: 40000,         // instalación eléctrica básica
+  electricidad_compleja: 70000,       // reconfiguración total o alta demanda
+}
+
 // ─── JSON OUTPUT FORMAT ───────────────────────────────────────────────────────
 // El agente embebe bloques JSON en su respuesta cuando termina de recopilar datos.
 // El frontend los detecta y procesa automáticamente.
@@ -117,7 +150,7 @@ function promptMateriales(ctx?: Record<string, unknown>) {
 
   return `${BASE_CONTEXT}
 
-Tu tarea es generar una lista COMPLETA de materiales con precios actuales para esta obra.
+Tu tarea es generar una lista COMPLETA de materiales con precios para esta obra.
 
 OBRA:
 Descripción: ${obraDesc}
@@ -127,13 +160,23 @@ ${items}
 
 ${notas}
 
+PRECIOS DE REFERENCIA (ARS, Mayo 2026):
+- Pintura interior estándar: $4.500-$6.000/m²
+- Pintura exterior estándar: $5.500-$7.500/m²
+- Preparación de superficies: $1.500-$2.500/m²
+- Barnizado de pisos: $6.000-$9.000/m²
+- Colocación de cerámicos: $8.000-$12.000/m²
+- Colocación de porcelánico: $10.000-$15.000/m²
+- Cielorraso de yeso: $3.500-$5.000/m²
+- Plomería (global): $50.000-$80.000
+- Electricidad (global): $40.000-$70.000
+
 REGLAS CRÍTICAS:
-1. USA WEB_SEARCH para CADA material (excepto lo que claramente no se puede buscar).
-   - Busca en MercadoLibre, Sodimac, Easy, ferreterías argentinas.
-   - Busca precios REALES de mayo 2026.
+1. Usa la MATRIZ DE PRECIOS incluida arriba como base (no busques precios en web).
 2. SIEMPRE incluye precio_estimado en cada material (NO vacío).
 3. Calcula total_estimado como suma de (cantidad × precio_estimado).
 4. No duplicar ni multiplicar cantidades — cada línea es material independiente.
+5. Si cliente pide marcas específicas o premium, ajustá el precio (hasta +30%).
 
 PREGUNTAS CLAVE (máx. 3):
 - ¿Prefieren marcas premium o estándar?
@@ -143,10 +186,8 @@ PREGUNTAS CLAVE (máx. 3):
 FLUJO:
 1. Si es "__INIT__", preséntate y hacé las 3 preguntas.
 2. Basándote en la obra, identifica todos los materiales necesarios.
-3. Para CADA material, hace web_search. Ejemplo:
-   - "pintura látex interior blanca 20 litros MercadoLibre Argentina 2026"
-   - "masilla Sinteplast 1kg ferretería Argentina precio"
-4. Compone el JSON con todos los materiales y precios reales.
+3. Usa los PRECIOS DE REFERENCIA para cada material. Ajustá si es premium/especial.
+4. Compone el JSON con todos los materiales y precios.
 
 CUANDO TENGAS TODA LA INFO, generá el JSON al final:
 
@@ -163,7 +204,7 @@ CUANDO TENGAS TODA LA INFO, generá el JSON al final:
         "precio_minimo": 0,
         "precio_maximo": 0,
         "proveedores": [
-          { "nombre": "MercadoLibre", "precio": 0 }
+          { "nombre": "Referencia local", "precio": 0 }
         ],
         "notas": "..."
       }

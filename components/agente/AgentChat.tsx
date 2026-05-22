@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import type { ModuloAgente, MensajeChat } from '@/lib/types'
+import type { ModuloAgente, MensajeChat, Presupuesto } from '@/lib/types'
+import { validatePresupuesto } from '@/lib/utils'
 import { Send, Bot, User, Loader2, Globe } from 'lucide-react'
 
 interface AgentChatProps {
@@ -74,6 +75,16 @@ export default function AgentChat({
       setStreaming(true)
       setTextoActual('')
       setBuscandoWeb(false)
+
+      // Validar presupuesto antes de enviar al agente (ahorra API calls)
+      if (modo === 'presupuesto' && contexto?.presupuesto) {
+        const validation = validatePresupuesto(contexto.presupuesto as Presupuesto)
+        if (!validation.valid) {
+          setTextoActual('❌ Por favor corrige antes de continuar:\n' + validation.errors.join('\n'))
+          setStreaming(false)
+          return
+        }
+      }
 
       try {
         const res = await fetch('/api/agent/chat', {

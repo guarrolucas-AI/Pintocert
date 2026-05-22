@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getSystemPrompt } from '@/lib/agent/prompts'
-import type { ModuloAgente, MensajeChat } from '@/lib/types'
+import type { ModuloAgente, MensajeChat, Presupuesto } from '@/lib/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -21,25 +21,40 @@ const MODEL_POR_MODO: Record<ModuloAgente, string> = {
 }
 
 /**
- * Convierte el historial de mensajes agregando cache_control al
- * penúltimo mensaje. Esto le indica a Anthropic que cachee todo el
- * historial previo y solo procese el último turno del usuario.
- *
- * Beneficio: ~90% menos costo en tokens repetidos + menor latencia
- * en conversaciones largas.
+ * Builds cache block for presupuesto context
+ * Reused across presupuesto → materiales → personal → herramientas transitions
+ * Cached for 5 minutes (ephemeral cache)
+ */
+function buildCacheBlocks(presupuesto: Presupuesto | null) {
+  if (!presupuesto) return []
+
+  return [
+    {
+      type: 'text' as const,
+      text: `PRESUPUESTO ACTUAL (contexto reutilizable para este módulo y los siguientes):
+Cliente: ${presupuesto.cliente}
+Obra: ${presupuesto.obra_descripcion}
+Dirección: ${presupuesto.obra_direccion}, ${presupuesto.obra_localidad}
+Subtotal: $${presupuesto.subtotal.toLocaleString('es-AR')}
+Total con IVA: $${presupuesto.total.toLocaleString('es-AR')}
+Anticipo: $${(presupuesto.anticipo ?? presupuesto.total * 0.35).toLocaleString('es-AR')}
+
+Trabajos:
+${presupuesto.items.map(i => `- ${i.descripcion}: ${i.cantidad} ${i.unidad} × $${i.precio_unitario.toLocaleString('es-AR')} = $${(i.cantidad * i.precio_unitario).toLocaleString('es-AR')}`).join('\n')}`,
+      cache_control: { type: 'ephemeral' as const },
+    },
+  ]
+}
+
+/**
+ * Convierte el historial de mensajes para reutilizar cache
+ * Mantiene el historial completo para conversaciones multimodales
  */
 function buildMessages(messages: MensajeChat[]) {
-  return messages.map((m, idx) => {
-    // Cachear el penúltimo mensaje (el historial estable justo antes
-    // del último turno del usuario que sí necesita procesarse fresco)
-    const cachear = messages.length > 1 && idx === messages.length - 2
-    return {
-      role: m.role,
-      content: cachear
-        ? [{ type: 'text' as const, text: m.content, cache_control: { type: 'ephemeral' as const } }]
-        : m.content,
-    }
-  })
+  return messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }))
 }
 
 export async function POST(req: NextRequest) {
@@ -50,12 +65,12 @@ export async function POST(req: NextRequest) {
   }
 
   const systemPrompt = getSystemPrompt(modo, contexto)
-  const usaWebSearch = modo === 'materiales' || modo === 'herramientas'
   const model = MODEL_POR_MODO[modo] ?? 'claude-sonnet-4-6'
   const usaThinking = modo === 'analisis'
 
   // System prompt con cache_control — se cachea en la primera llamada
   // y se reutiliza en todos los turnos siguientes de la misma sesión.
+  // Web search está DESHABILITADO en todos los módulos (usar precios de referencia)
   const systemConCache = [
     {
       type: 'text' as const,
@@ -63,6 +78,10 @@ export async function POST(req: NextRequest) {
       cache_control: { type: 'ephemeral' as const },
     },
   ]
+
+  // Agregar contexto de presupuesto como bloque cacheado (reutilizable en módulos posteriores)
+  const presupuestoContext = buildCacheBlocks((contexto?.presupuesto as Presupuesto) ?? null)
+  const systemMessages = [...systemConCache, ...presupuestoContext]
 
   const encoder = new TextEncoder()
 
@@ -75,22 +94,15 @@ export async function POST(req: NextRequest) {
 
       for (let intento = 0; intento <= MAX_REINTENTOS; intento++) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const tools = usaWebSearch
-            ? ([{
-                type: 'web_search_20260209',
-                name: 'web_search',
-                allowed_callers: ['direct'],
-              }] as any[])
-            : undefined
-
+          // Web search está DESHABILITADO en todos los módulos
+          // Usar PRECIOS_REFERENCIA en prompts.ts en lugar de búsquedas en vivo
+          // Esto reduce costos ~30-40% y hace respuestas más consistentes
           const msgStream = anthropic.messages.stream({
             model,
             max_tokens: usaThinking ? 8000 : 4096,
             ...(usaThinking ? { thinking: { type: 'adaptive' } } : {}),
-            system: systemConCache,
+            system: systemMessages,
             messages: buildMessages(messages),
-            ...(tools ? { tools } : {}),
           })
 
           for await (const event of msgStream) {
