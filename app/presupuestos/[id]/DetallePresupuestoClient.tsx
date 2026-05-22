@@ -34,6 +34,10 @@ import {
   Clock,
   XCircle,
   AlertCircle,
+  RotateCcw,
+  Edit,
+  X,
+  Save,
 } from 'lucide-react'
 
 const PresupuestoPDFDownload = dynamic(
@@ -85,6 +89,8 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
   const router = useRouter()
   const [tab, setTab] = useState<TabId>('resumen')
   const [presupuesto, setPresupuesto] = useState(initialP)
+  const [editMode, setEditMode] = useState(false)
+  const [editedPresupuesto, setEditedPresupuesto] = useState<Presupuesto | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const { label, variant, icon: EstadoIcon } = ESTADO_CONFIG[presupuesto.estado]
@@ -142,6 +148,55 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
       setPresupuesto((prev) => ({ ...prev, estado }))
       toast.success('Estado actualizado')
     })
+  }
+
+  function handleEditChange(field: keyof Presupuesto, value: any) {
+    setEditedPresupuesto((prev) => {
+      if (!prev) return { ...presupuesto, [field]: value }
+      return { ...prev, [field]: value }
+    })
+  }
+
+  function handleCancelEdit() {
+    setEditMode(false)
+    setEditedPresupuesto(null)
+  }
+
+  async function handleGuardarEdicion() {
+    const dataToSave = editedPresupuesto || presupuesto
+    if (!dataToSave) return
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('presupuestos')
+        .update({
+          cliente: dataToSave.cliente,
+          cliente_email: dataToSave.cliente_email,
+          cliente_telefono: dataToSave.cliente_telefono,
+          obra_descripcion: dataToSave.obra_descripcion,
+          obra_direccion: dataToSave.obra_direccion,
+          obra_localidad: dataToSave.obra_localidad,
+          obra_provincia: dataToSave.obra_provincia,
+          items: dataToSave.items,
+          iva_porcentaje: dataToSave.iva_porcentaje,
+          subtotal: dataToSave.subtotal,
+          monto_iva: dataToSave.monto_iva,
+          total: dataToSave.total,
+          validez_dias: dataToSave.validez_dias,
+          notas: dataToSave.notas,
+        })
+        .eq('id', presupuesto.id)
+
+      if (error) throw new Error(error.message)
+
+      setPresupuesto(dataToSave)
+      setEditMode(false)
+      setEditedPresupuesto(null)
+      toast.success('Cambios guardados')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar')
+    }
   }
 
   return (
@@ -242,7 +297,38 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
       </div>
 
       {/* Contenido del tab */}
-      {tab === 'resumen' && <TabResumen presupuesto={presupuesto} />}
+      {tab === 'resumen' && (
+        <>
+          {editMode && (
+            <div className="mb-4 flex gap-2 justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCancelEdit}
+                className="text-xs text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleGuardarEdicion}
+                className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold"
+              >
+                <Save className="w-3.5 h-3.5" />
+                Guardar cambios
+              </Button>
+            </div>
+          )}
+          <TabResumen
+            presupuesto={editedPresupuesto || presupuesto}
+            editMode={editMode}
+            onEditChange={handleEditChange}
+            onEdit={() => setEditMode(true)}
+            onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
+          />
+        </>
+      )}
       {tab === 'materiales' && (
         <TabAgente
           modo="materiales"
@@ -252,6 +338,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           onMensajesActualizados={(m) => handleMensajesActualizados('materiales', m)}
           datosGenerados={presupuesto.lista_materiales}
           renderDatos={(d) => <MaterialesView data={d as MaterialesData} />}
+          onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
         />
       )}
       {tab === 'personal' && (
@@ -263,6 +350,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           onMensajesActualizados={(m) => handleMensajesActualizados('personal', m)}
           datosGenerados={presupuesto.plan_personal}
           renderDatos={(d) => <PersonalView data={d as PersonalData} />}
+          onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
         />
       )}
       {tab === 'herramientas' && (
@@ -274,6 +362,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           onMensajesActualizados={(m) => handleMensajesActualizados('herramientas', m)}
           datosGenerados={presupuesto.herramientas_seguridad}
           renderDatos={(d) => <HerramientasView data={d as HerramientasData} />}
+          onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
         />
       )}
       {tab === 'analisis' && (
@@ -285,6 +374,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           onMensajesActualizados={(m) => handleMensajesActualizados('analisis', m)}
           datosGenerados={presupuesto.analisis_economico}
           renderDatos={(d) => <AnalisisView data={d as AnalisisData} />}
+          onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
         />
       )}
     </div>
@@ -293,11 +383,47 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
 
 // ─── Tab Resumen ──────────────────────────────────────────────────────────────
 
-function TabResumen({ presupuesto: p }: { presupuesto: Presupuesto }) {
+function TabResumen({
+  presupuesto: p,
+  editMode = false,
+  onEditChange = () => {},
+  onEdit = () => {},
+  onRefresh = () => {},
+}: {
+  presupuesto: Presupuesto
+  editMode?: boolean
+  onEditChange?: (field: keyof Presupuesto, value: any) => void
+  onEdit?: () => void
+  onRefresh?: () => void
+}) {
   const anticipo = p.total * 0.35
 
   return (
     <div className="grid gap-6 lg:grid-cols-5">
+      {/* Botones de acción (solo en vista normal) */}
+      {!editMode && (
+        <div className="lg:col-span-5 flex gap-2 justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onRefresh}
+            title="Actualizar vista previa"
+            className="text-xs"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onEdit}
+            className="text-xs text-slate-600"
+          >
+            <Edit className="w-3.5 h-3.5" />
+            Editar
+          </Button>
+        </div>
+      )}
+
       {/* Resumen financiero */}
       <div className="lg:col-span-2 space-y-4">
         <div className="rounded-lg border bg-white p-5">
@@ -381,16 +507,51 @@ function TabResumen({ presupuesto: p }: { presupuesto: Presupuesto }) {
                 </tr>
               </thead>
               <tbody>
-                {p.items.map((item, idx) => (
-                  <tr key={idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
-                    <td className="px-4 py-2.5 text-slate-400">{idx + 1}</td>
-                    <td className="px-4 py-2.5 font-medium text-slate-800">{item.descripcion}</td>
-                    <td className="px-4 py-2.5 text-center text-slate-500">{item.unidad}</td>
-                    <td className="px-4 py-2.5 text-right text-slate-600">{item.cantidad}</td>
-                    <td className="px-4 py-2.5 text-right text-slate-600">{formatARS(item.precio_unitario)}</td>
-                    <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatARS(item.subtotal)}</td>
-                  </tr>
-                ))}
+                {p.items.map((item, idx) => {
+                  const handleItemChange = (field: keyof ItemPresupuesto, value: any) => {
+                    const newItems = [...p.items]
+                    const newItem = { ...item, [field]: value }
+                    // Recalculate subtotal if cantidad or precio_unitario changed
+                    if (field === 'cantidad' || field === 'precio_unitario') {
+                      newItem.subtotal = newItem.cantidad * newItem.precio_unitario
+                    }
+                    newItems[idx] = newItem
+                    onEditChange('items', newItems)
+                  }
+
+                  return (
+                    <tr key={idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                      <td className="px-4 py-2.5 text-slate-400">{idx + 1}</td>
+                      <td className="px-4 py-2.5 font-medium text-slate-800">{item.descripcion}</td>
+                      <td className="px-4 py-2.5 text-center text-slate-500">{item.unidad}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={item.cantidad}
+                            onChange={(e) => handleItemChange('cantidad', parseFloat(e.target.value) || 0)}
+                            className="w-12 border border-slate-300 rounded px-1 py-0.5 text-right text-slate-600"
+                          />
+                        ) : (
+                          <span className="text-slate-600">{item.cantidad}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={item.precio_unitario}
+                            onChange={(e) => handleItemChange('precio_unitario', parseFloat(e.target.value) || 0)}
+                            className="w-20 border border-slate-300 rounded px-1 py-0.5 text-right text-slate-600"
+                          />
+                        ) : (
+                          <span className="text-slate-600">{formatARS(item.precio_unitario)}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatARS(item.subtotal)}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
               <tfoot>
                 <tr className="bg-slate-50 border-t border-slate-200">
@@ -402,10 +563,20 @@ function TabResumen({ presupuesto: p }: { presupuesto: Presupuesto }) {
           </div>
         </div>
 
-        {p.notas && (
+        {(p.notas || editMode) && (
           <div className="mt-4 rounded-lg border bg-white p-5">
             <h3 className="text-sm font-semibold text-slate-700 mb-2">Notas y condiciones adicionales</h3>
-            <p className="text-sm text-slate-600 whitespace-pre-wrap">{p.notas}</p>
+            {editMode ? (
+              <textarea
+                value={p.notas || ''}
+                onChange={(e) => onEditChange('notas', e.target.value)}
+                className="w-full border border-slate-300 rounded px-2 py-1 text-sm text-slate-600"
+                rows={3}
+                placeholder="Añadí notas..."
+              />
+            ) : (
+              <p className="text-sm text-slate-600 whitespace-pre-wrap">{p.notas}</p>
+            )}
           </div>
         )}
       </div>
@@ -423,6 +594,7 @@ interface TabAgenteProps {
   onMensajesActualizados: (mensajes: MensajeChat[]) => void
   datosGenerados: unknown
   renderDatos: (datos: unknown) => React.JSX.Element
+  onRefresh?: () => void
 }
 
 function TabAgente({
@@ -433,6 +605,7 @@ function TabAgente({
   onMensajesActualizados,
   datosGenerados,
   renderDatos,
+  onRefresh = () => {},
 }: TabAgenteProps) {
   return (
     <div className="flex gap-4" style={{ height: 'calc(100vh - 260px)', minHeight: '480px' }}>
@@ -456,10 +629,21 @@ function TabAgente({
 
       {/* Resultado */}
       <div className="flex-1 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
-        <div className="shrink-0 px-4 py-3 border-b bg-slate-50">
+        <div className="shrink-0 px-4 py-3 border-b bg-slate-50 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-700">
             {datosGenerados ? 'Datos generados' : 'Esperando resultados...'}
           </span>
+          {datosGenerados && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onRefresh}
+              title="Actualizar vista previa"
+              className="text-xs"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto p-5">
           {datosGenerados ? (

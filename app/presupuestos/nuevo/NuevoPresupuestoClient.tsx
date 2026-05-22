@@ -9,7 +9,7 @@ import AgentChat from '@/components/agente/AgentChat'
 import { Button } from '@/components/ui/button'
 import { formatARS } from '@/lib/utils'
 import type { MensajeChat, Presupuesto, ItemPresupuesto } from '@/lib/types'
-import { Save, FileText, Bot, CheckCircle2 } from 'lucide-react'
+import { Save, FileText, Bot, CheckCircle2, RotateCcw, Edit, X } from 'lucide-react'
 
 const PresupuestoPDFDownload = dynamic(
   () => import('@/components/presupuestos/PresupuestoPDFDownload'),
@@ -73,6 +73,8 @@ export function NuevoPresupuestoClient({ userId }: Props) {
   const router = useRouter()
   const [mensajes, setMensajes] = useState<MensajeChat[]>([])
   const [presupuesto, setPresupuesto] = useState<Presupuesto | null>(null)
+  const [editMode, setEditMode] = useState(false)
+  const [editedPresupuesto, setEditedPresupuesto] = useState<Presupuesto | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -82,8 +84,21 @@ export function NuevoPresupuestoClient({ userId }: Props) {
     }
   }
 
+  function handleEditChange(field: keyof Presupuesto, value: any) {
+    setEditedPresupuesto((prev) => {
+      if (!prev) return presupuesto ? { ...presupuesto, [field]: value } : null
+      return { ...prev, [field]: value }
+    })
+  }
+
+  function handleCancelEdit() {
+    setEditMode(false)
+    setEditedPresupuesto(null)
+  }
+
   async function handleGuardar() {
-    if (!presupuesto) return
+    const dataToSave = editedPresupuesto || presupuesto
+    if (!dataToSave) return
     setSaving(true)
     try {
       const supabase = createClient()
@@ -92,20 +107,20 @@ export function NuevoPresupuestoClient({ userId }: Props) {
         .insert([
           {
             estado: 'borrador',
-            cliente: presupuesto.cliente,
-            cliente_email: presupuesto.cliente_email,
-            cliente_telefono: presupuesto.cliente_telefono,
-            obra_descripcion: presupuesto.obra_descripcion,
-            obra_direccion: presupuesto.obra_direccion,
-            obra_localidad: presupuesto.obra_localidad,
-            obra_provincia: presupuesto.obra_provincia,
-            items: presupuesto.items,
-            iva_porcentaje: presupuesto.iva_porcentaje,
-            subtotal: presupuesto.subtotal,
-            monto_iva: presupuesto.monto_iva,
-            total: presupuesto.total,
-            validez_dias: presupuesto.validez_dias,
-            notas: presupuesto.notas,
+            cliente: dataToSave.cliente,
+            cliente_email: dataToSave.cliente_email,
+            cliente_telefono: dataToSave.cliente_telefono,
+            obra_descripcion: dataToSave.obra_descripcion,
+            obra_direccion: dataToSave.obra_direccion,
+            obra_localidad: dataToSave.obra_localidad,
+            obra_provincia: dataToSave.obra_provincia,
+            items: dataToSave.items,
+            iva_porcentaje: dataToSave.iva_porcentaje,
+            subtotal: dataToSave.subtotal,
+            monto_iva: dataToSave.monto_iva,
+            total: dataToSave.total,
+            validez_dias: dataToSave.validez_dias,
+            notas: dataToSave.notas,
             created_by: userId,
           },
         ])
@@ -122,6 +137,8 @@ export function NuevoPresupuestoClient({ userId }: Props) {
       }
 
       setSaved(true)
+      setEditMode(false)
+      setEditedPresupuesto(null)
       toast.success('Presupuesto guardado correctamente')
       router.push(`/presupuestos/${p.id}`)
     } catch (err) {
@@ -159,19 +176,62 @@ export function NuevoPresupuestoClient({ userId }: Props) {
           </div>
           {presupuesto && (
             <div className="flex items-center gap-2">
-              <PresupuestoPDFDownload
-                presupuesto={presupuesto}
-                className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium"
-              />
               <Button
                 size="sm"
-                onClick={handleGuardar}
-                disabled={saving || saved}
-                className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold"
+                variant="outline"
+                onClick={() => setPresupuesto(prev => prev ? { ...prev } : null)}
+                title="Actualizar vista previa"
+                className="text-xs"
               >
-                <Save className="w-3.5 h-3.5" />
-                {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar presupuesto'}
+                <RotateCcw className="w-3.5 h-3.5" />
               </Button>
+              {editMode ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    className="text-xs text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleGuardar}
+                    disabled={saving || saved}
+                    className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {saving ? 'Guardando...' : 'Guardar'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditMode(true)}
+                    className="text-xs text-slate-600"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                    Editar
+                  </Button>
+                  <PresupuestoPDFDownload
+                    presupuesto={presupuesto}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleGuardar}
+                    disabled={saving || saved}
+                    className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar presupuesto'}
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -188,7 +248,11 @@ export function NuevoPresupuestoClient({ userId }: Props) {
               </div>
             </div>
           ) : (
-            <PreviewPresupuesto presupuesto={presupuesto} />
+            <PreviewPresupuesto
+              presupuesto={editedPresupuesto || presupuesto}
+              editMode={editMode}
+              onEditChange={handleEditChange}
+            />
           )}
         </div>
       </div>
@@ -198,7 +262,15 @@ export function NuevoPresupuestoClient({ userId }: Props) {
 
 // ─── Preview del presupuesto ──────────────────────────────────────────────────
 
-function PreviewPresupuesto({ presupuesto: p }: { presupuesto: Presupuesto }) {
+function PreviewPresupuesto({
+  presupuesto: p,
+  editMode = false,
+  onEditChange = () => {},
+}: {
+  presupuesto: Presupuesto
+  editMode?: boolean
+  onEditChange?: (field: keyof Presupuesto, value: any) => void
+}) {
   const anticipo = p.total * 0.35
 
   return (
@@ -222,15 +294,69 @@ function PreviewPresupuesto({ presupuesto: p }: { presupuesto: Presupuesto }) {
           Datos del cliente y la obra
         </p>
         <div className="grid grid-cols-2 gap-3">
-          <InfoItem label="Cliente" value={p.cliente} />
-          {p.cliente_email && <InfoItem label="Email" value={p.cliente_email} />}
-          {p.cliente_telefono && <InfoItem label="Teléfono" value={p.cliente_telefono} />}
-          <InfoItem label="Dirección" value={p.obra_direccion} className="col-span-2" />
-          <InfoItem label="Localidad" value={`${p.obra_localidad}, ${p.obra_provincia}`} />
+          <EditableInfoItem
+            label="Cliente"
+            value={p.cliente}
+            editMode={editMode}
+            onChange={(v) => onEditChange('cliente', v)}
+          />
+          {p.cliente_email && (
+            <EditableInfoItem
+              label="Email"
+              value={p.cliente_email}
+              editMode={editMode}
+              onChange={(v) => onEditChange('cliente_email', v)}
+            />
+          )}
+          {p.cliente_telefono && (
+            <EditableInfoItem
+              label="Teléfono"
+              value={p.cliente_telefono}
+              editMode={editMode}
+              onChange={(v) => onEditChange('cliente_telefono', v)}
+            />
+          )}
+          <EditableInfoItem
+            label="Dirección"
+            value={p.obra_direccion}
+            editMode={editMode}
+            onChange={(v) => onEditChange('obra_direccion', v)}
+            className="col-span-2"
+          />
+          <div className="col-span-2">
+            <p className="text-xs text-slate-400 mb-0.5">Localidad</p>
+            {editMode ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={p.obra_localidad}
+                  onChange={(e) => onEditChange('obra_localidad', e.target.value)}
+                  className="flex-1 border border-slate-300 rounded px-2 py-1 text-sm font-semibold text-slate-800"
+                />
+                <input
+                  type="text"
+                  value={p.obra_provincia}
+                  onChange={(e) => onEditChange('obra_provincia', e.target.value)}
+                  className="flex-1 border border-slate-300 rounded px-2 py-1 text-sm font-semibold text-slate-800"
+                />
+              </div>
+            ) : (
+              <p className="font-semibold text-slate-800">{p.obra_localidad}, {p.obra_provincia}</p>
+            )}
+          </div>
         </div>
         {p.obra_descripcion && (
           <div className="mt-3 p-3 rounded-lg bg-slate-50 text-slate-700 text-xs">
-            {p.obra_descripcion}
+            {editMode ? (
+              <textarea
+                value={p.obra_descripcion}
+                onChange={(e) => onEditChange('obra_descripcion', e.target.value)}
+                className="w-full border border-slate-300 rounded px-2 py-1 text-xs text-slate-700"
+                rows={2}
+              />
+            ) : (
+              p.obra_descripcion
+            )}
           </div>
         )}
       </div>
@@ -253,16 +379,51 @@ function PreviewPresupuesto({ presupuesto: p }: { presupuesto: Presupuesto }) {
               </tr>
             </thead>
             <tbody>
-              {p.items.map((item, idx) => (
-                <tr key={idx} className="border-b border-slate-100 last:border-0">
-                  <td className="p-2.5 text-slate-400">{idx + 1}</td>
-                  <td className="p-2.5 font-medium text-slate-800">{item.descripcion}</td>
-                  <td className="p-2.5 text-center text-slate-500">{item.unidad}</td>
-                  <td className="p-2.5 text-right text-slate-600">{item.cantidad}</td>
-                  <td className="p-2.5 text-right text-slate-600">{formatARS(item.precio_unitario)}</td>
-                  <td className="p-2.5 text-right font-semibold text-slate-800">{formatARS(item.subtotal)}</td>
-                </tr>
-              ))}
+              {p.items.map((item, idx) => {
+                const handleItemChange = (field: keyof ItemPresupuesto, value: any) => {
+                  const newItems = [...p.items]
+                  const newItem = { ...item, [field]: value }
+                  // Recalculate subtotal if cantidad or precio_unitario changed
+                  if (field === 'cantidad' || field === 'precio_unitario') {
+                    newItem.subtotal = newItem.cantidad * newItem.precio_unitario
+                  }
+                  newItems[idx] = newItem
+                  onEditChange('items', newItems)
+                }
+
+                return (
+                  <tr key={idx} className="border-b border-slate-100 last:border-0">
+                    <td className="p-2.5 text-slate-400">{idx + 1}</td>
+                    <td className="p-2.5 font-medium text-slate-800">{item.descripcion}</td>
+                    <td className="p-2.5 text-center text-slate-500">{item.unidad}</td>
+                    <td className="p-2.5 text-right">
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={item.cantidad}
+                          onChange={(e) => handleItemChange('cantidad', parseFloat(e.target.value) || 0)}
+                          className="w-12 border border-slate-300 rounded px-1 py-0.5 text-right text-slate-600"
+                        />
+                      ) : (
+                        <span className="text-slate-600">{item.cantidad}</span>
+                      )}
+                    </td>
+                    <td className="p-2.5 text-right">
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={item.precio_unitario}
+                          onChange={(e) => handleItemChange('precio_unitario', parseFloat(e.target.value) || 0)}
+                          className="w-20 border border-slate-300 rounded px-1 py-0.5 text-right text-slate-600"
+                        />
+                      ) : (
+                        <span className="text-slate-600">{formatARS(item.precio_unitario)}</span>
+                      )}
+                    </td>
+                    <td className="p-2.5 text-right font-semibold text-slate-800">{formatARS(item.subtotal)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -293,11 +454,51 @@ function PreviewPresupuesto({ presupuesto: p }: { presupuesto: Presupuesto }) {
       </div>
 
       {/* Notas */}
-      {p.notas && (
+      {(p.notas || editMode) && (
         <div className="rounded-lg bg-slate-50 p-4">
           <p className="text-xs font-semibold text-slate-500 mb-1">Notas adicionales</p>
-          <p className="text-slate-700 whitespace-pre-wrap">{p.notas}</p>
+          {editMode ? (
+            <textarea
+              value={p.notas || ''}
+              onChange={(e) => onEditChange('notas', e.target.value)}
+              className="w-full border border-slate-300 rounded px-2 py-1 text-xs text-slate-700"
+              rows={3}
+              placeholder="Añadí notas..."
+            />
+          ) : (
+            <p className="text-slate-700 whitespace-pre-wrap">{p.notas}</p>
+          )}
         </div>
+      )}
+    </div>
+  )
+}
+
+function EditableInfoItem({
+  label,
+  value,
+  editMode = false,
+  onChange = () => {},
+  className = '',
+}: {
+  label: string
+  value: string
+  editMode?: boolean
+  onChange?: (value: string) => void
+  className?: string
+}) {
+  return (
+    <div className={className}>
+      <p className="text-xs text-slate-400 mb-0.5">{label}</p>
+      {editMode ? (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full border border-slate-300 rounded px-2 py-1 text-sm font-semibold text-slate-800"
+        />
+      ) : (
+        <p className="font-semibold text-slate-800">{value}</p>
       )}
     </div>
   )
