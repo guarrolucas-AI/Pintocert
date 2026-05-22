@@ -13,11 +13,11 @@ const anthropic = new Anthropic({
 // Análisis usa Opus con thinking para razonamiento profundo.
 // El resto usa Sonnet: más rápido y suficientemente capaz para chat conversacional.
 const MODEL_POR_MODO: Record<ModuloAgente, string> = {
-  presupuesto:  'claude-sonnet-4-6',
-  materiales:   'claude-sonnet-4-6',
-  personal:     'claude-sonnet-4-6',
-  herramientas: 'claude-sonnet-4-6',
-  analisis:     'claude-opus-4-7',
+  presupuesto:  'claude-haiku-4-5',
+  materiales:   'claude-haiku-4-5',
+  personal:     'claude-haiku-4-5',
+  herramientas: 'claude-haiku-4-5',
+  analisis:     'claude-sonnet-4-6',
 }
 
 /**
