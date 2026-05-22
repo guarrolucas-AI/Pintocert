@@ -184,6 +184,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           subtotal: dataToSave.subtotal,
           monto_iva: dataToSave.monto_iva,
           total: dataToSave.total,
+          anticipo: dataToSave.anticipo,
           validez_dias: dataToSave.validez_dias,
           notas: dataToSave.notas,
         })
@@ -447,8 +448,17 @@ function TabResumen({
 
         <div className="rounded-lg bg-yellow-400 p-4 flex justify-between items-center">
           <div>
-            <p className="text-xs font-bold text-black/70">ANTICIPO (35%)</p>
-            <p className="text-xl font-black text-black">{formatARS(anticipo)}</p>
+            <p className="text-xs font-bold text-black/70">ANTICIPO DE OBRA</p>
+            {editMode ? (
+              <input
+                type="number"
+                value={p.anticipo || 0}
+                onChange={(e) => onEditChange('anticipo', parseFloat(e.target.value) || 0)}
+                className="w-40 border border-yellow-600 rounded px-2 py-1 font-black text-black text-xl bg-yellow-50"
+              />
+            ) : (
+              <p className="text-xl font-black text-black">{formatARS(p.anticipo ?? anticipo)}</p>
+            )}
           </div>
           <p className="text-xs text-black/60 text-right">
             Al inicio<br />de la obra

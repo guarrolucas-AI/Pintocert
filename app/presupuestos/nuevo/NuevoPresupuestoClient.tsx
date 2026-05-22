@@ -26,6 +26,7 @@ interface AgenteDatos {
   obra_provincia: string
   items: ItemPresupuesto[]
   iva_porcentaje: number
+  anticipo?: number
   notas?: string
   validez_dias: number
 }
@@ -34,6 +35,7 @@ function buildPresupuesto(datos: AgenteDatos): Presupuesto {
   const subtotal = datos.items.reduce((acc, it) => acc + it.subtotal, 0)
   const monto_iva = subtotal * (datos.iva_porcentaje / 100)
   const total = subtotal + monto_iva
+  const anticipo = datos.anticipo ?? total * 0.35 // Default 35% si no está especificado
   const now = new Date().toISOString()
   return {
     id: 'preview',
@@ -50,6 +52,7 @@ function buildPresupuesto(datos: AgenteDatos): Presupuesto {
     subtotal,
     monto_iva,
     total,
+    anticipo,
     validez_dias: datos.validez_dias,
     notas: datos.notas ?? null,
     lista_materiales: null,
@@ -119,6 +122,7 @@ export function NuevoPresupuestoClient({ userId }: Props) {
             subtotal: dataToSave.subtotal,
             monto_iva: dataToSave.monto_iva,
             total: dataToSave.total,
+            anticipo: dataToSave.anticipo,
             validez_dias: dataToSave.validez_dias,
             notas: dataToSave.notas,
             created_by: userId,
@@ -449,8 +453,17 @@ function PreviewPresupuesto({
 
       {/* Anticipo */}
       <div className="rounded-lg bg-yellow-400 px-4 py-3 flex justify-between items-center">
-        <span className="font-bold text-black text-xs">ANTICIPO DE OBRA (35% del total)</span>
-        <span className="font-bold text-black text-lg">{formatARS(anticipo)}</span>
+        <span className="font-bold text-black text-xs">ANTICIPO DE OBRA</span>
+        {editMode ? (
+          <input
+            type="number"
+            value={p.anticipo || 0}
+            onChange={(e) => onEditChange('anticipo', parseFloat(e.target.value) || 0)}
+            className="w-40 border border-yellow-600 rounded px-2 py-1 font-bold text-black text-lg bg-yellow-50"
+          />
+        ) : (
+          <span className="font-bold text-black text-lg">{formatARS(p.anticipo ?? anticipo)}</span>
+        )}
       </div>
 
       {/* Notas */}

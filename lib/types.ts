@@ -199,6 +199,7 @@ export interface Presupuesto {
   subtotal: number
   monto_iva: number
   total: number
+  anticipo: number | null
   validez_dias: number
   notas: string | null
   lista_materiales: MaterialesData | null
