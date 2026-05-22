@@ -148,6 +148,15 @@ function promptMateriales(ctx?: Record<string, unknown>) {
   const items = obra?.items?.map(i => `- ${i.descripcion}: ${i.cantidad} ${i.unidad}`).join('\n') ?? ''
   const notas = ctx?.erroresPrevios ? `\nERRORES A EVITAR (de iteraciones anteriores):\n${ctx.erroresPrevios}` : ''
 
+  // Generar JSON items REALES para inyectar en el prompt
+  const itemsJsonArray = obra?.items?.map(i => ({
+    descripcion: i.descripcion,
+    unidad: i.unidad,
+    cantidad: i.cantidad,
+    precio_unitario: i.precio_unitario ?? 0
+  })) ?? []
+  const itemsJsonString = JSON.stringify(itemsJsonArray, null, 4).replace(/\n/g, '\n      ')
+
   return `${BASE_CONTEXT}
 
 Tu tarea es generar una lista COMPLETA de materiales con precios para esta obra.
@@ -208,14 +217,7 @@ El JSON OBLIGATORIO al final es:
     "obra_direccion": "DIRECCION_SI_EXISTE",
     "obra_localidad": "LOCALIDAD_SI_EXISTE",
     "obra_provincia": "Buenos Aires",
-    "items": [
-      {
-        "descripcion": "EXACTAMENTE_MISMO_NOMBRE_QUE_EN_TABLA",
-        "unidad": "UNIDAD_DE_MEDIDA",
-        "cantidad": NUMERO_ENTERO_O_DECIMAL,
-        "precio_unitario": PRECIO_NUMERO_SIN_SIMBOLO
-      }
-    ],
+    "items": ${itemsJsonString},
     "iva_porcentaje": 21,
     "notas": "Cotización de materiales actualizada",
     "validez_dias": 7
