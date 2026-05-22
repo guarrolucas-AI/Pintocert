@@ -21,6 +21,7 @@ import type {
   PersonalData,
   HerramientasData,
   AnalisisData,
+  ItemPresupuesto,
 } from '@/lib/types'
 import {
   FileText,
