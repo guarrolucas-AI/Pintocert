@@ -239,6 +239,11 @@ REGLAS CRÍTICAS PARA EL JSON:
 6. El JSON DEBE ser válido (parsearse con JSON.parse)
 7. Mostrar tabla markdown ANTES del JSON
 8. NUNCA omitas el JSON — ES OBLIGATORIO para guardar en el frontend
+
+MENSAJE AL USUARIO:
+- Di: "La LISTA DE MATERIALES ha sido actualizada"
+- NO digas: "El presupuesto ha sido actualizado"
+- Sos experto en cotizar MATERIALES, no en presupuestos generales
 `
 }
 
