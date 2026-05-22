@@ -4,11 +4,21 @@ import { getSystemPrompt } from '@/lib/agent/prompts'
 import type { ModuloAgente, MensajeChat } from '@/lib/types'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 120
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
+
+// Análisis usa Opus con thinking para razonamiento profundo.
+// El resto usa Sonnet: más rápido y suficientemente capaz para chat conversacional.
+const MODEL_POR_MODO: Record<ModuloAgente, string> = {
+  presupuesto: 'claude-sonnet-4-6',
+  materiales:  'claude-sonnet-4-6',
+  personal:    'claude-sonnet-4-6',
+  herramientas:'claude-sonnet-4-6',
+  analisis:    'claude-opus-4-7',
+}
 
 export async function POST(req: NextRequest) {
   const { messages, modo, contexto } = (await req.json()) as {
@@ -19,6 +29,8 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = getSystemPrompt(modo, contexto)
   const usaWebSearch = modo === 'materiales' || modo === 'herramientas'
+  const model = MODEL_POR_MODO[modo] ?? 'claude-sonnet-4-6'
+  const usaThinking = modo === 'analisis'
 
   const encoder = new TextEncoder()
 
@@ -34,9 +46,9 @@ export async function POST(req: NextRequest) {
           : undefined
 
         const msgStream = anthropic.messages.stream({
-          model: 'claude-opus-4-7',
-          max_tokens: 8000,
-          thinking: { type: 'adaptive' },
+          model,
+          max_tokens: usaThinking ? 8000 : 4096,
+          ...(usaThinking ? { thinking: { type: 'adaptive' } } : {}),
           system: systemPrompt,
           messages: messages.map((m) => ({
             role: m.role,
