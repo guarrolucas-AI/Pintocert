@@ -189,41 +189,48 @@ FLUJO:
 3. Usa los PRECIOS DE REFERENCIA para cada material. Ajustá si es premium/especial.
 4. Compone el JSON con todos los materiales y precios.
 
-CUANDO TENGAS TODA LA INFO, generá DOS bloques JSON al final:
+CUANDO TENGAS TODA LA INFO, SIEMPRE generá EXACTAMENTE ESTO (en orden):
 
-1. PRIMERO: Tabla markdown legible con los materiales actualizados
-2. SEGUNDO: El bloque JSON presupuesto_completo para guardar los cambios
+1. Saludo y resumen breve
+2. TABLA MARKDOWN con los materiales (descripción, unidad, cantidad, precio c/u, total)
+3. BLOQUE JSON presupuesto_completo (obligatorio, sin excepciones)
+
+El JSON OBLIGATORIO al final es:
 
 \`\`\`json
 {
   "tipo": "presupuesto_completo",
   "datos": {
-    "cliente": "${(ctx?.presupuesto as any)?.cliente || ''}",
-    "cliente_email": "${(ctx?.presupuesto as any)?.cliente_email || ''}",
-    "cliente_telefono": "${(ctx?.presupuesto as any)?.cliente_telefono || ''}",
-    "obra_descripcion": "${obraDesc}",
-    "obra_direccion": "${(ctx?.presupuesto as any)?.obra_direccion || ''}",
-    "obra_localidad": "${(ctx?.presupuesto as any)?.obra_localidad || ''}",
+    "cliente": "NOMBRE_DEL_CLIENTE_DEL_PRESUPUESTO_ORIGINAL",
+    "cliente_email": "EMAIL_SI_EXISTE",
+    "cliente_telefono": "TELEFONO_SI_EXISTE",
+    "obra_descripcion": "DESCRIPCION_DE_LA_OBRA",
+    "obra_direccion": "DIRECCION_SI_EXISTE",
+    "obra_localidad": "LOCALIDAD_SI_EXISTE",
     "obra_provincia": "Buenos Aires",
     "items": [
       {
-        "descripcion": "Material/cantidad actualizada",
-        "unidad": "unidad",
-        "cantidad": 1,
-        "precio_unitario": 0
+        "descripcion": "EXACTAMENTE_MISMO_NOMBRE_QUE_EN_TABLA",
+        "unidad": "UNIDAD_DE_MEDIDA",
+        "cantidad": NUMERO_ENTERO_O_DECIMAL,
+        "precio_unitario": PRECIO_NUMERO_SIN_SIMBOLO
       }
     ],
     "iva_porcentaje": 21,
-    "notas": "Precios y cantidades actualizadas según cotización de materiales - May 2026",
+    "notas": "Cotización de materiales actualizada",
     "validez_dias": 7
   }
 }
 \`\`\`
 
-IMPORTANTE:
-- Los "items" en presupuesto_completo deben reflejar los materiales principales con sus cantidades y precios totales
-- El JSON se procesa automáticamente en el frontend para guardar los cambios
-- Siempre incluye la tabla markdown ANTES del JSON para que sea legible por el usuario
+REGLAS CRÍTICAS PARA EL JSON:
+1. DEBE tener "tipo": "presupuesto_completo" (EXACTAMENTE así, sin cambios)
+2. Los "items" array DEBE contener TODOS los materiales de la tabla
+3. Cada item DEBE tener: descripcion, unidad, cantidad, precio_unitario (números, no strings)
+4. El JSON DEBE ser válido (pueda parsearse con JSON.parse)
+5. SIEMPRE incluye cliente, obra_descripcion, items (no pueden estar vacíos)
+6. Mostrar tabla ANTES de generar el JSON
+7. NUNCA omitas el JSON — ES OBLIGATORIO para guardar los cambios en el frontend
 `
 }
 
