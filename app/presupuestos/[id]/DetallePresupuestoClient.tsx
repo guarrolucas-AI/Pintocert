@@ -435,6 +435,52 @@ function TabResumen({
         </div>
       )}
 
+      {/* Datos del cliente (editable en modo edit) */}
+      <div className="lg:col-span-5 rounded-lg border bg-white p-5">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4">Datos del cliente</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs text-slate-500 font-medium">Nombre / Razón social</label>
+            {editMode ? (
+              <input
+                type="text"
+                value={p.cliente}
+                onChange={(e) => onEditChange('cliente', e.target.value)}
+                className="w-full border border-slate-200 rounded px-3 py-2 mt-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              />
+            ) : (
+              <p className="text-sm font-medium text-slate-900 mt-1">{p.cliente}</p>
+            )}
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 font-medium">Email</label>
+            {editMode ? (
+              <input
+                type="email"
+                value={p.cliente_email || ''}
+                onChange={(e) => onEditChange('cliente_email', e.target.value)}
+                className="w-full border border-slate-200 rounded px-3 py-2 mt-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              />
+            ) : (
+              <p className="text-sm text-slate-600 mt-1">{p.cliente_email || '—'}</p>
+            )}
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 font-medium">Teléfono</label>
+            {editMode ? (
+              <input
+                type="tel"
+                value={p.cliente_telefono || ''}
+                onChange={(e) => onEditChange('cliente_telefono', e.target.value)}
+                className="w-full border border-slate-200 rounded px-3 py-2 mt-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              />
+            ) : (
+              <p className="text-sm text-slate-600 mt-1">{p.cliente_telefono || '—'}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Resumen financiero */}
       <div className="lg:col-span-2 space-y-4">
         <div className="rounded-lg border bg-white p-5">
