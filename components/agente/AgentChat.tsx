@@ -111,8 +111,10 @@ export default function AgentChat({
                 // Buscar bloques JSON en el texto final
                 detectarJSON(textoCompleto)
               } else if (evento.type === 'error') {
-                textoCompleto = `❌ Error del servidor: ${evento.message}`
+                textoCompleto = `❌ ${evento.message}`
                 setTextoActual(textoCompleto)
+              } else if (evento.type === 'retrying') {
+                setTextoActual(`⏳ API sobrecargada, reintentando (${evento.intento}/3)...`)
               }
             } catch {
               // ignorar líneas malformadas

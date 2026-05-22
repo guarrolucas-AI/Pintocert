@@ -39,7 +39,10 @@ export async function POST(req: NextRequest) {
       const send = (payload: object) =>
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`))
 
-      try {
+      const MAX_REINTENTOS = 3
+
+      for (let intento = 0; intento <= MAX_REINTENTOS; intento++) {
+       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const tools = usaWebSearch
           ? ([{ type: 'web_search_20260209', name: 'web_search' }] as any[])
@@ -75,11 +78,32 @@ export async function POST(req: NextRequest) {
 
         send({ type: 'done' })
         controller.close()
+        return // éxito — salir del loop
+
       } catch (err: unknown) {
+        // Reintentar si la API está sobrecargada (overloaded_error / 529)
         const msg = err instanceof Error ? err.message : String(err)
-        send({ type: 'error', message: msg })
+        const esOverloaded =
+          msg.includes('overloaded') ||
+          msg.includes('529') ||
+          msg.includes('529')
+
+        if (esOverloaded && intento < MAX_REINTENTOS) {
+          const espera = (intento + 1) * 3000 // 3s, 6s, 9s
+          send({ type: 'retrying', intento: intento + 1, espera })
+          await new Promise((r) => setTimeout(r, espera))
+          continue
+        }
+
+        // Error definitivo
+        const msgFriendly = esOverloaded
+          ? 'La API de Anthropic está temporalmente sobrecargada. Intentá de nuevo en unos segundos.'
+          : msg
+        send({ type: 'error', message: msgFriendly })
         controller.close()
+        return
       }
+      } // fin del for de reintentos
     },
   })
 
