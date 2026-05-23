@@ -226,3 +226,17 @@ export interface PresupuestoMensajes {
   messages: MensajeChat[]
   updated_at: string
 }
+
+export interface PrecioCache {
+  id: string
+  material_nombre: string
+  precio_unitario: number
+  precio_minimo?: number
+  precio_maximo?: number
+  proveedor?: string
+  url_fuente?: string
+  fecha_busqueda: string
+  valido_hasta: string
+  created_at: string
+  updated_at: string
+}
