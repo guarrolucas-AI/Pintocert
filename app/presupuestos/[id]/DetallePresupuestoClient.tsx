@@ -48,6 +48,26 @@ const PresupuestoPDFDownload = dynamic(
   { ssr: false }
 )
 
+const MaterialesPDFDownload = dynamic(
+  () => import('@/components/presupuestos/MaterialesPDFDownload'),
+  { ssr: false }
+)
+
+const PersonalPDFDownload = dynamic(
+  () => import('@/components/presupuestos/PersonalPDFDownload'),
+  { ssr: false }
+)
+
+const HerramientasPDFDownload = dynamic(
+  () => import('@/components/presupuestos/HerramientasPDFDownload'),
+  { ssr: false }
+)
+
+const AnalisisPDFDownload = dynamic(
+  () => import('@/components/presupuestos/AnalisisPDFDownload'),
+  { ssr: false }
+)
+
 const ESTADO_CONFIG: Record<
   EstadoPresupuesto,
   { label: string; variant: 'success' | 'warning' | 'muted' | 'destructive'; icon: React.ElementType }
@@ -316,6 +336,26 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           )}
           <PresupuestoPDFDownload
             presupuesto={presupuesto}
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium h-9"
+          />
+          <MaterialesPDFDownload
+            presupuesto={presupuesto}
+            materiales={presupuesto.lista_materiales}
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium h-9"
+          />
+          <PersonalPDFDownload
+            presupuesto={presupuesto}
+            personal={presupuesto.plan_personal}
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium h-9"
+          />
+          <HerramientasPDFDownload
+            presupuesto={presupuesto}
+            herramientas={presupuesto.herramientas_seguridad}
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium h-9"
+          />
+          <AnalisisPDFDownload
+            presupuesto={presupuesto}
+            analisis={presupuesto.analisis_economico}
             className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium h-9"
           />
           {presupuesto.estado === 'borrador' && (
