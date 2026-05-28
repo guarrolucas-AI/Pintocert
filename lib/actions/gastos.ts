@@ -134,7 +134,9 @@ export async function updateGasto(
       .from('comprobantes_gastos')
       .getPublicUrl(fileName)
 
-    updateData.comprobante_url = publicUrl?.publicUrl || null
+    if (publicUrl?.publicUrl) {
+      updateData.comprobante_url = publicUrl.publicUrl
+    }
   }
 
   // Update gasto
