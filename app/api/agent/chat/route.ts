@@ -12,10 +12,11 @@ const anthropic = new Anthropic({
 })
 
 // Análisis usa Opus con thinking para razonamiento profundo.
-// El resto usa Sonnet: más rápido y suficientemente capaz para chat conversacional.
+// Materiales usa Sonnet (soporta web_search).
+// El resto usa Haiku: más rápido y suficientemente capaz.
 const MODEL_POR_MODO: Record<ModuloAgente, string> = {
   presupuesto:  'claude-haiku-4-5',
-  materiales:   'claude-haiku-4-5',
+  materiales:   'claude-sonnet-4-6',  // Sonnet soporta web_search para búsqueda de precios
   personal:     'claude-haiku-4-5',
   herramientas: 'claude-haiku-4-5',
   analisis:     'claude-sonnet-4-6',
