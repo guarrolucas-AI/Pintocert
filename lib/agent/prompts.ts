@@ -24,7 +24,7 @@ const PRECIOS_REFERENCIA = {
 
   // CEMENTO, CAL Y MORTEROS (Red Materiales / La Nacion - Mayo 2026)
   cemento_portland_50kg: 10000,          // bolsa 50kg (Holcim $9.800-$10.500, Avellaneda $13.900)
-  cemento_portland_25kg: 5500,           // bolsa 25kg aprox mitad del de 50
+  cemento_portland_25kg: 10335,          // bolsa 25kg Loma Negra (mayo 2026)
   cal_hidratada_20kg: 5500,              // bolsa 20kg (Hidralit, rango $4.950-$7.000)
   cal_hidratada_25kg: 7000,              // bolsa 25kg (Extra Avellaneda $6.200-$9.000)
   cemento_cola_25kg: 12000,              // bolsa 25kg adhesivo cerámica estándar (Weber Basic $7.979, Weber Flex $21.285)
@@ -224,7 +224,7 @@ PINTURA Y ACABADOS:
 
 CEMENTO, CAL Y MORTEROS:
 - Cemento Portland bolsa 50kg: $10.000 (Holcim ~$10.150, Avellaneda ~$13.900)
-- Cemento Portland bolsa 25kg: $5.500
+- Cemento Portland bolsa 25kg: $10.335 (Loma Negra)
 - Cal hidratada bolsa 20kg: $5.500
 - Cal hidratada bolsa 25kg: $7.000
 - Cemento cola estándar bolsa 25kg: $12.000 (Weber Basic ~$8.000, Weber Cerecita ~$11.400)
