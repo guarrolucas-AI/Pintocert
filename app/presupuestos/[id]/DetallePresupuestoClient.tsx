@@ -21,6 +21,7 @@ import type {
   PersonalData,
   HerramientasData,
   AnalisisData,
+  PlanEjecucionData,
   ItemPresupuesto,
 } from '@/lib/types'
 import {
@@ -30,6 +31,7 @@ import {
   Users,
   HardHat,
   BarChart3,
+  Calendar,
   ExternalLink,
   CheckCircle,
   Clock,
@@ -83,7 +85,7 @@ const ESTADO_CONFIG: Record<
   rechazado: { label: 'Rechazado', variant: 'destructive', icon: XCircle },
 }
 
-type TabId = 'resumen' | ModuloAgente
+type TabId = 'resumen' | 'plan_ejecucion' | ModuloAgente
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'resumen', label: 'Resumen', icon: FileText },
@@ -91,6 +93,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'personal', label: 'Personal', icon: Users },
   { id: 'herramientas', label: 'Herramientas', icon: HardHat },
   { id: 'analisis', label: 'Análisis', icon: BarChart3 },
+  { id: 'plan_ejecucion', label: 'Plan de Obra', icon: Calendar },
 ]
 
 const MODULO_CAMPO: Record<string, keyof Presupuesto> = {
@@ -513,6 +516,17 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
           onDistribuirPrecios={handleDistribuirPrecios}
         />
+      )}
+      {tab === 'plan_ejecucion' && (
+        presupuesto.plan_ejecucion ? (
+          <div className="space-y-6">
+            <PlanEjecucionView data={presupuesto.plan_ejecucion} />
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-500">
+            <p>No hay plan de ejecución disponible. Generalo en el módulo de Análisis.</p>
+          </div>
+        )
       )}
     </div>
   )
@@ -1270,6 +1284,69 @@ function KpiCard({
     <div className="rounded-lg border bg-white p-4">
       <p className="text-xs text-slate-500 mb-1">{label}</p>
       <p className={`text-lg font-bold ${className || 'text-slate-900'}`}>{value}</p>
+    </div>
+  )
+}
+
+// ─── Plan de Obra View ────────────────────────────────────────────────────────
+
+function PlanEjecucionView({ data }: { data: PlanEjecucionData }) {
+  if (!data || !data.semanas || data.semanas.length === 0) {
+    return (
+      <div className="text-center py-8 text-slate-500">
+        <p>No hay cronograma disponible.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Información general */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiCard label="Duración total" value={`${data.duracion_semanas} semanas`} />
+        <KpiCard label="Anticipo" value={`${data.anticipo_porcentaje}%`} />
+        <KpiCard label="Monto anticipo" value={formatARS(data.anticipo_monto ?? 0)} />
+      </div>
+
+      {/* Semanas */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-slate-700">Cronograma de ejecución</h3>
+        {data.semanas.map((semana, idx) => (
+          <div key={idx} className="rounded-lg border bg-white p-4">
+            <div className="flex justify-between items-start mb-2">
+              <h4 className="font-semibold text-slate-900">Semana {semana.numero}</h4>
+              <div className="text-right">
+                <p className="text-sm font-bold text-blue-600">{semana.porcentaje_avance}% avance</p>
+                <p className="text-xs text-slate-600">{formatARS(semana.monto_certificar ?? 0)}</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-600 mb-3">{semana.descripcion}</p>
+
+            {semana.items_incluidos && semana.items_incluidos.length > 0 && (
+              <div className="bg-slate-50 rounded p-3 text-sm">
+                <p className="font-medium text-slate-700 mb-2">Ítems incluidos:</p>
+                <ul className="space-y-1">
+                  {semana.items_incluidos.map((item, i) => (
+                    <li key={i} className="text-slate-600 flex items-start gap-2">
+                      <span className="text-blue-500 mt-0.5">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Progress bar */}
+            <div className="mt-3 bg-slate-200 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-blue-500 h-full transition-all"
+                style={{ width: `${Math.min(semana.porcentaje_avance ?? 0, 100)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

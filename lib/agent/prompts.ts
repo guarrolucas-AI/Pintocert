@@ -503,17 +503,28 @@ Formato OBLIGATORIO:
 function promptAnalisis(ctx?: Record<string, unknown>) {
   const obra = ctx?.presupuesto as Partial<Presupuesto> | undefined
   const total = obra?.total ?? 0
+  const subtotal = obra?.subtotal ?? 0
+  const monto_iva = obra?.monto_iva ?? 0
   const materiales = (obra?.lista_materiales as { total_estimado?: number })?.total_estimado ?? 0
   const manoObra = (obra?.plan_personal as { total_mano_obra?: number })?.total_mano_obra ?? 0
+  const cliente = obra?.cliente ?? 'Sin especificar'
+  const obra_desc = obra?.obra_descripcion ?? 'Sin descripción'
 
   return `${BASE_CONTEXT}
 
-Tu tarea es generar un análisis económico completo de la obra.
+Tu tarea es generar un análisis económico COMPLETO de la obra.
 
-DATOS DISPONIBLES:
-- Precio de venta al cliente: $${total.toLocaleString('es-AR')}
-- Costo estimado de materiales: $${materiales.toLocaleString('es-AR')}
-- Costo estimado de mano de obra: $${manoObra.toLocaleString('es-AR')}
+DATOS DEL PRESUPUESTO CONFIRMADO:
+- Cliente: ${cliente}
+- Obra: ${obra_desc}
+- **Precio de venta al cliente (CON IVA 21%): $${total.toLocaleString('es-AR')}**
+- **Precio de venta SIN IVA (para análisis): $${subtotal.toLocaleString('es-AR')}**
+- IVA 21%: $${monto_iva.toLocaleString('es-AR')}
+
+COSTOS CONFIRMADOS (desde módulos previos):
+- Costo materiales: $${materiales.toLocaleString('es-AR')}
+- Costo mano de obra: $${manoObra.toLocaleString('es-AR')}
+- Costo directo TOTAL: $${(materiales + manoObra).toLocaleString('es-AR')}
 
 FLUJO:
 1. Si el primer mensaje es "__INIT__", preséntate y empezá con preguntas.
@@ -534,12 +545,23 @@ CONSIDERACIONES PARA ARGENTINA (2026):
 
 CUANDO TENGAS TODO, generá el JSON al final. SIEMPRE con \`\`\`json y estructura { "tipo": "analisis_completo", "datos": {...} }.
 
-⚠️ REGLAS CRÍTICAS PARA EL JSON:
-1. "precio_venta" = precio final cobrado al cliente SIN IVA (NUNCA 0 — si el cliente paga $36.5M con IVA al 21%, precio_venta = 30.165.289)
-2. "costos_directos.subtotal" = materiales + mano_obra (calculá la suma, NUNCA omitir)
-3. "ganancia_bruta" = precio_venta - costo_total
-4. "rentabilidad_sobre_ventas" = (ganancia_bruta / precio_venta) × 100
-5. Todos los campos numéricos DEBEN tener un número real, NUNCA 0 si no corresponde
+⚠️ REGLAS CRÍTICAS PARA EL JSON (ABSOLUTAS):
+1. "precio_venta" = Precio final cobrado al cliente SIN IVA
+   - NUNCA CERO — USAR EL SUBTOTAL CONFIRMADO ARRIBA
+   - Ej: si presupuesto total=$36.5M con IVA 21%, entonces precio_venta = subtotal sin IVA
+
+2. "costos_directos":
+   - "materiales": $${materiales}
+   - "mano_obra": $${manoObra}
+   - "subtotal": SUMA EXACTA de materiales + mano_obra = $${(materiales + manoObra).toLocaleString('es-AR')}
+
+3. "costo_total": costos_directos.subtotal + costos_indirectos + contingencias (NUNCA CERO)
+
+4. "ganancia_bruta": precio_venta - costo_total (SIEMPRE positivo para obras rentables)
+
+5. "rentabilidad_sobre_ventas": (ganancia_bruta / precio_venta) × 100 (SIEMPRE entre 0-100%)
+
+6. TODOS los números DEBEN ser valores reales > 0. NUNCA DEJES CAMPOS EN 0 O NULL.
 
 \`\`\`json
 {
