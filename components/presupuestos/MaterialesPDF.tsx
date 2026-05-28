@@ -1,19 +1,30 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import { formatARS } from '@/lib/utils'
 import type { MaterialesData, Presupuesto } from '@/lib/types'
 
 const EMPRESA_NOMBRE = process.env.NEXT_PUBLIC_EMPRESA_NOMBRE ?? 'Empresa de Pintura'
+const EMPRESA_CUIT = process.env.NEXT_PUBLIC_EMPRESA_CUIT ?? '—'
 
 const s = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 9, padding: 36, color: '#1e293b' },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
-    paddingBottom: 8,
     borderBottomWidth: 2,
     borderBottomColor: '#FFD600',
+    backgroundColor: '#0a0a0a',
+    padding: 12,
+    borderRadius: 4,
   },
-  titulo: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#0a0a0a', marginBottom: 2 },
-  subtitulo: { fontSize: 10, color: '#64748b', marginBottom: 8 },
+  headerLeft: { flex: 1 },
+  headerRight: { alignItems: 'flex-end' },
+  logo: { width: 130, height: 34, objectFit: 'contain' },
+  empresa: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#ffffff', marginBottom: 1 },
+  cuit: { fontSize: 8, color: '#a3a3a3' },
+  titulo: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#FFD600', marginBottom: 1 },
+  subtitulo: { fontSize: 9, color: '#64748b', marginBottom: 8 },
 
   section: { marginBottom: 12 },
   sectionTitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 6, color: '#475569', backgroundColor: '#f1f5f9', padding: 6 },
@@ -44,9 +55,22 @@ export function MaterialesPDF({ presupuesto, materiales }: { presupuesto: Presup
     <Document title={`materiales-${presupuesto.cliente}`}>
       <Page size="A4" style={s.page}>
         <View style={s.header}>
-          <Text style={s.titulo}>Listado de Materiales</Text>
-          <Text style={s.subtitulo}>
-            {presupuesto.cliente} • {presupuesto.obra_descripcion}
+          <View style={s.headerLeft}>
+            <Image src="/logo-white.png" style={s.logo} />
+            <Text style={s.empresa}>{EMPRESA_NOMBRE}</Text>
+            <Text style={s.cuit}>CUIT: {EMPRESA_CUIT}</Text>
+          </View>
+          <View style={s.headerRight}>
+            <Text style={s.titulo}>Materiales</Text>
+          </View>
+        </View>
+
+        <View style={{ marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', marginBottom: 4 }}>
+            {presupuesto.cliente}
+          </Text>
+          <Text style={{ fontSize: 10, color: '#64748b' }}>
+            {presupuesto.obra_descripcion}
           </Text>
         </View>
 

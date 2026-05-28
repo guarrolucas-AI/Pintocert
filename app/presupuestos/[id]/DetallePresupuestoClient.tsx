@@ -68,6 +68,11 @@ const AnalisisPDFDownload = dynamic(
   { ssr: false }
 )
 
+const PlanEjecucionPDFDownload = dynamic(
+  () => import('@/components/presupuestos/PlanEjecucionPDFDownload'),
+  { ssr: false }
+)
+
 const ESTADO_CONFIG: Record<
   EstadoPresupuesto,
   { label: string; variant: 'success' | 'warning' | 'muted' | 'destructive'; icon: React.ElementType }
@@ -356,6 +361,11 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           <AnalisisPDFDownload
             presupuesto={presupuesto}
             analisis={presupuesto.analisis_economico}
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium h-9"
+          />
+          <PlanEjecucionPDFDownload
+            presupuesto={presupuesto}
+            plan={presupuesto.plan_ejecucion}
             className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium h-9"
           />
           {presupuesto.estado === 'borrador' && (
