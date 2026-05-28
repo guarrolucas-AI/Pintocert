@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import type { Perfil } from '@/lib/types'
+import { Menu, X } from 'lucide-react'
 
 interface TopbarProps {
   perfil: Perfil | null
@@ -13,6 +15,7 @@ interface TopbarProps {
 
 export function Topbar({ perfil }: TopbarProps) {
   const router = useRouter()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   async function handleLogout() {
     const supabase = createClient()
@@ -62,6 +65,20 @@ export function Topbar({ perfil }: TopbarProps) {
               </span>
             </span>
           )}
+
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="sm:hidden text-white/60 hover:text-white transition-colors"
+            title={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          >
+            {mobileMenuOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </button>
+
           <Button
             variant="outline"
             size="sm"
@@ -72,6 +89,36 @@ export function Topbar({ perfil }: TopbarProps) {
           </Button>
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="sm:hidden border-t border-white/10 bg-[#1a1a1a] py-3 px-4 space-y-3">
+          <Link
+            href="/presupuestos"
+            className="block text-sm text-white/70 hover:text-white transition-colors py-2"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Presupuestos
+          </Link>
+          {perfil?.rol === 'admin' && (
+            <Link
+              href="/usuarios"
+              className="block text-sm text-white/70 hover:text-white transition-colors py-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Usuarios
+            </Link>
+          )}
+          {perfil && (
+            <div className="border-t border-white/10 pt-3 mt-3 text-sm text-white/70">
+              <p>{perfil.nombre}</p>
+              <p className="text-xs text-white/50 mt-1">
+                Rol: <span className="capitalize font-semibold text-white/70">{perfil.rol}</span>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   )
 }

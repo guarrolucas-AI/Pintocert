@@ -54,3 +54,23 @@ export async function eliminarUsuario(userId: string) {
   revalidatePath('/usuarios')
   return { success: true }
 }
+
+export async function cambiarRolUsuario(userId: string, nuevoRol: string) {
+  const { error, admin } = await requireAdminUser()
+  if (error || !admin) return { error: error ?? 'Error' }
+
+  const rolesValidos = ['admin', 'capataz', 'operario']
+  if (!rolesValidos.includes(nuevoRol)) {
+    return { error: 'Rol inválido' }
+  }
+
+  const { error: updateError } = await admin
+    .from('perfiles')
+    .update({ rol: nuevoRol })
+    .eq('id', userId)
+
+  if (updateError) return { error: updateError.message }
+
+  revalidatePath('/usuarios')
+  return { success: true }
+}
