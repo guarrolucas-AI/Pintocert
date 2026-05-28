@@ -204,10 +204,6 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
 
     // Actualizar estado local
     setPresupuesto((prev) => ({ ...prev, analisis_economico: null }))
-    setMensajesPorModulo((prev) => ({
-      ...prev,
-      analisis: { messages: [] },
-    }))
 
     toast.success('Análisis borrado. Refresca la página.')
   }
