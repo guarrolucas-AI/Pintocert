@@ -647,6 +647,7 @@ function TabResumen({
                   <th className="text-right px-4 py-2.5 text-slate-500 font-semibold">Cant.</th>
                   <th className="text-right px-4 py-2.5 text-slate-500 font-semibold">P.U.</th>
                   <th className="text-right px-4 py-2.5 text-slate-500 font-semibold">Subtotal</th>
+                  {editMode && <th className="text-center px-4 py-2.5 text-slate-500 font-semibold">Acciones</th>}
                 </tr>
               </thead>
               <tbody>
@@ -665,8 +666,30 @@ function TabResumen({
                   return (
                     <tr key={idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
                       <td className="px-4 py-2.5 text-slate-400">{idx + 1}</td>
-                      <td className="px-4 py-2.5 font-medium text-slate-800">{item.descripcion}</td>
-                      <td className="px-4 py-2.5 text-center text-slate-500">{item.unidad}</td>
+                      <td className="px-4 py-2.5 font-medium text-slate-800">
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={item.descripcion}
+                            onChange={(e) => handleItemChange('descripcion', e.target.value)}
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-slate-600"
+                          />
+                        ) : (
+                          item.descripcion
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-center text-slate-500">
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={item.unidad}
+                            onChange={(e) => handleItemChange('unidad', e.target.value)}
+                            className="w-12 border border-slate-300 rounded px-1 py-0.5 text-center text-slate-600"
+                          />
+                        ) : (
+                          item.unidad
+                        )}
+                      </td>
                       <td className="px-4 py-2.5 text-right">
                         {editMode ? (
                           <input
@@ -692,6 +715,20 @@ function TabResumen({
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatARS(calculateItemSubtotal(item.cantidad, item.precio_unitario))}</td>
+                      {editMode && (
+                        <td className="px-4 py-2.5 text-center">
+                          <button
+                            onClick={() => {
+                              const newItems = p.items.filter((_, i) => i !== idx)
+                              onEditChange('items', newItems)
+                            }}
+                            className="text-red-600 hover:text-red-700 text-xs font-medium"
+                            title="Eliminar ítem"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
@@ -704,6 +741,26 @@ function TabResumen({
               </tfoot>
             </table>
           </div>
+          {editMode && (
+            <div className="px-5 py-3 border-t bg-slate-50">
+              <button
+                onClick={() => {
+                  const newItem: ItemPresupuesto = {
+                    descripcion: 'Nuevo ítem',
+                    cantidad: 1,
+                    unidad: 'u',
+                    precio_unitario: 0,
+                    subtotal: 0,
+                  }
+                  const newItems = [...p.items, newItem]
+                  onEditChange('items', newItems)
+                }}
+                className="text-xs font-medium text-yellow-600 hover:text-yellow-700 flex items-center gap-1"
+              >
+                + Agregar ítem
+              </button>
+            </div>
+          )}
         </div>
 
         {(p.notas || editMode) && (
