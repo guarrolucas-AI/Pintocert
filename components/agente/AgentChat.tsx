@@ -36,10 +36,10 @@ export default function AgentChat({
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const inicializado = useRef(false)
 
-  // Scroll al fondo siempre
+  // Scroll al fondo cuando se agregan mensajes (no mientras escribe)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [mensajes, textoActual])
+  }, [mensajes])
 
   // Inicializar: el agente saluda primero
   useEffect(() => {

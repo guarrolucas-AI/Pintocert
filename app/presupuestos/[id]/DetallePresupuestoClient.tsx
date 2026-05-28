@@ -184,6 +184,34 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
     )
   }
 
+  async function handleResetAnalisis() {
+    if (!confirm('¿Borrar análisis y reiniciar? El chat se vaciará.')) return
+
+    const supabase = createClient()
+
+    // Borrar análisis
+    await supabase
+      .from('presupuestos')
+      .update({ analisis_economico: null })
+      .eq('id', presupuesto.id)
+
+    // Borrar mensajes del módulo análisis
+    await supabase
+      .from('presupuesto_mensajes')
+      .delete()
+      .eq('presupuesto_id', presupuesto.id)
+      .eq('modulo', 'analisis')
+
+    // Actualizar estado local
+    setPresupuesto((prev) => ({ ...prev, analisis_economico: null }))
+    setMensajesPorModulo((prev) => ({
+      ...prev,
+      analisis: { messages: [] },
+    }))
+
+    toast.success('Análisis borrado. Refresca la página.')
+  }
+
   async function handleDistribuirPrecios(analisisDatos: unknown) {
     const data = analisisDatos as AnalisisData
 
@@ -542,6 +570,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           datosGenerados={presupuesto.analisis_economico}
           renderDatos={(d) => <AnalisisView data={d as AnalisisData} />}
           onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
+          onReset={handleResetAnalisis}
           onDistribuirPrecios={handleDistribuirPrecios}
         />
       )}
@@ -888,6 +917,7 @@ interface TabAgenteProps {
   datosGenerados: unknown
   renderDatos: (datos: unknown) => React.JSX.Element
   onRefresh?: () => void
+  onReset?: () => Promise<void>
   /** Solo para análisis: distribuye el precio_venta entre los ítems del presupuesto */
   onDistribuirPrecios?: (analisisDatos: unknown) => Promise<void>
 }
@@ -901,6 +931,7 @@ function TabAgente({
   datosGenerados,
   renderDatos,
   onRefresh = () => {},
+  onReset,
   onDistribuirPrecios,
 }: TabAgenteProps) {
   // Estado local: se actualiza inmediatamente cuando llega JSON del agente,
@@ -955,6 +986,17 @@ function TabAgente({
             {hayDatos ? 'Datos generados' : 'Esperando resultados...'}
           </span>
           <div className="flex items-center gap-2">
+            {onReset && hayDatos && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onReset}
+                title="Borrar análisis y reiniciar desde cero"
+                className="text-xs text-red-600 hover:bg-red-50"
+              >
+                Resetear
+              </Button>
+            )}
             {onDistribuirPrecios && hayDatos && (
               <Button
                 size="sm"
