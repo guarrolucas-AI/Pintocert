@@ -1,5 +1,5 @@
 export type Rol = 'admin' | 'capataz' | 'operario'
-export type EstadoObra = 'activo' | 'pausado' | 'terminado'
+export type EstadoObra = 'activo' | 'pausado' | 'terminado' | 'archivado'
 export type EstadoCertificado = 'borrador' | 'aprobado'
 
 export interface Perfil {

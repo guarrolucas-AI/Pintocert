@@ -18,10 +18,14 @@ export default async function DashboardPage() {
 
   const admin = createAdminClient()
 
-  const [{ data: obras, error }, { data: perfil }] = await Promise.all([
+  const [{ data: todasObras, error }, { data: perfil }] = await Promise.all([
     supabase.from('obras_avance').select('*').order('created_at', { ascending: false }),
     admin.from('perfiles').select('rol').eq('id', user.id).single(),
   ])
+
+  // Separar obras activas de archivadas
+  const obras = todasObras?.filter((o) => o.estado !== 'archivado') ?? []
+  const obrasArchivadas = todasObras?.filter((o) => o.estado === 'archivado') ?? []
 
   if (error) {
     return (
@@ -39,7 +43,10 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Obras</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {obras?.length ?? 0} obra{obras?.length !== 1 ? 's' : ''} registrada{obras?.length !== 1 ? 's' : ''}
+            {obras.length} obra{obras.length !== 1 ? 's' : ''} activa{obras.length !== 1 ? 's' : ''}
+            {obrasArchivadas.length > 0 && (
+              <span className="ml-2 text-slate-400">· {obrasArchivadas.length} archivada{obrasArchivadas.length !== 1 ? 's' : ''}</span>
+            )}
           </p>
         </div>
         {canCreate && (
@@ -70,10 +77,24 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(obras as ObraConAvance[]).map((obra) => (
-            <ObraCard key={obra.obra_id} obra={obra} />
+          {obras.map((obra) => (
+            <ObraCard key={obra.obra_id} obra={obra as ObraConAvance} />
           ))}
         </div>
+      )}
+
+      {/* Obras archivadas */}
+      {obrasArchivadas.length > 0 && (
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm text-slate-400 hover:text-slate-600 select-none">
+            📁 Ver obras archivadas ({obrasArchivadas.length})
+          </summary>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4 opacity-60">
+            {obrasArchivadas.map((obra) => (
+              <ObraCard key={obra.obra_id} obra={obra as ObraConAvance} />
+            ))}
+          </div>
+        </details>
       )}
     </div>
   )

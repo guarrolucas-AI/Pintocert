@@ -13,6 +13,7 @@ import { PagosPanel } from '@/components/pagos/PagosPanel'
 import { formatARS, nombreMes } from '@/lib/utils'
 import type { Obra, ItemObra, Certificado, ObraConAvance, Pago } from '@/lib/types'
 import { Plus, Pencil } from 'lucide-react'
+import { ObraActions } from '@/components/obras/ObraActions'
 
 export const revalidate = 0
 
@@ -20,6 +21,7 @@ const ESTADO_CONFIG = {
   activo: { label: 'Activo', variant: 'success' as const },
   pausado: { label: 'Pausado', variant: 'warning' as const },
   terminado: { label: 'Terminado', variant: 'muted' as const },
+  archivado: { label: 'Archivado', variant: 'muted' as const },
 }
 
 export default async function ObraDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -71,22 +73,27 @@ export default async function ObraDetailPage({ params }: { params: Promise<{ id:
           <p className="text-sm text-muted-foreground">{(obra as Obra).direccion}</p>
           <p className="text-sm text-muted-foreground">Cliente: <strong>{(obra as Obra).cliente}</strong></p>
         </div>
-        {canEdit && (
-          <div className="flex gap-2 shrink-0">
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/obras/${id}/editar`}>
-                <Pencil className="h-4 w-4" />
-                Editar
-              </Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href={`/obras/${id}/certificados/nuevo`}>
-                <Plus className="h-4 w-4" />
-                Nuevo certificado
-              </Link>
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2 shrink-0 flex-wrap">
+          {canEdit && (
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/obras/${id}/editar`}>
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href={`/obras/${id}/certificados/nuevo`}>
+                  <Plus className="h-4 w-4" />
+                  Nuevo certificado
+                </Link>
+              </Button>
+            </>
+          )}
+          {perfil?.rol === 'admin' && (
+            <ObraActions obraId={id} estadoActual={(obra as Obra).estado} />
+          )}
+        </div>
       </div>
 
       {/* Resumen financiero */}
