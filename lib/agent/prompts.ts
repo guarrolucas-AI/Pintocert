@@ -6,37 +6,27 @@ Respondé siempre en español rioplatense, de forma concisa y profesional.
 Nunca respondas en inglés.
 `
 
-// ─── PRECIOS DE REFERENCIA (ARS, Mayo 2026) ──────────────────────────────────
-// Matriz de precios para materiales y servicios comunes
-// Dos tiers: "estandar" y "premium" para cada ítem
+// ─── PRECIOS DE REFERENCIA (ARS, Mayo 2026 - MercadoLibre) ───────────────────
+// Precios REALES encontrados en MercadoLibre Argentina
+// Estos precios se actualizan cuando usuario hace click en "Actualizar precios"
 const PRECIOS_REFERENCIA = {
-  // PINTURA INTERIOR
-  pintura_interior_estandar: 4500,    // m² látex 2 manos, marcas estándar
-  pintura_interior_premium: 6000,     // m² látex premium, marcas reconocidas
-  pintura_interior_prep_estandar: 1500,  // m² preparación de superficie
-  pintura_interior_prep_premium: 2000,
+  // PINTURA SINTEPLAST (MercadoLibre - Mayo 2026)
+  pintura_sinteplast_interior: 28000,    // por litro (rango: $20.795-$35.418)
+  pintura_sinteplast_exterior: 26000,    // por litro (rango: $18.606-$33.000)
+  fijador_sinteplast: 35000,             // por litro (rango: $16.449-$68.300)
+  impermeabilizante_sinteplast: 89900,   // por litro (rango: $35.700-$103.700)
+  masilla_recuplast: 27500,              // por kg (rango: $10.333-$43.989)
+  pintura_alba_duralba: 50000,           // por litro (rango: $35.000-$65.000)
 
-  // PINTURA EXTERIOR
-  pintura_exterior_estandar: 5500,    // m² frente/fachada, pintura estándar
-  pintura_exterior_premium: 7500,     // m² frente/fachada, pintura premium
-  pintura_exterior_prep_estandar: 1800,
-  pintura_exterior_prep_premium: 2500,
-
-  // PISOS Y REVESTIMIENTOS
-  barnizado_parquet_estandar: 6000,   // m² barnizado de pisos de madera
-  barnizado_parquet_premium: 9000,
-  ceramicos_colocacion_estandar: 8000, // m² colocación de cerámicos
-  ceramicos_colocacion_premium: 12000,
-  porcellanato_colocacion_estandar: 10000, // m² porcelánico
-  porcellanato_colocacion_premium: 15000,
-
-  // OTROS SERVICIOS (por m² o global)
-  cieloraso_yeso_estandar: 3500,      // m² cielorraso de yeso
-  cieloraso_yeso_premium: 5000,
-  plomeria_basica: 50000,             // presupuesto global para instalación básica
-  plomeria_compleja: 80000,           // instalación con cambios de layout
-  electricidad_basica: 40000,         // instalación eléctrica básica
-  electricidad_compleja: 70000,       // reconfiguración total o alta demanda
+  // SERVICIOS Y MANO DE OBRA (precios de referencia)
+  preparacion_superficie: 2000,          // por m²
+  pintura_mano_obra_interior: 8000,      // por m²
+  pintura_mano_obra_exterior: 10000,     // por m²
+  barnizado_parquet: 8000,               // por m²
+  ceramicos_colocacion: 10000,           // por m²
+  cieloraso_yeso: 4000,                  // por m²
+  plomeria_basica: 60000,                // presupuesto global
+  electricidad_basica: 50000,            // presupuesto global
 }
 
 // ─── JSON OUTPUT FORMAT ───────────────────────────────────────────────────────
@@ -171,28 +161,26 @@ ${items}
 
 ${notas}
 ${preciosCacheSection}
-PRECIOS DE REFERENCIA (solo como guía — BUSCA PRECIOS ACTUALES EN WEB):
-- Pintura interior estándar: $4.500-$6.000/m² (referencia solamente)
-- Pintura exterior estándar: $5.500-$7.500/m² (referencia solamente)
-- Preparación de superficies: $1.500-$2.500/m² (referencia solamente)
-- Barnizado de pisos: $6.000-$9.000/m² (referencia solamente)
-- Colocación de cerámicos: $8.000-$12.000/m² (referencia solamente)
-- Colocación de porcelánico: $10.000-$15.000/m² (referencia solamente)
-- Cielorraso de yeso: $3.500-$5.000/m² (referencia solamente)
-- Plomería (global): $50.000-$80.000 (referencia solamente)
-- Electricidad (global): $40.000-$70.000 (referencia solamente)
+PRECIOS ACTUALIZADOS (MercadoLibre Argentina, Mayo 2026):
+- Pintura Sinteplast interior: $28.000/litro (rango: $20.795-$35.418)
+- Pintura Sinteplast exterior: $26.000/litro (rango: $18.606-$33.000)
+- Fijador Sinteplast: $35.000/litro (rango: $16.449-$68.300)
+- Impermeabilizante Sinteplast: $89.900/litro (rango: $35.700-$103.700)
+- Masilla Recuplast: $27.500/kg (rango: $10.333-$43.989)
+- Pintura Alba Duralba: $50.000/litro (rango: $35.000-$65.000)
 
-⚠️ IMPORTANTE: Estos son valores de REFERENCIA SOLAMENTE.
-DEBES USAR WEB_SEARCH para encontrar precios ACTUALES Y REALES en el mercado argentino.
+✅ ESTOS PRECIOS SON REALES y están actualizados.
+Si el usuario hizo click en "Actualizar precios", usa esos valores en caché.
+De lo contrario, usa estos precios de referencia.
 
 REGLAS CRÍTICAS:
-1. SI EL USUARIO HA BUSCADO PRECIOS (botón "Actualizar precios"), usa esos valores en caché — fueron buscados en web y son ACTUALES.
-2. SI NO hay precios en caché, usa la MATRIZ DE REFERENCIA como base.
+1. USA LOS PRECIOS EN CACHÉ si están disponibles (usuario hizo click en "Actualizar precios").
+2. SI NO hay precios en caché, usa la MATRIZ DE REFERENCIA actualizada.
 3. SIEMPRE incluye precio_estimado en cada material (NO vacío, NO cero).
 4. Calcula total_estimado como suma de (cantidad × precio_estimado).
 5. No duplicar ni multiplicar cantidades — cada línea es material independiente.
 6. Si cliente pide marcas específicas o premium, ajustá el precio (hasta +30%).
-7. Los precios DEBEN ser realistas y basados en datos actualizados.
+7. Los precios están ACTUALIZADOS de MercadoLibre (mayo 2026).
 
 PREGUNTAS CLAVE (máx. 3):
 - ¿Prefieren marcas premium o estándar?
