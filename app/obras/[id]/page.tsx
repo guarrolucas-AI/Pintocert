@@ -1,6 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
@@ -11,15 +10,11 @@ import { Separator } from '@/components/ui/separator'
 import { ItemsTable } from '@/components/obras/ItemsTable'
 import { CertHistorial } from '@/components/certificados/CertHistorial'
 import { PagosPanel } from '@/components/pagos/PagosPanel'
+import { GastosView } from '@/components/presupuestos/GastosView'
 import { formatARS, nombreMes } from '@/lib/utils'
 import type { Obra, ItemObra, Certificado, ObraConAvance, Pago } from '@/lib/types'
 import { Plus, Pencil } from 'lucide-react'
 import { ObraActions } from '@/components/obras/ObraActions'
-
-const GastosView = dynamic(
-  () => import('@/components/presupuestos/GastosView').then(m => ({ default: m.GastosView })),
-  { ssr: false }
-)
 
 export const revalidate = 0
 
