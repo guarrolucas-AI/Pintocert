@@ -102,12 +102,21 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
   // precio_venta debería venir del análisis, pero fallback al subtotal del presupuesto
   const ventaDelAnalisis = analisis.precio_venta ?? 0
   const venta = ventaDelAnalisis > 0 ? ventaDelAnalisis : presupuesto.subtotal ?? 0
-  const ganancia = analisis.ganancia_bruta ?? Math.max(0, venta - costo)
+
+  // IVA es un costo que debe restarse de la ganancia
+  const montoIVA = presupuesto.monto_iva ?? 0
+  const ganancia = analisis.ganancia_bruta ?? Math.max(0, venta - costo - montoIVA)
   const rentabilidad = analisis.rentabilidad_sobre_ventas ?? (venta > 0 ? (ganancia / venta) * 100 : 0)
 
   const materiales = analisis.costos_directos?.materiales ?? 0
   const manoObra = analisis.costos_directos?.mano_obra ?? 0
-  const costoIndirecto = (analisis.costos_indirectos ?? []).reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
+
+  // Combinar IVA con otros costos indirectos
+  const costosIndirectosBase = analisis.costos_indirectos ?? []
+  const costosIndirectosCombinados = montoIVA > 0
+    ? [{ descripcion: 'IVA (21%)', monto: montoIVA }, ...costosIndirectosBase]
+    : costosIndirectosBase
+  const costoIndirecto = costosIndirectosCombinados.reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
 
   return (
     <Document title={`analisis-${presupuesto.cliente}`}>
@@ -175,13 +184,15 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
                 <Text style={[s.td, s.right]}>{costo > 0 ? ((manoObra / costo) * 100).toFixed(0) : 0}%</Text>
               </View>
             )}
-            {costoIndirecto > 0 && (
-              <View style={s.tableRow}>
-                <Text style={[s.td, { flex: 2 }]}>📋 Costos Indirectos</Text>
-                <Text style={[s.td, s.right]}>{formatARS(costoIndirecto)}</Text>
-                <Text style={[s.td, s.right]}>{costo > 0 ? ((costoIndirecto / costo) * 100).toFixed(0) : 0}%</Text>
-              </View>
-            )}
+            {costosIndirectosCombinados.map((ci, idx) => (
+              ci.monto > 0 && (
+                <View key={idx} style={s.tableRow}>
+                  <Text style={[s.td, { flex: 2 }]}>{ci.descripcion}</Text>
+                  <Text style={[s.td, s.right]}>{formatARS(ci.monto)}</Text>
+                  <Text style={[s.td, s.right]}>{costo > 0 ? ((ci.monto / costo) * 100).toFixed(0) : 0}%</Text>
+                </View>
+              )
+            ))}
             <View style={[s.tableRow, { backgroundColor: '#f1f5f9' }]}>
               <Text style={[s.th, { flex: 2 }]}>TOTAL COSTO</Text>
               <Text style={[s.th, s.right]}>{formatARS(costo)}</Text>
