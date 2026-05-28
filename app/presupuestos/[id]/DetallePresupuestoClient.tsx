@@ -980,6 +980,14 @@ function TabAgente({
 // ─── Vistas de datos generados ────────────────────────────────────────────────
 
 function MaterialesView({ data }: { data: MaterialesData }) {
+  if (!data || !data.materiales || data.materiales.length === 0) {
+    return (
+      <div className="text-center py-8 text-slate-500">
+        <p>No hay materiales registrados</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -1031,6 +1039,14 @@ function MaterialesView({ data }: { data: MaterialesData }) {
 }
 
 function PersonalView({ data }: { data: PersonalData }) {
+  if (!data || !data.colaboradores || data.colaboradores.length === 0) {
+    return (
+      <div className="text-center py-8 text-slate-500">
+        <p>No hay información de personal</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
@@ -1085,6 +1101,14 @@ function PersonalView({ data }: { data: PersonalData }) {
 }
 
 function HerramientasView({ data }: { data: HerramientasData }) {
+  if (!data || !data.herramientas) {
+    return (
+      <div className="text-center py-8 text-slate-500">
+        <p>No hay información de herramientas</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Herramientas */}
@@ -1149,6 +1173,15 @@ function HerramientasView({ data }: { data: HerramientasData }) {
 }
 
 function AnalisisView({ data }: { data: AnalisisData }) {
+  // Defensive: check if data exists
+  if (!data) {
+    return (
+      <div className="text-center py-8 text-slate-500">
+        <p>No hay datos de análisis disponibles</p>
+      </div>
+    )
+  }
+
   // Defensive: si el agente no incluyó subtotal directo, calcularlo
   const subtotalDirecto =
     typeof data?.costos_directos?.subtotal === 'number' && !isNaN(data.costos_directos.subtotal)
