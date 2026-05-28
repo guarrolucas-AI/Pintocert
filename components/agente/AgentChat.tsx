@@ -160,31 +160,47 @@ export default function AgentChat({
   )
 
   function detectarJSON(texto: string) {
-    // Intento 1: bloque ```json ... ```
+    let encontrados = 0
+
+    // Intento 1: bloque ```json ... ``` (BUSCA TODOS LOS BLOQUES)
     const regexBloque = /```json\s*([\s\S]*?)\s*```/g
     let match
-    let encontrado = false
 
     while ((match = regexBloque.exec(texto)) !== null) {
-      if (intentarParsear(match[1].trim())) encontrado = true
+      if (intentarParsear(match[1].trim())) {
+        encontrados++
+        console.log(`✓ JSON #${encontrados} detectado en bloque json`)
+      }
     }
 
     // Intento 2: JSON plano con {"tipo": "...", "datos": {...}}
     // El agente a veces no usa backticks
-    if (!encontrado) {
+    // IMPORTANTE: busca TODOS los JSONs, no solo el primero
+    if (encontrados === 0) {
       const regexPlano = /\{\s*"tipo"\s*:\s*"[^"]+"\s*,\s*"datos"\s*:\s*\{[\s\S]*?\}\s*\}/g
       while ((match = regexPlano.exec(texto)) !== null) {
-        if (intentarParsear(match[0])) encontrado = true
+        if (intentarParsear(match[0])) {
+          encontrados++
+          console.log(`✓ JSON #${encontrados} detectado en patrón plano`)
+        }
       }
     }
 
     // Intento 3: buscar cualquier objeto JSON grande que empiece con {
     // Solo si tiene más de 200 chars (es un JSON de datos, no un fragmento)
-    if (!encontrado) {
+    if (encontrados === 0) {
       const regexGrande = /(\{[\s\S]{200,}\})/g
       while ((match = regexGrande.exec(texto)) !== null) {
-        if (intentarParsear(match[1])) { encontrado = true; break }
+        if (intentarParsear(match[1])) {
+          encontrados++
+          console.log(`✓ JSON #${encontrados} detectado en patrón grande`)
+          // NO break aquí — continuar buscando más JSONs
+        }
       }
+    }
+
+    if (encontrados > 0) {
+      console.log(`📊 Resumen: Se detectaron ${encontrados} bloque(s) JSON`)
     }
   }
 
