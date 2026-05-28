@@ -9,6 +9,7 @@ const ESTADO_CONFIG = {
   activo: { label: 'Activo', variant: 'success' as const },
   pausado: { label: 'Pausado', variant: 'warning' as const },
   terminado: { label: 'Terminado', variant: 'muted' as const },
+  archivado: { label: 'Archivado', variant: 'muted' as const },
 }
 
 interface ObraCardProps {
