@@ -317,3 +317,13 @@ export interface KPISnapshot {
   ganancia_proyectada_mes: number
   ganancia_real_mes: number
 }
+
+export interface DashboardKPIs {
+  presupuestadoTotal: number
+  ejecutadoTotal: number
+  saldoTotal: number
+  porcentajeAvancePromedio: number
+  totalObras: number
+  obrasPorEstado: Record<EstadoObra, number>
+  montosPorEstado: Record<EstadoObra, number>
+}
