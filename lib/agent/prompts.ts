@@ -563,7 +563,7 @@ Sin ambos bloques = FALLO. Genera SIEMPRE los dos.
     "recomendaciones": ["..."]
   }
 }
-\`\`\`\`
+\`\`\`
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠️ SEPARACIÓN ENTRE BLOQUES JSON - NO OMITIR ESTE PASO
@@ -633,7 +633,7 @@ IMPORTANTE: semanas[] DEBE tener un elemento por cada semana. Los porcentaje_ava
     ]
   }
 }
-\`\`\`\`
+\`\`\`
 
 ═════════════════════════════════════════════════════════════════
 ⚠️ VERIFICACIÓN FINAL ANTES DE RESPONDER
