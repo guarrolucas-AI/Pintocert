@@ -101,6 +101,7 @@ const MODULO_CAMPO: Record<string, keyof Presupuesto> = {
   personal_completo: 'plan_personal',
   herramientas_completo: 'herramientas_seguridad',
   analisis_completo: 'analisis_economico',
+  plan_ejecucion_completo: 'plan_ejecucion',
 }
 
 const MODULO_TAB: Record<string, ModuloAgente> = {

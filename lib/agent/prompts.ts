@@ -543,7 +543,9 @@ CONSIDERACIONES PARA ARGENTINA (2026):
 - Dolarización parcial: algunos materiales y mano de obra de alta especialización se cotizan en USD
 - Flujo de caja: anticipo 35-50%, certificaciones semanales, retención del 5% al final
 
-CUANDO TENGAS TODO, generá el JSON al final. SIEMPRE con \`\`\`json y estructura { "tipo": "analisis_completo", "datos": {...} }.
+CUANDO TENGAS TODO, generá DOS BLOQUES JSON:
+1. Primero el análisis económico
+2. Luego el plan de ejecución (cronograma de semanas)
 
 ⚠️ REGLAS CRÍTICAS PARA EL JSON (ABSOLUTAS):
 1. "precio_venta" = Precio final cobrado al cliente SIN IVA
@@ -588,6 +590,35 @@ CUANDO TENGAS TODO, generá el JSON al final. SIEMPRE con \`\`\`json y estructur
     ],
     "notas": "...",
     "recomendaciones": ["..."]
+  }
+}
+\`\`\`
+
+TAMBIÉN generá el plan de ejecución (cronograma semanal):
+
+\`\`\`json
+{
+  "tipo": "plan_ejecucion_completo",
+  "datos": {
+    "duracion_semanas": 7,
+    "anticipo_porcentaje": 50,
+    "anticipo_monto": 18250000,
+    "semanas": [
+      {
+        "numero": 1,
+        "descripcion": "Demolición, limpieza y preparación de superficies",
+        "items_incluidos": ["Demolición de revestimientos", "Retiro de escombros", "Limpieza profunda"],
+        "porcentaje_avance": 15,
+        "monto_certificar": 2737500
+      },
+      {
+        "numero": 2,
+        "descripcion": "Contrapiso y preparación para pisos",
+        "items_incluidos": ["Contrapiso H21", "Nivelación", "Tratamiento de humedad"],
+        "porcentaje_avance": 20,
+        "monto_certificar": 3650000
+      }
+    ]
   }
 }
 \`\`\`
