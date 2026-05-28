@@ -731,15 +731,15 @@ function TabResumen({
             </h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left px-4 py-2.5 text-slate-500 font-semibold">#</th>
-                  <th className="text-left px-4 py-2.5 text-slate-500 font-semibold">Descripción</th>
-                  <th className="text-center px-4 py-2.5 text-slate-500 font-semibold">Unidad</th>
-                  <th className="text-right px-4 py-2.5 text-slate-500 font-semibold">Cant.</th>
-                  <th className="text-right px-4 py-2.5 text-slate-500 font-semibold">P.U.</th>
-                  <th className="text-right px-4 py-2.5 text-slate-500 font-semibold">Subtotal</th>
+                  <th className="text-left px-2 sm:px-4 py-2.5 text-slate-500 font-semibold">#</th>
+                  <th className="text-left px-2 sm:px-4 py-2.5 text-slate-500 font-semibold">Descripción</th>
+                  <th className="hidden sm:table-cell text-center px-4 py-2.5 text-slate-500 font-semibold">Unidad</th>
+                  <th className="text-right px-2 sm:px-4 py-2.5 text-slate-500 font-semibold">Cant.</th>
+                  <th className="hidden sm:table-cell text-right px-4 py-2.5 text-slate-500 font-semibold">P.U.</th>
+                  <th className="text-right px-2 sm:px-4 py-2.5 text-slate-500 font-semibold">Subtotal</th>
                   {editMode && <th className="text-center px-4 py-2.5 text-slate-500 font-semibold">Acciones</th>}
                 </tr>
               </thead>
@@ -758,8 +758,8 @@ function TabResumen({
 
                   return (
                     <tr key={idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
-                      <td className="px-4 py-2.5 text-slate-400">{idx + 1}</td>
-                      <td className="px-4 py-2.5 font-medium text-slate-800">
+                      <td className="px-2 sm:px-4 py-2.5 text-slate-400 text-xs">{idx + 1}</td>
+                      <td className="px-2 sm:px-4 py-2.5 font-medium text-slate-800">
                         {editMode ? (
                           <input
                             type="text"
@@ -771,7 +771,7 @@ function TabResumen({
                           item.descripcion
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-center text-slate-500">
+                      <td className="hidden sm:table-cell px-4 py-2.5 text-center text-slate-500">
                         {editMode ? (
                           <input
                             type="text"
@@ -783,7 +783,7 @@ function TabResumen({
                           item.unidad
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-2 sm:px-4 py-2.5 text-right">
                         {editMode ? (
                           <input
                             type="number"
@@ -795,7 +795,7 @@ function TabResumen({
                           <span className="text-slate-600">{item.cantidad}</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="hidden sm:table-cell px-4 py-2.5 text-right">
                         {editMode ? (
                           <input
                             type="number"
@@ -807,9 +807,9 @@ function TabResumen({
                           <span className="text-slate-600">{formatARS(item.precio_unitario)}</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatARS(calculateItemSubtotal(item.cantidad, item.precio_unitario))}</td>
+                      <td className="px-2 sm:px-4 py-2.5 text-right font-bold text-slate-800 text-xs sm:text-sm">{formatARS(calculateItemSubtotal(item.cantidad, item.precio_unitario))}</td>
                       {editMode && (
-                        <td className="px-4 py-2.5 text-center">
+                        <td className="px-2 sm:px-4 py-2.5 text-center">
                           <button
                             onClick={() => {
                               const newItems = p.items.filter((_, i) => i !== idx)
@@ -929,9 +929,9 @@ function TabAgente({
   const hayDatos = !!datosLocales
 
   return (
-    <div className="flex gap-4" style={{ height: 'calc(100vh - 260px)', minHeight: '480px' }}>
+    <div className="flex flex-col lg:flex-row gap-4" style={{ minHeight: '480px' }}>
       {/* Chat */}
-      <div className="w-5/12 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
+      <div className="w-full lg:w-5/12 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm lg:max-h-96">
         <div className="shrink-0 px-4 py-3 border-b bg-[#0a0a0a] flex items-center gap-2">
           <Bot className="w-4 h-4 text-yellow-400" />
           <span className="text-sm font-semibold text-white">Agente IA</span>
@@ -949,7 +949,7 @@ function TabAgente({
       </div>
 
       {/* Resultado */}
-      <div className="flex-1 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
+      <div className="w-full lg:flex-1 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
         <div className="shrink-0 px-4 py-3 border-b bg-slate-50 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-700">
             {hayDatos ? 'Datos generados' : 'Esperando resultados...'}
@@ -1077,7 +1077,7 @@ function PersonalView({ data }: { data: PersonalData }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="rounded-lg bg-slate-50 p-4 text-center">
           <p className="text-xs text-slate-500">Costo total</p>
           <p className="text-lg font-bold text-slate-900">{formatARS(data.total_mano_obra)}</p>
@@ -1247,7 +1247,7 @@ function AnalisisView({ data }: { data: AnalisisData }) {
   return (
     <div className="space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="Precio de venta" value={formatARS(precioVentaReal)} />
         <KpiCard label="Costo total" value={formatARS(data?.costo_total ?? 0)} />
         <KpiCard label="Ganancia bruta" value={formatARS(data?.ganancia_bruta ?? 0)} />

@@ -153,9 +153,9 @@ export function NuevoPresupuestoClient({ userId }: Props) {
   }
 
   return (
-    <div className="flex gap-4 flex-1 min-h-0">
+    <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
       {/* Panel izquierdo: Chat */}
-      <div className="w-5/12 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
+      <div className="w-full lg:w-5/12 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
         <div className="shrink-0 px-4 py-3 border-b bg-[#0a0a0a] flex items-center gap-2">
           <Bot className="w-4 h-4 text-yellow-400" />
           <span className="text-sm font-semibold text-white">Agente Presupuestador</span>
@@ -172,7 +172,7 @@ export function NuevoPresupuestoClient({ userId }: Props) {
       </div>
 
       {/* Panel derecho: Preview */}
-      <div className="flex-1 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
+      <div className="w-full lg:flex-1 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
         <div className="shrink-0 px-4 py-3 border-b bg-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-slate-500" />
