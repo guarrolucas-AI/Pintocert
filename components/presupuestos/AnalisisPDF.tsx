@@ -97,10 +97,13 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
     )
   }
 
-  const costo = analisis.costo_total ?? 0
-  const venta = analisis.precio_venta ?? 0
-  const ganancia = analisis.ganancia_bruta ?? 0
-  const rentabilidad = analisis.rentabilidad_sobre_ventas ?? 0
+  // Valores del análisis con fallbacks del presupuesto
+  const costo = analisis.costo_total ?? presupuesto.total ?? 0
+  // precio_venta debería venir del análisis, pero fallback al subtotal del presupuesto
+  const ventaDelAnalisis = analisis.precio_venta ?? 0
+  const venta = ventaDelAnalisis > 0 ? ventaDelAnalisis : presupuesto.subtotal ?? 0
+  const ganancia = analisis.ganancia_bruta ?? Math.max(0, venta - costo)
+  const rentabilidad = analisis.rentabilidad_sobre_ventas ?? (venta > 0 ? (ganancia / venta) * 100 : 0)
 
   const materiales = analisis.costos_directos?.materiales ?? 0
   const manoObra = analisis.costos_directos?.mano_obra ?? 0
