@@ -353,11 +353,12 @@ REGLAS CRÍTICAS PARA EL JSON:
 1. DEBE tener "tipo": "materiales_completo" (EXACTAMENTE así)
 2. TODOS los materiales de la tabla van en el array "materiales"
 3. CADA material DEBE tener: descripcion, unidad, cantidad, precio_estimado, precio_minimo, precio_maximo, proveedores[]
-4. total_estimado = suma de (cantidad × precio_estimado) de cada material
+4. total_estimado = suma de (cantidad × precio_estimado) de cada material (SIN IVA)
 5. Los números NO llevan $ ni símbolos (solo cifras)
-6. El JSON DEBE ser válido (parsearse con JSON.parse)
-7. Mostrar tabla markdown ANTES del JSON
-8. NUNCA omitas el JSON — ES OBLIGATORIO para guardar en el frontend
+6. ⚠️ IMPORTANTE: Los precios unitarios y total_estimado DEBEN SER SIN IVA para que el análisis financiero sea correcto
+7. El JSON DEBE ser válido (parsearse con JSON.parse)
+8. Mostrar tabla markdown ANTES del JSON
+9. NUNCA omitas el JSON — ES OBLIGATORIO para guardar en el frontend
 
 MENSAJE AL USUARIO:
 - Di: "La LISTA DE MATERIALES ha sido actualizada"
@@ -391,6 +392,9 @@ REGLAS CRÍTICAS:
 2. Calcula duración estimada BASÁNDOTE en los trabajos (no repreguntés "cuántos m²").
 3. Para cada especialidad: cantidad × días × costo_dia = subtotal.
 4. Asegúrate que total_mano_obra = suma de todos los subtotals.
+5. ⚠️ IMPORTANTE: Los costos diarios (costo_dia) y total_mano_obra DEBEN SER SIN IVA para que el análisis financiero sea correcto
+   - Los costo_dia son precios netos (no incluyen IVA 21%)
+   - El total_mano_obra = suma de subtotals, también SIN IVA
 
 PREGUNTAS NECESARIAS (máx. 2):
 - ¿Costo diario por especialidad? (ej: pintor oficial $15.000-20.000/día)
@@ -542,10 +546,13 @@ DATOS DEL PRESUPUESTO CONFIRMADO:
 - **Precio de venta SIN IVA (para análisis): $${subtotal.toLocaleString('es-AR')}**
 - IVA 21%: $${monto_iva.toLocaleString('es-AR')}
 
-COSTOS CONFIRMADOS (desde módulos previos):
-- Costo materiales: $${materiales.toLocaleString('es-AR')}
-- Costo mano de obra: $${manoObra.toLocaleString('es-AR')}
-- Costo directo TOTAL: $${(materiales + manoObra).toLocaleString('es-AR')}
+COSTOS CONFIRMADOS (TODOS SIN IVA - para que el cálculo de ganancia sea correcto):
+- Costo materiales (SIN IVA): $${materiales.toLocaleString('es-AR')}
+- Costo mano de obra (SIN IVA): $${manoObra.toLocaleString('es-AR')}
+- Costo directo TOTAL (SIN IVA): $${(materiales + manoObra).toLocaleString('es-AR')}
+
+⚠️ IMPORTANTE: Los precios de venta y costos DEBEN estar en la misma base (SIN IVA)
+para que la ganancia bruta sea correcta: ganancia = precio_venta - costos
 
 FLUJO:
 1. Si el primer mensaje es "__INIT__", preséntate y empezá con preguntas.
@@ -580,22 +587,31 @@ El usuario necesita AMBOS para entender y ejecutar la obra.
 ═════════════════════════════════════════════════════════════════
 
 ⚠️ REGLAS CRÍTICAS PARA EL JSON ANÁLISIS (ABSOLUTAS):
+
+🚨 REGLA DE ORO: TODOS LOS VALORES (precio_venta y costos) SIN IVA 🚨
+La ganancia solo es correcta si ambos lados de la ecuación están en la misma base.
+
 1. "precio_venta" = Precio final cobrado al cliente SIN IVA
-   - NUNCA CERO — USAR EL SUBTOTAL CONFIRMADO ARRIBA
+   - NUNCA CERO — USAR EL SUBTOTAL CONFIRMADO ARRIBA: $${subtotal.toLocaleString('es-AR')}
    - Ej: si presupuesto total=$36.5M con IVA 21%, entonces precio_venta = subtotal sin IVA
 
-2. "costos_directos":
-   - "materiales": $${materiales}
-   - "mano_obra": $${manoObra}
-   - "subtotal": SUMA EXACTA de materiales + mano_obra = $${(materiales + manoObra).toLocaleString('es-AR')}
+2. "costos_directos" (TODOS SIN IVA para consistencia):
+   - "materiales" (SIN IVA): $${materiales}
+   - "mano_obra" (SIN IVA): $${manoObra}
+   - "subtotal": SUMA EXACTA de materiales + mano_obra = $${(materiales + manoObra).toLocaleString('es-AR')} (SIN IVA)
 
-3. "costo_total": costos_directos.subtotal + costos_indirectos + contingencias (NUNCA CERO)
+3. "costos_indirectos": cualquier otro costo operativo, TAMBIÉN SIN IVA
+   - Ejemplos: transporte, alquiler, administración, seguros
+   - Estos NO se restan del IVA, ya que están en la misma base que precio_venta
 
-4. "ganancia_bruta": precio_venta - costo_total (SIEMPRE positivo para obras rentables)
+4. "costo_total": costos_directos.subtotal + costos_indirectos + contingencias (NUNCA CERO)
 
-5. "rentabilidad_sobre_ventas": (ganancia_bruta / precio_venta) × 100 (SIEMPRE entre 0-100%)
+5. "ganancia_bruta": precio_venta - costo_total = $${subtotal.toLocaleString('es-AR')} - costos (SIEMPRE positivo para obras rentables)
+   - CORRECTA solo si ambos están SIN IVA
 
-6. TODOS los números DEBEN ser valores reales > 0. NUNCA DEJES CAMPOS EN 0 O NULL.
+6. "rentabilidad_sobre_ventas": (ganancia_bruta / precio_venta) × 100 (SIEMPRE entre 0-100%)
+
+7. TODOS los números DEBEN ser valores reales > 0. NUNCA DEJES CAMPOS EN 0 O NULL.
 
 \`\`\`json
 {

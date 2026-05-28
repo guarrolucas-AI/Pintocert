@@ -2,7 +2,7 @@
 import { useTransition, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { eliminarUsuario, cambiarRolUsuario } from '@/lib/actions/usuarios'
+import { eliminarUsuario, cambiarRolUsuario, updateUsuario } from '@/lib/actions/usuarios'
 import { toast } from 'sonner'
 import type { Perfil } from '@/lib/types'
 
@@ -12,6 +12,9 @@ export function UsuarioRow({ perfil, currentUserId }: { perfil: Perfil; currentU
   const [isPending, startTransition] = useTransition()
   const [editingRole, setEditingRole] = useState(false)
   const [selectedRole, setSelectedRole] = useState(perfil.rol)
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [nombre, setNombre] = useState(perfil.nombre)
+  const [email, setEmail] = useState(perfil.email)
   const isSelf = perfil.id === currentUserId
 
   function handleDelete() {
@@ -40,15 +43,103 @@ export function UsuarioRow({ perfil, currentUserId }: { perfil: Perfil; currentU
     })
   }
 
+  function handleUpdateProfile() {
+    if (nombre === perfil.nombre && email === perfil.email) {
+      setEditingProfile(false)
+      return
+    }
+
+    if (!nombre.trim() || !email.trim()) {
+      toast.error('Nombre y email son requeridos')
+      return
+    }
+
+    startTransition(async () => {
+      const res = await updateUsuario(perfil.id, { nombre, email })
+      if (res.error) {
+        toast.error(res.error)
+        setNombre(perfil.nombre)
+        setEmail(perfil.email)
+      } else {
+        toast.success('Usuario actualizado')
+        setEditingProfile(false)
+      }
+    })
+  }
+
+  function handleCancelEdit() {
+    setEditingProfile(false)
+    setNombre(perfil.nombre)
+    setEmail(perfil.email)
+  }
+
   return (
     <tr className="border-b last:border-0">
-      <td className="px-4 py-3 font-medium text-slate-900">
-        {perfil.nombre}
-        {isSelf && <span className="ml-2 text-xs text-muted-foreground">(vos)</span>}
-      </td>
-      <td className="px-4 py-3 text-muted-foreground text-sm">{perfil.email}</td>
       <td className="px-4 py-3">
-        {editingRole ? (
+        {editingProfile ? (
+          <input
+            type="text"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            className="text-sm border border-slate-200 rounded px-2 py-1 w-full"
+            disabled={isPending}
+          />
+        ) : (
+          <div className="flex items-center justify-between group">
+            <div className="font-medium text-slate-900">
+              {perfil.nombre}
+              {isSelf && <span className="ml-2 text-xs text-muted-foreground">(vos)</span>}
+            </div>
+            {!isSelf && !editingProfile && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingProfile(true)}
+                disabled={isPending}
+                className="h-7 px-2 text-xs opacity-0 group-hover:opacity-100"
+              >
+                ✎
+              </Button>
+            )}
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {editingProfile ? (
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="text-sm border border-slate-200 rounded px-2 py-1 w-full"
+            disabled={isPending}
+          />
+        ) : (
+          <div className="text-muted-foreground text-sm">{perfil.email}</div>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {editingProfile ? (
+          <div className="flex gap-2 items-center">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleUpdateProfile}
+              disabled={isPending}
+              className="h-7 px-2 text-xs"
+            >
+              ✓
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleCancelEdit}
+              disabled={isPending}
+              className="h-7 px-2 text-xs"
+            >
+              ✕
+            </Button>
+          </div>
+        ) : editingRole ? (
           <div className="flex gap-2 items-center">
             <select
               value={selectedRole}
@@ -101,7 +192,7 @@ export function UsuarioRow({ perfil, currentUserId }: { perfil: Perfil; currentU
         {new Date(perfil.created_at).toLocaleDateString('es-AR')}
       </td>
       <td className="px-4 py-3 text-right">
-        {!isSelf && (
+        {!isSelf && !editingProfile && (
           <Button
             variant="outline"
             size="sm"

@@ -74,3 +74,47 @@ export async function cambiarRolUsuario(userId: string, nuevoRol: string) {
   revalidatePath('/usuarios')
   return { success: true }
 }
+
+export async function updateUsuario(
+  userId: string,
+  updates: { nombre?: string; email?: string }
+) {
+  const { error, admin } = await requireAdminUser()
+  if (error || !admin) return { error: error ?? 'Error' }
+
+  const nombre = updates.nombre?.trim()
+  const email = updates.email?.trim().toLowerCase()
+
+  if (nombre === '' || email === '') {
+    return { error: 'Nombre y email no pueden estar vacíos' }
+  }
+
+  // Validar email si se proporciona
+  if (email && !email.includes('@')) {
+    return { error: 'Email inválido' }
+  }
+
+  // Actualizar auth email si se proporciona
+  if (email) {
+    const { error: authError } = await admin.auth.admin.updateUserById(userId, {
+      email,
+      email_confirm: true,
+    })
+    if (authError) return { error: `Error al actualizar email: ${authError.message}` }
+  }
+
+  // Actualizar perfil en BD
+  const updateData: Record<string, string> = {}
+  if (nombre) updateData.nombre = nombre
+  if (email) updateData.email = email
+
+  const { error: updateError } = await admin
+    .from('perfiles')
+    .update(updateData)
+    .eq('id', userId)
+
+  if (updateError) return { error: updateError.message }
+
+  revalidatePath('/usuarios')
+  return { success: true }
+}
