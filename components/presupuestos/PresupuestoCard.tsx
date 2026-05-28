@@ -9,8 +9,11 @@ const ESTADO_CONFIG: Record<
   { label: string; variant: 'success' | 'warning' | 'muted' | 'destructive' }
 > = {
   borrador: { label: 'Borrador', variant: 'muted' },
-  pendiente: { label: 'Pendiente', variant: 'warning' },
+  enviado_aprobacion: { label: 'Enviado Aprobación', variant: 'warning' },
   aprobado: { label: 'Aprobado', variant: 'success' },
+  en_ejecucion: { label: 'En Ejecución', variant: 'success' },
+  terminado: { label: 'Terminado', variant: 'muted' },
+  pausado: { label: 'Pausado', variant: 'warning' },
   rechazado: { label: 'Rechazado', variant: 'destructive' },
 }
 

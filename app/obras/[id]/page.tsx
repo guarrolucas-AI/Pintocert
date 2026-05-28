@@ -17,11 +17,14 @@ import { ObraActions } from '@/components/obras/ObraActions'
 
 export const revalidate = 0
 
-const ESTADO_CONFIG = {
-  activo: { label: 'Activo', variant: 'success' as const },
-  pausado: { label: 'Pausado', variant: 'warning' as const },
-  terminado: { label: 'Terminado', variant: 'muted' as const },
-  archivado: { label: 'Archivado', variant: 'muted' as const },
+const ESTADO_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'muted' }> = {
+  borrador: { label: 'Borrador', variant: 'muted' },
+  enviado_aprobacion: { label: 'Enviado Aprobación', variant: 'warning' },
+  aprobado: { label: 'Aprobado', variant: 'success' },
+  en_ejecucion: { label: 'En Ejecución', variant: 'success' },
+  pausado: { label: 'Pausado', variant: 'warning' },
+  terminado: { label: 'Terminado', variant: 'muted' },
+  rechazado: { label: 'Rechazado', variant: 'muted' },
 }
 
 export default async function ObraDetailPage({ params }: { params: Promise<{ id: string }> }) {

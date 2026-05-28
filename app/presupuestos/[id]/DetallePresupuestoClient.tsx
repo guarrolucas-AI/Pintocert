@@ -43,6 +43,7 @@ import {
   Save,
   Loader2,
   Sparkles,
+  DollarSign,
 } from 'lucide-react'
 
 const PresupuestoPDFDownload = dynamic(
@@ -75,26 +76,43 @@ const PlanEjecucionPDFDownload = dynamic(
   { ssr: false }
 )
 
+const GastosView = dynamic(
+  () => import('@/components/presupuestos/GastosView').then(m => ({ default: m.GastosView })),
+  { ssr: false }
+)
+
 const ESTADO_CONFIG: Record<
   EstadoPresupuesto,
   { label: string; variant: 'success' | 'warning' | 'muted' | 'destructive'; icon: React.ElementType }
 > = {
   borrador: { label: 'Borrador', variant: 'muted', icon: AlertCircle },
-  pendiente: { label: 'Pendiente aprobación', variant: 'warning', icon: Clock },
+  enviado_aprobacion: { label: 'Enviado Aprobación', variant: 'warning', icon: Clock },
   aprobado: { label: 'Aprobado', variant: 'success', icon: CheckCircle },
+  en_ejecucion: { label: 'En Ejecución', variant: 'success', icon: CheckCircle },
+  terminado: { label: 'Terminado', variant: 'muted', icon: CheckCircle },
+  pausado: { label: 'Pausado', variant: 'warning', icon: AlertCircle },
   rechazado: { label: 'Rechazado', variant: 'destructive', icon: XCircle },
 }
 
-type TabId = 'resumen' | 'plan_ejecucion' | ModuloAgente
+type TabId = 'resumen' | 'plan_ejecucion' | 'gastos' | ModuloAgente
 
-const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
-  { id: 'resumen', label: 'Resumen', icon: FileText },
-  { id: 'materiales', label: 'Materiales', icon: Package },
-  { id: 'personal', label: 'Personal', icon: Users },
-  { id: 'herramientas', label: 'Herramientas', icon: HardHat },
-  { id: 'analisis', label: 'Análisis', icon: BarChart3 },
-  { id: 'plan_ejecucion', label: 'Plan de Obra', icon: Calendar },
-]
+const getTabs = (estado: EstadoPresupuesto): { id: TabId; label: string; icon: React.ElementType }[] => {
+  const baseTabs: { id: TabId; label: string; icon: React.ElementType }[] = [
+    { id: 'resumen', label: 'Resumen', icon: FileText },
+    { id: 'materiales', label: 'Materiales', icon: Package },
+    { id: 'personal', label: 'Personal', icon: Users },
+    { id: 'herramientas', label: 'Herramientas', icon: HardHat },
+    { id: 'analisis', label: 'Análisis', icon: BarChart3 },
+    { id: 'plan_ejecucion', label: 'Plan de Obra', icon: Calendar },
+  ]
+
+  // Only show gastos tab when obra is en_ejecucion or pausado
+  if (estado === 'en_ejecucion' || estado === 'pausado') {
+    baseTabs.push({ id: 'gastos', label: 'Gastos', icon: DollarSign })
+  }
+
+  return baseTabs
+}
 
 const MODULO_CAMPO: Record<string, keyof Presupuesto> = {
   materiales_completo: 'lista_materiales',
@@ -277,7 +295,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
     })
   }
 
-  function handleCambiarEstado(estado: 'pendiente' | 'rechazado' | 'borrador') {
+  function handleCambiarEstado(estado: EstadoPresupuesto) {
     startTransition(async () => {
       const { error } = await cambiarEstadoPresupuesto(presupuesto.id, estado)
       if (error) {
@@ -416,13 +434,13 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
             <Button
               size="sm"
               variant="outline"
-              onClick={() => handleCambiarEstado('pendiente')}
+              onClick={() => handleCambiarEstado('enviado_aprobacion')}
               disabled={isPending}
             >
               Enviar para aprobación
             </Button>
           )}
-          {presupuesto.estado === 'pendiente' && (
+          {presupuesto.estado === 'enviado_aprobacion' && (
             <>
               <Button
                 size="sm"
@@ -470,7 +488,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
       {/* Tabs */}
       <div className="border-b border-slate-200 mb-6">
         <nav className="-mb-px flex gap-0 overflow-x-auto">
-          {TABS.map(({ id, label: tabLabel, icon: Icon }) => (
+          {getTabs(presupuesto.estado).map(({ id, label: tabLabel, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
@@ -581,6 +599,9 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           renderDatos={(d) => <PlanEjecucionView data={d as PlanEjecucionData} />}
           onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
         />
+      )}
+      {tab === 'gastos' && presupuesto.obra_id && (
+        <GastosView obraId={presupuesto.obra_id} />
       )}
     </div>
   )

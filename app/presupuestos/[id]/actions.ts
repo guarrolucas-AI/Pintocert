@@ -36,7 +36,7 @@ export async function aprobarPresupuesto(presupuestoId: string) {
         cliente: presupuesto.cliente,
         presupuesto_total: presupuesto.total,
         notas: presupuesto.obra_descripcion || null,
-        estado: 'activo',
+        estado: 'en_ejecucion',
         created_by: user.id,
       },
     ])
@@ -190,7 +190,7 @@ Respondé SOLO con un array JSON de porcentajes: [pct1, pct2, ...]`
 
 export async function cambiarEstadoPresupuesto(
   presupuestoId: string,
-  estado: 'pendiente' | 'rechazado' | 'borrador'
+  estado: string
 ) {
   const supabase = await createClient()
   const {

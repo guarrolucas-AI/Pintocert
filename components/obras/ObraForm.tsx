@@ -29,7 +29,7 @@ export function ObraForm({ defaultValues, onSubmit, submitLabel = 'Guardar' }: O
       cliente: defaultValues?.cliente ?? '',
       presupuesto_total: defaultValues?.presupuesto_total ?? 0,
       fecha_inicio: defaultValues?.fecha_inicio ?? null,
-      estado: defaultValues?.estado ?? 'activo',
+      estado: defaultValues?.estado ?? 'en_ejecucion',
       notas: defaultValues?.notas ?? null,
     },
   })

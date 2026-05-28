@@ -6,7 +6,7 @@ export const obraSchema = z.object({
   cliente: z.string().min(1, 'El cliente es requerido'),
   presupuesto_total: z.number().min(0, 'El presupuesto debe ser positivo'),
   fecha_inicio: z.string().optional().nullable(),
-  estado: z.enum(['activo', 'pausado', 'terminado', 'archivado']),
+  estado: z.enum(['borrador', 'enviado_aprobacion', 'aprobado', 'en_ejecucion', 'terminado', 'pausado', 'rechazado']),
   notas: z.string().optional().nullable(),
 })
 

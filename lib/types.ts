@@ -1,5 +1,5 @@
 export type Rol = 'admin' | 'capataz' | 'operario'
-export type EstadoObra = 'activo' | 'pausado' | 'terminado' | 'archivado'
+export type EstadoObra = 'borrador' | 'enviado_aprobacion' | 'aprobado' | 'en_ejecucion' | 'terminado' | 'pausado' | 'rechazado'
 export type EstadoCertificado = 'borrador' | 'aprobado'
 
 export interface Perfil {
@@ -93,7 +93,7 @@ export interface Pago {
 
 // ─── Presupuestos ───────────────────────────────────────────────────────────
 
-export type EstadoPresupuesto = 'borrador' | 'pendiente' | 'aprobado' | 'rechazado'
+export type EstadoPresupuesto = 'borrador' | 'enviado_aprobacion' | 'aprobado' | 'en_ejecucion' | 'terminado' | 'pausado' | 'rechazado'
 export type ModuloAgente = 'presupuesto' | 'materiales' | 'personal' | 'herramientas' | 'analisis' | 'plan_ejecucion'
 
 export interface ItemPresupuesto {
@@ -239,4 +239,81 @@ export interface PrecioCache {
   valido_hasta: string
   created_at: string
   updated_at: string
+}
+
+// ─── Gastos de Obra ────────────────────────────────────────────────────────
+
+export interface GastoObra {
+  id: string
+  obra_id: string
+  fecha: string
+  categoria: string  // 'materiales' | 'mano_obra' | 'otros' | custom category name
+  descripcion: string
+  monto: number
+  comprobante_numero?: string
+  proveedor?: string
+  comprobante_url?: string  // Optional image/PDF URL
+  notas?: string
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CategoriaGastoPersonalizado {
+  id: string
+  user_id: string
+  nombre: string
+  color_hex?: string
+  activa: boolean
+  created_at: string
+}
+
+// ─── Cash Flow ─────────────────────────────────────────────────────────────
+
+export interface FlujoCajaReal {
+  id: string
+  obra_id: string
+  mes: number  // 1-12
+  anio: number
+  ingresos_total: number
+  ingresos_certificados: number
+  ingresos_otros: number
+  egresos_total: number
+  egresos_materiales: number
+  egresos_mano_obra: number
+  egresos_otros: number
+  saldo_mes: number
+  saldo_acumulado: number
+  created_at: string
+  updated_at: string
+}
+
+export interface FlujoCajaProyectado {
+  id: string
+  presupuesto_id: string
+  obra_id?: string
+  fecha_inicio: string
+  ingresos_total: number
+  ingresos_por_mes: Array<{ mes: number; monto: number }>
+  egresos_total: number
+  egresos_por_mes: Array<{ mes: number; monto: number }>
+  saldo_proyectado: number
+  created_at: string
+  updated_at: string
+}
+
+// ─── Dashboard KPIs ───────────────────────────────────────────────────────
+
+export interface KPISnapshot {
+  periodo_mes: number
+  periodo_anio: number
+  presupuestos_generados: { cantidad: number; monto: number }
+  presupuestos_aprobados: { cantidad: number; monto: number }
+  obras_activas: number
+  ingresos_proyectados_mes: number
+  ingresos_reales_mes: number
+  egresos_proyectados_mes: number
+  egresos_reales_mes: number
+  ganancia_proyectada_mes: number
+  ganancia_real_mes: number
 }
