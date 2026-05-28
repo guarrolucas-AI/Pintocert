@@ -10,7 +10,7 @@ import AgentChat from '@/components/agente/AgentChat'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatARS, calculateItemSubtotal, calculatePresupuestoTotals } from '@/lib/utils'
-import { aprobarPresupuesto, cambiarEstadoPresupuesto } from './actions'
+import { aprobarPresupuesto, cambiarEstadoPresupuesto, distribuirPreciosDesdeAnalisis } from './actions'
 import type {
   Presupuesto,
   PresupuestoMensajes,
@@ -39,6 +39,8 @@ import {
   Edit,
   X,
   Save,
+  Loader2,
+  Sparkles,
 } from 'lucide-react'
 
 const PresupuestoPDFDownload = dynamic(
@@ -150,6 +152,42 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
       { presupuesto_id: presupuesto.id, modulo, messages: mensajes },
       { onConflict: 'presupuesto_id,modulo' }
     )
+  }
+
+  async function handleDistribuirPrecios(analisisDatos: unknown) {
+    const data = analisisDatos as AnalisisData
+    if (!data?.precio_venta || data.precio_venta <= 0) {
+      toast.error('El análisis no tiene precio de venta válido')
+      return
+    }
+
+    // precio_venta ya incluye IVA → calculamos subtotal sin IVA
+    const totalSinIva = Math.round(data.precio_venta / (1 + presupuesto.iva_porcentaje / 100))
+
+    toast.loading('Distribuyendo precios con IA...', { id: 'distribuir' })
+
+    const result = await distribuirPreciosDesdeAnalisis(
+      presupuesto.id,
+      presupuesto.items,
+      totalSinIva,
+      presupuesto.iva_porcentaje
+    )
+
+    toast.dismiss('distribuir')
+
+    if (result.error) {
+      toast.error('Error: ' + result.error)
+      return
+    }
+
+    setPresupuesto((prev) => ({
+      ...prev,
+      items: result.items!,
+      subtotal: result.subtotal!,
+      monto_iva: result.monto_iva!,
+      total: result.total!,
+    }))
+    toast.success('¡Precios distribuidos! Revisá la tab Resumen.')
   }
 
   function handleAprobar() {
@@ -406,6 +444,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           datosGenerados={presupuesto.analisis_economico}
           renderDatos={(d) => <AnalisisView data={d as AnalisisData} />}
           onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
+          onDistribuirPrecios={handleDistribuirPrecios}
         />
       )}
     </div>
@@ -682,6 +721,8 @@ interface TabAgenteProps {
   datosGenerados: unknown
   renderDatos: (datos: unknown) => React.JSX.Element
   onRefresh?: () => void
+  /** Solo para análisis: distribuye el precio_venta entre los ítems del presupuesto */
+  onDistribuirPrecios?: (analisisDatos: unknown) => Promise<void>
 }
 
 function TabAgente({
@@ -693,10 +734,12 @@ function TabAgente({
   datosGenerados,
   renderDatos,
   onRefresh = () => {},
+  onDistribuirPrecios,
 }: TabAgenteProps) {
   // Estado local: se actualiza inmediatamente cuando llega JSON del agente,
   // sin esperar a que Supabase guarde ni a que el padre re-renderice.
   const [datosLocales, setDatosLocales] = useState<unknown>(datosGenerados)
+  const [distribuyendo, setDistribuyendo] = useState(false)
 
   // Si el padre actualiza (ej: refresh desde DB), sincronizar
   useEffect(() => {
@@ -707,6 +750,13 @@ function TabAgente({
   function handleDataGeneradaLocal(tipo: string, datos: unknown) {
     setDatosLocales(datos)
     onDataGenerada(tipo, datos)
+  }
+
+  async function handleDistribuir() {
+    if (!onDistribuirPrecios || !datosLocales) return
+    setDistribuyendo(true)
+    await onDistribuirPrecios(datosLocales)
+    setDistribuyendo(false)
   }
 
   const hayDatos = !!datosLocales
@@ -737,17 +787,41 @@ function TabAgente({
           <span className="text-sm font-semibold text-slate-700">
             {hayDatos ? 'Datos generados' : 'Esperando resultados...'}
           </span>
-          {hayDatos && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onRefresh}
-              title="Actualizar vista previa"
-              className="text-xs"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {onDistribuirPrecios && hayDatos && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDistribuir}
+                disabled={distribuyendo}
+                title="Distribuir el precio de venta confirmado entre los ítems del presupuesto"
+                className="text-xs text-purple-700 border-purple-200 hover:bg-purple-50 gap-1.5"
+              >
+                {distribuyendo ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Distribuyendo...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Aplicar al presupuesto
+                  </>
+                )}
+              </Button>
+            )}
+            {hayDatos && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onRefresh}
+                title="Actualizar vista previa"
+                className="text-xs"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto p-5">
           {hayDatos ? (

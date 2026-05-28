@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import Anthropic from '@anthropic-ai/sdk'
 import type { ItemPresupuesto, Presupuesto } from '@/lib/types'
 
 export async function aprobarPresupuesto(presupuestoId: string) {
@@ -67,6 +68,83 @@ export async function aprobarPresupuesto(presupuestoId: string) {
   if (updateErr) return { error: updateErr.message, obraId: null }
 
   return { error: null, obraId: obra.id }
+}
+
+/**
+ * Usa Haiku para distribuir un total confirmado (sin IVA) entre los ítems existentes.
+ * Cada ítem recibe un precio_unitario razonable según la descripción y cantidad.
+ * Actualiza directamente en Supabase y devuelve los ítems actualizados.
+ */
+export async function distribuirPreciosDesdeAnalisis(
+  presupuestoId: string,
+  items: ItemPresupuesto[],
+  totalSinIva: number,
+  ivaPorcentaje: number
+): Promise<{
+  items?: ItemPresupuesto[]
+  subtotal?: number
+  monto_iva?: number
+  total?: number
+  error?: string
+}> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+
+  const itemsList = items
+    .map((item, i) => `${i + 1}. ${item.descripcion} — ${item.cantidad} ${item.unidad}`)
+    .join('\n')
+
+  const prompt = `Distribuí $${Math.round(totalSinIva).toLocaleString('es-AR')} (sin IVA) entre estos ítems de obra de construcción/pintura en Argentina.
+La suma de (cantidad × precio_unitario) para todos los ítems debe ser EXACTAMENTE igual a ${Math.round(totalSinIva)}.
+Asigná precios razonables según la complejidad y tipo de cada trabajo.
+
+Ítems:
+${itemsList}
+
+Respondé SOLO con un array JSON de números (precio_unitario por ítem, en el mismo orden), sin ningún texto adicional:
+[precio1, precio2, ...]`
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 512,
+      messages: [{ role: 'user', content: prompt }],
+    })
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    const match = text.match(/\[[\s\S]*?\]/)
+    if (!match) return { error: 'El agente no devolvió precios válidos' }
+
+    const precios = JSON.parse(match[0]) as number[]
+    if (!Array.isArray(precios) || precios.length !== items.length) {
+      return { error: `Se esperaban ${items.length} precios, se recibieron ${precios.length}` }
+    }
+
+    const updatedItems: ItemPresupuesto[] = items.map((item, i) => {
+      const pu = Math.round(precios[i]) || 0
+      return { ...item, precio_unitario: pu, subtotal: Math.round(item.cantidad * pu) }
+    })
+
+    const subtotal = updatedItems.reduce((sum, item) => sum + item.subtotal, 0)
+    const monto_iva = Math.round((subtotal * ivaPorcentaje) / 100)
+    const total = subtotal + monto_iva
+
+    const { error } = await supabase
+      .from('presupuestos')
+      .update({ items: updatedItems, subtotal, monto_iva, total })
+      .eq('id', presupuestoId)
+
+    if (error) return { error: error.message }
+
+    return { items: updatedItems, subtotal, monto_iva, total }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
 }
 
 export async function cambiarEstadoPresupuesto(
