@@ -62,6 +62,12 @@ const PRECIOS_REFERENCIA = {
   // BOLSAS Y DESCARTE
   bolsa_escombros_unidad: 280,           // por unidad bolsa reforzada 50kg (x10: $2.961 → $296/u)
 
+  // HORMIGÓN ELABORADO (MercadoLibre AR - Mayo 2026, precio por m³)
+  hormigon_H21_m3: 140000,              // H21 bombeado/descarga directa por m³ (ML: $98.500-$183.000)
+  hormigon_H25_m3: 155000,              // H25 por m³ (~10% más que H21)
+  hormigon_H30_m3: 170000,              // H30 por m³ (~20% más que H21)
+  hormigon_bombeo_servicio: 300000,     // Servicio de bombeo por sesión (ML: $117.000-$990.000 según zona — cotizar local)
+
   // VOLQUETES - ALQUILER (ZonaExpertos - Mayo 2026, incluye entrega, estadía y retiro)
   volquete_mini_2m3_2dias: 140000,       // mini 2.5m³ por 2 días (rango $120.000-$160.000)
   volquete_mini_2m3_semana: 261000,      // mini 2.5m³ por semana (rango $252.000-$270.000)
@@ -266,6 +272,12 @@ IMPERMEABILIZACIÓN:
 - Membrana asfáltica geotextil profesional (rollo ~10m²): $95.000
 - Membrana asfáltica premium 4mm (rollo ~10m²): $159.000
 - Membrana polietileno impermeable (rollo 50m²): $35.000
+
+HORMIGÓN ELABORADO (MercadoLibre AR - Mayo 2026):
+- H21 por m³: $140.000 (ML: $98.500-$183.000)
+- H25 por m³: $155.000
+- H30 por m³: $170.000
+- Servicio de bombeo (por sesión): $300.000 referencia — varía MUCHO por zona, siempre cotizar local
 
 BOLSAS Y DESCARTE:
 - Bolsa para escombros reforzada 50kg: $280/unidad
