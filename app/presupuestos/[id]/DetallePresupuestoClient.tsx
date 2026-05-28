@@ -202,6 +202,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
       subtotal: result.subtotal!,
       monto_iva: result.monto_iva!,
       total: result.total!,
+      anticipo: result.anticipo!,
     }))
     toast.success('¡Precios distribuidos! Revisá la tab Resumen.')
   }

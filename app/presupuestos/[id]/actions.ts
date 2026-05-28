@@ -94,6 +94,7 @@ export async function distribuirPreciosDesdeAnalisis(
   subtotal?: number
   monto_iva?: number
   total?: number
+  anticipo?: number
   error?: string
 }> {
   const supabase = await createClient()
@@ -171,14 +172,15 @@ Respondé SOLO con un array JSON de porcentajes: [pct1, pct2, ...]`
     const subtotal = updatedItems.reduce((sum, item) => sum + item.subtotal, 0)
     const monto_iva = Math.round((subtotal * ivaPorcentaje) / 100)
     const total = subtotal + monto_iva
+    const anticipo = Math.round(total * 0.35)
 
     const { error } = await supabase
       .from('presupuestos')
-      .update({ items: updatedItems, subtotal, monto_iva, total })
+      .update({ items: updatedItems, subtotal, monto_iva, total, anticipo })
       .eq('id', presupuestoId)
 
     if (error) return { error: error.message }
-    return { items: updatedItems, subtotal, monto_iva, total }
+    return { items: updatedItems, subtotal, monto_iva, total, anticipo }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Error desconocido' }
   }
