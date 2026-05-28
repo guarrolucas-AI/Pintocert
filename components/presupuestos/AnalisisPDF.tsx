@@ -34,7 +34,17 @@ const s = StyleSheet.create({
 })
 
 export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuesto; analisis: AnalisisData }) {
-  const gananciaLabel = analisis.rentabilidad_sobre_ventas >= 0 ? 'Ganancia Bruta' : 'Pérdida'
+  if (!analisis) {
+    return (
+      <Document title={`analisis-${presupuesto.cliente}`}>
+        <Page size="A4" style={s.page}>
+          <Text>No hay datos de análisis disponibles</Text>
+        </Page>
+      </Document>
+    )
+  }
+
+  const gananciaLabel = (analisis.rentabilidad_sobre_ventas ?? 0) >= 0 ? 'Ganancia Bruta' : 'Pérdida'
 
   return (
     <Document title={`analisis-${presupuesto.cliente}`}>
@@ -47,27 +57,29 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
         </View>
 
         {/* Costos Directos */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Costos Directos</Text>
-          <View style={s.table}>
-            <View style={s.tableHeader}>
-              <Text style={[s.th, { flex: 2 }]}>Concepto</Text>
-              <Text style={[s.th, s.right]}>Monto</Text>
-            </View>
-            <View style={s.tableRow}>
-              <Text style={[s.td, { flex: 2 }]}>Materiales</Text>
-              <Text style={[s.td, s.right]}>{formatARS(analisis.costos_directos.materiales)}</Text>
-            </View>
-            <View style={s.tableRow}>
-              <Text style={[s.td, { flex: 2 }]}>Mano de Obra</Text>
-              <Text style={[s.td, s.right]}>{formatARS(analisis.costos_directos.mano_obra)}</Text>
-            </View>
-            <View style={s.tableRow}>
-              <Text style={[s.th, { flex: 2 }]}>Subtotal Costos Directos</Text>
-              <Text style={[s.th, s.right]}>{formatARS(analisis.costos_directos.subtotal)}</Text>
+        {analisis.costos_directos && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Costos Directos</Text>
+            <View style={s.table}>
+              <View style={s.tableHeader}>
+                <Text style={[s.th, { flex: 2 }]}>Concepto</Text>
+                <Text style={[s.th, s.right]}>Monto</Text>
+              </View>
+              <View style={s.tableRow}>
+                <Text style={[s.td, { flex: 2 }]}>Materiales</Text>
+                <Text style={[s.td, s.right]}>{formatARS(analisis.costos_directos.materiales ?? 0)}</Text>
+              </View>
+              <View style={s.tableRow}>
+                <Text style={[s.td, { flex: 2 }]}>Mano de Obra</Text>
+                <Text style={[s.td, s.right]}>{formatARS(analisis.costos_directos.mano_obra ?? 0)}</Text>
+              </View>
+              <View style={s.tableRow}>
+                <Text style={[s.th, { flex: 2 }]}>Subtotal Costos Directos</Text>
+                <Text style={[s.th, s.right]}>{formatARS(analisis.costos_directos.subtotal ?? 0)}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Costos Indirectos */}
         {analisis.costos_indirectos && analisis.costos_indirectos.length > 0 && (
@@ -94,16 +106,16 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
           <View style={s.infoGrid}>
             <View style={s.infoItem}>
               <Text style={s.infoLabel}>Costo Total</Text>
-              <Text style={s.infoValue}>{formatARS(analisis.costo_total)}</Text>
+              <Text style={s.infoValue}>{formatARS(analisis.costo_total ?? 0)}</Text>
             </View>
             <View style={s.infoItem}>
               <Text style={s.infoLabel}>Precio de Venta (sin IVA)</Text>
-              <Text style={s.infoValue}>{formatARS(analisis.precio_venta)}</Text>
+              <Text style={s.infoValue}>{formatARS(analisis.precio_venta ?? 0)}</Text>
             </View>
             <View style={s.infoItem}>
               <Text style={s.infoLabel}>{gananciaLabel}</Text>
-              <Text style={[s.infoValue, { color: analisis.ganancia_bruta >= 0 ? '#16a34a' : '#dc2626' }]}>
-                {formatARS(analisis.ganancia_bruta)}
+              <Text style={[s.infoValue, { color: (analisis.ganancia_bruta ?? 0) >= 0 ? '#16a34a' : '#dc2626' }]}>
+                {formatARS(analisis.ganancia_bruta ?? 0)}
               </Text>
             </View>
           </View>
@@ -115,16 +127,16 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
           <View style={s.infoGrid}>
             <View style={s.infoItem}>
               <Text style={s.infoLabel}>Rentabilidad sobre Costos</Text>
-              <Text style={s.infoValue}>{analisis.rentabilidad_sobre_costos.toFixed(1)}%</Text>
+              <Text style={s.infoValue}>{((analisis.rentabilidad_sobre_costos ?? 0) as number).toFixed(1)}%</Text>
             </View>
             <View style={s.infoItem}>
               <Text style={s.infoLabel}>Rentabilidad sobre Ventas</Text>
-              <Text style={s.infoValue}>{analisis.rentabilidad_sobre_ventas.toFixed(1)}%</Text>
+              <Text style={s.infoValue}>{((analisis.rentabilidad_sobre_ventas ?? 0) as number).toFixed(1)}%</Text>
             </View>
             <View style={s.infoItem}>
               <Text style={s.infoLabel}>Contingencia</Text>
               <Text style={s.infoValue}>
-                {analisis.contingencias_porcentaje.toFixed(1)}% ({formatARS(analisis.contingencias_monto)})
+                {((analisis.contingencias_porcentaje ?? 0) as number).toFixed(1)}% ({formatARS(analisis.contingencias_monto ?? 0)})
               </Text>
             </View>
           </View>
