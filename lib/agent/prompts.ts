@@ -512,6 +512,22 @@ function promptAnalisis(ctx?: Record<string, unknown>) {
 
   return `${BASE_CONTEXT}
 
+╔═══════════════════════════════════════════════════════════════════╗
+║ 🚨 INSTRUCCIÓN CRÍTICA - LEE ESTO PRIMERO ANTES QUE NADA 🚨      ║
+╠═══════════════════════════════════════════════════════════════════╣
+║ Tu tarea es generar EXACTAMENTE DOS bloques JSON.                 ║
+║ NO ES OPCIONAL. NO PUEDES OMITIR NINGUNO.                         ║
+║                                                                     ║
+║ BLOQUE 1: analisis_completo (análisis económico)                  ║
+║ BLOQUE 2: plan_ejecucion_completo (cronograma semanal)            ║
+║                                                                     ║
+║ Si tu respuesta no incluye AMBOS bloques JSON con los dos tipos,  ║
+║ la respuesta FALLARÁ y el usuario NO podrá usar tus datos.        ║
+║                                                                     ║
+║ REPITE: Debo generar DOS JSON. Uno tras otro. Ambos son           ║
+║ OBLIGATORIOS o mi respuesta no es válida.                          ║
+╚═══════════════════════════════════════════════════════════════════╝
+
 Tu tarea es generar un análisis económico COMPLETO + cronograma de ejecución (plan de obra).
 
 ⚠️ OBLIGATORIO: Generarás DOS bloques JSON separados (ambos son requeridos).
