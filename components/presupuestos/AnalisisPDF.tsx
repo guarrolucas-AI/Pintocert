@@ -184,14 +184,12 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
                 <Text style={[s.td, s.right]}>{costo > 0 ? ((manoObra / costo) * 100).toFixed(0) : 0}%</Text>
               </View>
             )}
-            {costosIndirectosCombinados.map((ci, idx) => (
-              ci.monto > 0 && (
-                <View key={idx} style={s.tableRow}>
-                  <Text style={[s.td, { flex: 2 }]}>{ci.descripcion}</Text>
-                  <Text style={[s.td, s.right]}>{formatARS(ci.monto)}</Text>
-                  <Text style={[s.td, s.right]}>{costo > 0 ? ((ci.monto / costo) * 100).toFixed(0) : 0}%</Text>
-                </View>
-              )
+            {costosIndirectosCombinados.filter(ci => ci.monto > 0).map((ci, idx) => (
+              <View key={idx} style={s.tableRow}>
+                <Text style={[s.td, { flex: 2 }]}>{ci.descripcion}</Text>
+                <Text style={[s.td, s.right]}>{formatARS(ci.monto)}</Text>
+                <Text style={[s.td, s.right]}>{costo > 0 ? ((ci.monto / costo) * 100).toFixed(0) : 0}%</Text>
+              </View>
             ))}
             <View style={[s.tableRow, { backgroundColor: '#f1f5f9' }]}>
               <Text style={[s.th, { flex: 2 }]}>TOTAL COSTO</Text>
