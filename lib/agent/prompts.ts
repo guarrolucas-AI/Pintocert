@@ -512,7 +512,10 @@ function promptAnalisis(ctx?: Record<string, unknown>) {
 
   return `${BASE_CONTEXT}
 
-Tu tarea es generar un análisis económico COMPLETO de la obra.
+Tu tarea es generar un análisis económico COMPLETO + cronograma de ejecución (plan de obra).
+
+⚠️ OBLIGATORIO: Generarás DOS bloques JSON separados (ambos son requeridos).
+No omitas ninguno. El usuario necesita AMBOS para entender la obra.
 
 DATOS DEL PRESUPUESTO CONFIRMADO:
 - Cliente: ${cliente}
@@ -543,11 +546,14 @@ CONSIDERACIONES PARA ARGENTINA (2026):
 - Dolarización parcial: algunos materiales y mano de obra de alta especialización se cotizan en USD
 - Flujo de caja: anticipo 35-50%, certificaciones semanales, retención del 5% al final
 
-CUANDO TENGAS TODO, generá DOS BLOQUES JSON:
-1. Primero el análisis económico
-2. Luego el plan de ejecución (cronograma de semanas)
+CUANDO TENGAS TODO, SIEMPRE generá EXACTAMENTE DOS BLOQUES JSON (EN ESTE ORDEN):
 
-⚠️ REGLAS CRÍTICAS PARA EL JSON (ABSOLUTAS):
+BLOQUE 1: ANÁLISIS ECONÓMICO (tipo: "analisis_completo")
+BLOQUE 2: PLAN DE EJECUCIÓN (tipo: "plan_ejecucion_completo")
+
+AMBOS BLOQUES SON OBLIGATORIOS. NO OMITAS NINGUNO.
+
+⚠️ REGLAS CRÍTICAS PARA EL JSON ANÁLISIS (ABSOLUTAS):
 1. "precio_venta" = Precio final cobrado al cliente SIN IVA
    - NUNCA CERO — USAR EL SUBTOTAL CONFIRMADO ARRIBA
    - Ej: si presupuesto total=$36.5M con IVA 21%, entonces precio_venta = subtotal sin IVA
@@ -594,29 +600,59 @@ CUANDO TENGAS TODO, generá DOS BLOQUES JSON:
 }
 \`\`\`
 
-TAMBIÉN generá el plan de ejecución (cronograma semanal):
+BLOQUE 2 - PLAN DE EJECUCIÓN (OBLIGATORIO):
+Generá un cronograma semanal basado en la duración total estimada (típicamente 4-8 semanas).
+IMPORTANTE: semanas[] DEBE tener un elemento por cada semana. Los porcentaje_avance deben sumar ~100%.
 
 \`\`\`json
 {
   "tipo": "plan_ejecucion_completo",
   "datos": {
-    "duracion_semanas": 7,
+    "duracion_semanas": 6,
     "anticipo_porcentaje": 50,
-    "anticipo_monto": 18250000,
+    "anticipo_monto": 15082644,
     "semanas": [
       {
         "numero": 1,
-        "descripcion": "Demolición, limpieza y preparación de superficies",
-        "items_incluidos": ["Demolición de revestimientos", "Retiro de escombros", "Limpieza profunda"],
-        "porcentaje_avance": 15,
-        "monto_certificar": 2737500
+        "descripcion": "Preparación y demolición de revestimientos antiguos",
+        "items_incluidos": ["Demolición", "Retiro escombros", "Limpieza profunda", "Protección"],
+        "porcentaje_avance": 18,
+        "monto_certificar": 5429192
       },
       {
         "numero": 2,
-        "descripcion": "Contrapiso y preparación para pisos",
-        "items_incluidos": ["Contrapiso H21", "Nivelación", "Tratamiento de humedad"],
-        "porcentaje_avance": 20,
-        "monto_certificar": 3650000
+        "descripcion": "Contrapiso, impermeabilización y preparación",
+        "items_incluidos": ["Contrapiso H25", "Membrana asfáltica", "Nivelación"],
+        "porcentaje_avance": 18,
+        "monto_certificar": 5429192
+      },
+      {
+        "numero": 3,
+        "descripcion": "Colocación de cerámicos y bases",
+        "items_incluidos": ["Colocación cerámica", "Preparación bases", "Juntas"],
+        "porcentaje_avance": 17,
+        "monto_certificar": 5126160
+      },
+      {
+        "numero": 4,
+        "descripcion": "Pintura interior y exterior",
+        "items_incluidos": ["Pintura interior", "Pintura exterior", "Preparación"],
+        "porcentaje_avance": 17,
+        "monto_certificar": 5126160
+      },
+      {
+        "numero": 5,
+        "descripcion": "Electricidad, plomería e instalaciones",
+        "items_incluidos": ["Electricidad", "Plomería", "Pruebas"],
+        "porcentaje_avance": 15,
+        "monto_certificar": 4523097
+      },
+      {
+        "numero": 6,
+        "descripcion": "Terminaciones finales y entrega",
+        "items_incluidos": ["Accesorios", "Limpieza final", "Inspección", "Entrega"],
+        "porcentaje_avance": 15,
+        "monto_certificar": 4523097
       }
     ]
   }
