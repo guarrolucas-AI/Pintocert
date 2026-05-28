@@ -62,6 +62,14 @@ const PRECIOS_REFERENCIA = {
   // BOLSAS Y DESCARTE
   bolsa_escombros_unidad: 280,           // por unidad bolsa reforzada 50kg (x10: $2.961 → $296/u)
 
+  // VOLQUETES - ALQUILER (ZonaExpertos - Mayo 2026, incluye entrega, estadía y retiro)
+  volquete_mini_2m3_2dias: 140000,       // mini 2.5m³ por 2 días (rango $120.000-$160.000)
+  volquete_mini_2m3_semana: 261000,      // mini 2.5m³ por semana (rango $252.000-$270.000)
+  volquete_estandar_5m3_2dias: 190000,   // estándar 5m³ por 2 días (rango $170.000-$210.000)
+  volquete_estandar_5m3_semana: 373500,  // estándar 5m³ por semana (rango $357.000-$390.000)
+  volquete_grande_8m3_2dias: 305000,     // grande 8m³ por 2 días (rango $270.000-$340.000)
+  volquete_grande_8m3_semana: 583500,    // grande 8m³ por semana (rango $567.000-$600.000)
+
   // ACCESORIOS Y HERRERÍA
   guias_rodillos_porton_par: 18000,      // par guías+rodillos portón corredizo (ML: $8.988-$20.748)
 
@@ -261,6 +269,12 @@ IMPERMEABILIZACIÓN:
 
 BOLSAS Y DESCARTE:
 - Bolsa para escombros reforzada 50kg: $280/unidad
+
+VOLQUETES - ALQUILER (incluye entrega, estadía y retiro, mayo 2026):
+- Volquete mini 2.5m³ — 2 días: $140.000 / semana: $261.000
+- Volquete estándar 5m³ — 2 días: $190.000 / semana: $373.500
+- Volquete grande 8m³ — 2 días: $305.000 / semana: $583.500
+  (Nota: escombro limpio tiene 10-15% de descuento; zonas alejadas pueden tener recargo)
 
 ACCESORIOS:
 - Guías y rodillos portón corredizo (par): $18.000
