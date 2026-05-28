@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -694,6 +694,23 @@ function TabAgente({
   renderDatos,
   onRefresh = () => {},
 }: TabAgenteProps) {
+  // Estado local: se actualiza inmediatamente cuando llega JSON del agente,
+  // sin esperar a que Supabase guarde ni a que el padre re-renderice.
+  const [datosLocales, setDatosLocales] = useState<unknown>(datosGenerados)
+
+  // Si el padre actualiza (ej: refresh desde DB), sincronizar
+  useEffect(() => {
+    if (datosGenerados) setDatosLocales(datosGenerados)
+  }, [datosGenerados])
+
+  // Interceptar: actualizar local inmediatamente y avisar al padre
+  function handleDataGeneradaLocal(tipo: string, datos: unknown) {
+    setDatosLocales(datos)
+    onDataGenerada(tipo, datos)
+  }
+
+  const hayDatos = !!datosLocales
+
   return (
     <div className="flex gap-4" style={{ height: 'calc(100vh - 260px)', minHeight: '480px' }}>
       {/* Chat */}
@@ -701,7 +718,7 @@ function TabAgente({
         <div className="shrink-0 px-4 py-3 border-b bg-[#0a0a0a] flex items-center gap-2">
           <Bot className="w-4 h-4 text-yellow-400" />
           <span className="text-sm font-semibold text-white">Agente IA</span>
-          {!!datosGenerados && (
+          {hayDatos && (
             <CheckCircle className="w-4 h-4 text-green-400 ml-auto" />
           )}
         </div>
@@ -709,7 +726,7 @@ function TabAgente({
           modo={modo}
           contexto={{ presupuesto, erroresPrevios: undefined }}
           mensajesIniciales={mensajesIniciales}
-          onDataGenerada={onDataGenerada}
+          onDataGenerada={handleDataGeneradaLocal}
           onMensajesActualizados={onMensajesActualizados}
         />
       </div>
@@ -718,9 +735,9 @@ function TabAgente({
       <div className="flex-1 flex flex-col min-h-0 rounded-lg border bg-white overflow-hidden shadow-sm">
         <div className="shrink-0 px-4 py-3 border-b bg-slate-50 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-700">
-            {datosGenerados ? 'Datos generados' : 'Esperando resultados...'}
+            {hayDatos ? 'Datos generados' : 'Esperando resultados...'}
           </span>
-          {!!datosGenerados && (
+          {hayDatos && (
             <Button
               size="sm"
               variant="outline"
@@ -733,8 +750,8 @@ function TabAgente({
           )}
         </div>
         <div className="flex-1 overflow-y-auto p-5">
-          {datosGenerados ? (
-            renderDatos(datosGenerados)
+          {hayDatos ? (
+            renderDatos(datosLocales)
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-slate-400">
               <div className="text-4xl opacity-30">💬</div>
