@@ -147,6 +147,8 @@ function promptMateriales(ctx?: Record<string, unknown>) {
   const obraDesc = obra?.obra_descripcion ?? ''
   const items = obra?.items?.map(i => `- ${i.descripcion}: ${i.cantidad} ${i.unidad}`).join('\n') ?? ''
   const notas = ctx?.erroresPrevios ? `\nERRORES A EVITAR (de iteraciones anteriores):\n${ctx.erroresPrevios}` : ''
+  const preciosCacheFormateado = ctx?.preciosCacheFormateado as string | undefined
+  const preciosCacheSection = preciosCacheFormateado ? `\n${preciosCacheFormateado}\n` : ''
 
   // Generar JSON items REALES para inyectar en el prompt
   const itemsJsonArray = obra?.items?.map(i => ({
@@ -168,24 +170,30 @@ TRABAJOS Y CANTIDADES A CUBRIR:
 ${items}
 
 ${notas}
+${preciosCacheSection}
+PRECIOS DE REFERENCIA (solo como guía — BUSCA PRECIOS ACTUALES EN WEB):
+- Pintura interior estándar: $4.500-$6.000/m² (referencia solamente)
+- Pintura exterior estándar: $5.500-$7.500/m² (referencia solamente)
+- Preparación de superficies: $1.500-$2.500/m² (referencia solamente)
+- Barnizado de pisos: $6.000-$9.000/m² (referencia solamente)
+- Colocación de cerámicos: $8.000-$12.000/m² (referencia solamente)
+- Colocación de porcelánico: $10.000-$15.000/m² (referencia solamente)
+- Cielorraso de yeso: $3.500-$5.000/m² (referencia solamente)
+- Plomería (global): $50.000-$80.000 (referencia solamente)
+- Electricidad (global): $40.000-$70.000 (referencia solamente)
 
-PRECIOS DE REFERENCIA (ARS, Mayo 2026):
-- Pintura interior estándar: $4.500-$6.000/m²
-- Pintura exterior estándar: $5.500-$7.500/m²
-- Preparación de superficies: $1.500-$2.500/m²
-- Barnizado de pisos: $6.000-$9.000/m²
-- Colocación de cerámicos: $8.000-$12.000/m²
-- Colocación de porcelánico: $10.000-$15.000/m²
-- Cielorraso de yeso: $3.500-$5.000/m²
-- Plomería (global): $50.000-$80.000
-- Electricidad (global): $40.000-$70.000
+⚠️ IMPORTANTE: Estos son valores de REFERENCIA SOLAMENTE.
+DEBES USAR WEB_SEARCH para encontrar precios ACTUALES Y REALES en el mercado argentino.
 
 REGLAS CRÍTICAS:
-1. Usa la MATRIZ DE PRECIOS incluida arriba como base (no busques precios en web).
-2. SIEMPRE incluye precio_estimado en cada material (NO vacío).
-3. Calcula total_estimado como suma de (cantidad × precio_estimado).
-4. No duplicar ni multiplicar cantidades — cada línea es material independiente.
-5. Si cliente pide marcas específicas o premium, ajustá el precio (hasta +30%).
+1. USA WEB_SEARCH para buscar precios ACTUALES en MercadoLibre y ferreterías online.
+2. BUSCA por material específico (ej: "Pintura Sinteplast interior MercadoLibre ARS 2026").
+3. SI EL USUARIO HA BUSCADO PRECIOS RECIENTEMENTE (botón "Actualizar precios"), usa esos valores en caché como base — son más actuales.
+4. SIEMPRE incluye precio_estimado en cada material (NO vacío, NO cero).
+5. Calcula total_estimado como suma de (cantidad × precio_estimado).
+6. No duplicar ni multiplicar cantidades — cada línea es material independiente.
+7. Si cliente pide marcas específicas o premium, ajustá el precio (hasta +30%).
+8. Los precios DEBEN ser realistas (no el 10% del valor real).
 
 PREGUNTAS CLAVE (máx. 3):
 - ¿Prefieren marcas premium o estándar?

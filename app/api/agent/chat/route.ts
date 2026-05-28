@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@/lib/supabase/server'
 import { getSystemPrompt } from '@/lib/agent/prompts'
-import type { ModuloAgente, MensajeChat, Presupuesto } from '@/lib/types'
+import type { ModuloAgente, MensajeChat, Presupuesto, PrecioCache } from '@/lib/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -18,6 +19,50 @@ const MODEL_POR_MODO: Record<ModuloAgente, string> = {
   personal:     'claude-haiku-4-5',
   herramientas: 'claude-haiku-4-5',
   analisis:     'claude-sonnet-4-6',
+}
+
+/**
+ * Fetch cached prices from Supabase (valid precios within 30-day window)
+ */
+async function fetchCachedPrices(): Promise<PrecioCache[]> {
+  try {
+    const supabase = await createClient()
+    const now = new Date().toISOString()
+    const { data, error } = await supabase
+      .from('precios_cache')
+      .select('*')
+      .gte('valido_hasta', now)
+      .order('fecha_busqueda', { ascending: false })
+
+    if (error || !data) {
+      console.warn('Error fetching cached prices:', error?.message)
+      return []
+    }
+
+    return data as PrecioCache[]
+  } catch (err) {
+    console.error('Failed to fetch cached prices:', err)
+    return []
+  }
+}
+
+/**
+ * Formats cached prices for display in system prompt
+ */
+function formatCachedPricesForPrompt(precios: PrecioCache[]): string {
+  if (precios.length === 0) return ''
+
+  const formatted = precios
+    .map(
+      (p) =>
+        `- ${p.material_nombre}: $${p.precio_unitario.toLocaleString('es-AR')} (min: $${(p.precio_minimo ?? p.precio_unitario).toLocaleString('es-AR')}, máx: $${(p.precio_maximo ?? p.precio_unitario).toLocaleString('es-AR')}) — ${p.proveedor || 'Sin proveedor'}`
+    )
+    .join('\n')
+
+  return `PRECIOS EN CACHÉ (últimas búsquedas, vigentes hasta fecha indicada):
+${formatted}
+
+Usar estos precios actualizados en lugar de los precios de referencia si están disponibles.`
 }
 
 /**
@@ -64,7 +109,20 @@ export async function POST(req: NextRequest) {
     contexto?: Record<string, unknown>
   }
 
-  const systemPrompt = getSystemPrompt(modo, contexto)
+  // Fetch cached prices for materiales module
+  let enriquecidoContexto = contexto ?? {}
+  if (modo === 'materiales') {
+    const preciosEnCache = await fetchCachedPrices()
+    if (preciosEnCache.length > 0) {
+      enriquecidoContexto = {
+        ...contexto,
+        preciosEnCache,
+        preciosCacheFormateado: formatCachedPricesForPrompt(preciosEnCache),
+      }
+    }
+  }
+
+  const systemPrompt = getSystemPrompt(modo, enriquecidoContexto)
   const model = MODEL_POR_MODO[modo] ?? 'claude-sonnet-4-6'
   const usaThinking = modo === 'analisis'
 
@@ -94,15 +152,17 @@ export async function POST(req: NextRequest) {
 
       for (let intento = 0; intento <= MAX_REINTENTOS; intento++) {
         try {
-          // Web search está DESHABILITADO en todos los módulos
-          // Usar PRECIOS_REFERENCIA en prompts.ts en lugar de búsquedas en vivo
-          // Esto reduce costos ~30-40% y hace respuestas más consistentes
+          // Web search HABILITADO para materiales (búsqueda de precios reales)
+          // Deshabilitado para otros módulos para reducir costos
+          const toolsConfig = modo === 'materiales' ? [{ type: 'web_search' as const }] : undefined
+
           const msgStream = anthropic.messages.stream({
             model,
             max_tokens: usaThinking ? 8000 : 4096,
             ...(usaThinking ? { thinking: { type: 'adaptive' } } : {}),
             system: systemMessages,
             messages: buildMessages(messages),
+            ...(toolsConfig ? { tools: toolsConfig } : {}),
           })
 
           for await (const event of msgStream) {

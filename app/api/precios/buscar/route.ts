@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import type { PrecioCache } from '@/lib/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+})
 
 /**
  * POST /api/precios/buscar
@@ -77,8 +82,8 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Simula búsqueda de precio en mercado
- * En producción: usaría web_search real
+ * Busca precios reales en web usando Claude web_search
+ * Extrae información de precios actualizados de MercadoLibre y otros proveedores
  */
 async function buscarPrecioMaterial(material: string): Promise<{
   precio_unitario: number
@@ -87,34 +92,67 @@ async function buscarPrecioMaterial(material: string): Promise<{
   proveedor?: string
   url_fuente?: string
 } | null> {
-  // Precios de ejemplo - en producción harías web_search real
-  const preciosEjemplo: Record<string, any> = {
-    'pintura sinteplast interior': {
-      precio_unitario: 4800,
-      precio_minimo: 4500,
-      precio_maximo: 5200,
-      proveedor: 'MercadoLibre',
-    },
-    'pintura sinteplast exterior': {
-      precio_unitario: 5800,
-      precio_minimo: 5500,
-      precio_maximo: 6200,
-      proveedor: 'MercadoLibre',
-    },
-    'fijador sinteplast': {
-      precio_unitario: 18000,
-      precio_minimo: 16500,
-      precio_maximo: 19500,
-      proveedor: 'MercadoLibre',
-    },
-    'impermeabilizante sinteplast': {
-      precio_unitario: 12500,
-      precio_minimo: 11500,
-      precio_maximo: 13500,
-      proveedor: 'MercadoLibre',
-    },
-  }
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-opus-4-1',
+      max_tokens: 1024,
+      tools: [
+        {
+          type: 'web_search',
+        },
+      ],
+      messages: [
+        {
+          role: 'user',
+          content: `Busca el precio actual (ARS) de "${material}" en Argentina (MercadoLibre, ferreterías online, etc).
 
-  const clave = material.toLowerCase()
-  return preciosEjemplo[clave] || null
+Responde EXACTAMENTE en este formato JSON (sin markdown):
+{
+  "precio_unitario": número,
+  "precio_minimo": número,
+  "precio_maximo": número,
+  "proveedor": "nombre",
+  "url_fuente": "url"
+}
+
+Usa precios reales encontrados en la búsqueda. Si no encuentras el producto exacto, busca alternativas similares.`,
+        },
+      ],
+    })
+
+    // Extraer respuesta de texto del response
+    let respuestaTexto = ''
+    for (const block of response.content) {
+      if (block.type === 'text') {
+        respuestaTexto = block.text
+        break
+      }
+    }
+
+    // Parsear JSON de la respuesta
+    const jsonMatch = respuestaTexto.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      console.warn(`No se pudo extraer JSON para ${material}:`, respuestaTexto)
+      return null
+    }
+
+    const precio = JSON.parse(jsonMatch[0])
+
+    // Validar que tiene los campos necesarios
+    if (!precio.precio_unitario || typeof precio.precio_unitario !== 'number') {
+      console.warn(`Precio inválido para ${material}:`, precio)
+      return null
+    }
+
+    return {
+      precio_unitario: precio.precio_unitario,
+      precio_minimo: precio.precio_minimo || precio.precio_unitario * 0.9,
+      precio_maximo: precio.precio_maximo || precio.precio_unitario * 1.1,
+      proveedor: precio.proveedor || 'Mercado Online',
+      url_fuente: precio.url_fuente || undefined,
+    }
+  } catch (err) {
+    console.error(`Error buscando precio para ${material}:`, err)
+    return null
+  }
 }
