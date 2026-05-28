@@ -78,7 +78,8 @@ export function ObraForm({ defaultValues, onSubmit, submitLabel = 'Guardar' }: O
         <div className="space-y-2">
           <Label htmlFor="estado">Estado</Label>
           <Select id="estado" {...register('estado')}>
-            <option value="activo">Activo</option>
+            <option value="borrador">Borrador</option>
+            <option value="en_ejecucion">En Ejecución</option>
             <option value="pausado">Pausado</option>
             <option value="terminado">Terminado</option>
           </Select>
