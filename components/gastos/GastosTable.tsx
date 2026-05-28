@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { deleteGasto, updateGasto } from '@/lib/actions/gastos'
-import { Trash2, Edit2, Check, X } from 'lucide-react'
+import { Trash2, Edit2, Check, X, Upload, FileText, ExternalLink } from 'lucide-react'
 import type { GastoObra, CategoriaGastoPersonalizado } from '@/lib/types'
 
 const CATEGORIAS_PREDEFINIDAS = [
@@ -29,6 +29,7 @@ interface EditingGasto {
   id: string
   monto: number
   notas: string
+  comprobante_numero: string
 }
 
 export function GastosTable({
@@ -42,6 +43,8 @@ export function GastosTable({
   const [editingGasto, setEditingGasto] = useState<EditingGasto | null>(null)
   const [editingMonto, setEditingMonto] = useState('')
   const [editingNotas, setEditingNotas] = useState('')
+  const [editingComprobanteNumero, setEditingComprobanteNumero] = useState('')
+  const [archivoComprobante, setArchivoComprobante] = useState<File | null>(null)
 
   const todasLasCategorias = [
     ...CATEGORIAS_PREDEFINIDAS,
@@ -73,9 +76,16 @@ export function GastosTable({
   }
 
   const handleEditStart = (gasto: GastoObra) => {
-    setEditingGasto({ id: gasto.id, monto: gasto.monto, notas: gasto.notas || '' })
+    setEditingGasto({
+      id: gasto.id,
+      monto: gasto.monto,
+      notas: gasto.notas || '',
+      comprobante_numero: gasto.comprobante_numero || '',
+    })
     setEditingMonto(gasto.monto.toString())
     setEditingNotas(gasto.notas || '')
+    setEditingComprobanteNumero(gasto.comprobante_numero || '')
+    setArchivoComprobante(null)
   }
 
   const handleEditSave = () => {
@@ -88,10 +98,15 @@ export function GastosTable({
     }
 
     startTransition(async () => {
-      const { error } = await updateGasto(editingGasto.id, {
-        monto: montoNum,
-        notas: editingNotas || undefined,
-      })
+      const { error } = await updateGasto(
+        editingGasto.id,
+        {
+          monto: montoNum,
+          notas: editingNotas || undefined,
+          comprobante_numero: editingComprobanteNumero || undefined,
+        },
+        archivoComprobante || undefined
+      )
 
       if (error) {
         toast.error('Error: ' + error)
@@ -100,12 +115,14 @@ export function GastosTable({
 
       toast.success('Gasto actualizado')
       setEditingGasto(null)
+      setArchivoComprobante(null)
       onGastoDeleted?.() // Trigger refresh
     })
   }
 
   const handleEditCancel = () => {
     setEditingGasto(null)
+    setArchivoComprobante(null)
   }
 
   const categoriaStats = todasLasCategorias.map((cat) => {
@@ -156,113 +173,204 @@ export function GastosTable({
       </div>
 
       {/* Gastos Table - Desktop View */}
-      <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th className="px-4 py-2 text-left font-semibold text-slate-900">Fecha</th>
-              <th className="px-4 py-2 text-left font-semibold text-slate-900">Categoría</th>
-              <th className="px-4 py-2 text-left font-semibold text-slate-900">Descripción</th>
-              <th className="px-4 py-2 text-right font-semibold text-slate-900">Monto</th>
-              <th className="px-4 py-2 text-left font-semibold text-slate-900 w-24">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200">
-            {filteredGastos.map((gasto) => {
-              const isEditing = editingGasto?.id === gasto.id
-              const catInfo = getCategoriaInfo(gasto.categoria)
+      <div className="hidden sm:block rounded-lg border border-slate-200">
+        {filteredGastos.map((gasto, idx) => {
+          const isEditing = editingGasto?.id === gasto.id
+          const catInfo = getCategoriaInfo(gasto.categoria)
 
-              return (
-                <tr key={gasto.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 whitespace-nowrap text-slate-600">
+          return (
+            <div
+              key={gasto.id}
+              className={`border-b last:border-b-0 ${idx === 0 ? '' : 'border-t'} ${
+                isEditing ? 'bg-yellow-50' : 'hover:bg-slate-50'
+              }`}
+            >
+              {/* Main row */}
+              <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center">
+                <div className="col-span-2">
+                  <p className="text-sm text-slate-600 font-medium">
                     {new Date(gasto.fecha).toLocaleDateString('es-AR')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant="outline"
-                      style={{
-                        backgroundColor: catInfo?.color + '20',
-                        borderColor: catInfo?.color,
-                        color: catInfo?.color,
-                      }}
-                    >
-                      {catInfo?.nombre || gasto.categoria}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-slate-900 max-w-xs truncate">
-                      {gasto.descripcion}
-                    </div>
-                    {gasto.proveedor && (
-                      <p className="text-xs text-muted-foreground">{gasto.proveedor}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-slate-900">
-                    {isEditing ? (
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <Badge
+                    variant="outline"
+                    style={{
+                      backgroundColor: catInfo?.color + '20',
+                      borderColor: catInfo?.color,
+                      color: catInfo?.color,
+                    }}
+                  >
+                    {catInfo?.nombre || gasto.categoria}
+                  </Badge>
+                </div>
+                <div className="col-span-3">
+                  <div className="text-sm text-slate-900 font-medium truncate">
+                    {gasto.descripcion}
+                  </div>
+                  {gasto.proveedor && (
+                    <p className="text-xs text-muted-foreground">{gasto.proveedor}</p>
+                  )}
+                </div>
+                <div className="col-span-2 text-right">
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingMonto}
+                      onChange={(e) => setEditingMonto(e.target.value)}
+                      className="w-full px-2 py-1 border rounded text-right text-sm"
+                      disabled={isPending}
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold text-slate-900">{formatARS(gasto.monto)}</p>
+                  )}
+                </div>
+                <div className="col-span-2 text-right flex gap-1 justify-end">
+                  {isEditing ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleEditSave}
+                        disabled={isPending}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Check className="w-4 h-4 text-green-600" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleEditCancel}
+                        disabled={isPending}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="w-4 h-4 text-slate-400" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {gasto.comprobante_url && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          asChild
+                          className="h-8 w-8 p-0"
+                          title="Ver comprobante"
+                        >
+                          <a href={gasto.comprobante_url} target="_blank" rel="noopener noreferrer">
+                            <FileText className="w-4 h-4 text-blue-500" />
+                          </a>
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEditStart(gasto)}
+                        disabled={isPending}
+                        className="h-8 w-8 p-0"
+                        title="Editar"
+                      >
+                        <Edit2 className="w-4 h-4 text-slate-500" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(gasto.id)}
+                        disabled={isPending}
+                        className="h-8 w-8 p-0"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Editing details row */}
+              {isEditing && (
+                <div className="border-t border-yellow-200 bg-yellow-50 px-4 py-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs font-medium text-slate-700">Número Comprobante</Label>
                       <input
-                        type="number"
-                        step="0.01"
-                        value={editingMonto}
-                        onChange={(e) => setEditingMonto(e.target.value)}
-                        className="w-24 px-2 py-1 border rounded text-right text-sm"
+                        type="text"
+                        value={editingComprobanteNumero}
+                        onChange={(e) => setEditingComprobanteNumero(e.target.value)}
+                        placeholder="Ej: FAC-001234"
+                        className="w-full mt-1 px-2 py-1 border border-slate-300 rounded text-sm"
                         disabled={isPending}
                       />
-                    ) : (
-                      formatARS(gasto.monto)
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleEditSave}
-                          disabled={isPending}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Check className="w-4 h-4 text-green-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleEditCancel}
-                          disabled={isPending}
-                          className="h-8 w-8 p-0"
-                        >
-                          <X className="w-4 h-4 text-slate-400" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditStart(gasto)}
-                          disabled={isPending}
-                          className="h-8 w-8 p-0"
-                          title="Editar"
-                        >
-                          <Edit2 className="w-4 h-4 text-slate-500" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(gasto.id)}
-                          disabled={isPending}
-                          className="h-8 w-8 p-0"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-medium text-slate-700">Notas</Label>
+                      <input
+                        type="text"
+                        value={editingNotas}
+                        onChange={(e) => setEditingNotas(e.target.value)}
+                        placeholder="Observaciones adicionales..."
+                        className="w-full mt-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                        disabled={isPending}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-medium text-slate-700">
+                      Comprobante (PDF o imagen)
+                      {gasto.comprobante_url && (
+                        <span className="text-xs text-green-600 ml-2">✓ Archivo actual</span>
+                      )}
+                    </Label>
+                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-3 mt-1 text-center hover:border-slate-400 transition-colors">
+                      <input
+                        id={`comprobante-${gasto.id}`}
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            if (file.size > 10 * 1024 * 1024) {
+                              toast.error('El archivo debe ser menor a 10 MB')
+                              return
+                            }
+                            setArchivoComprobante(file)
+                          }
+                        }}
+                        disabled={isPending}
+                        className="hidden"
+                      />
+                      {archivoComprobante ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Upload className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-slate-700 font-medium">
+                              {archivoComprobante.name}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setArchivoComprobante(null)}
+                            disabled={isPending}
+                            className="p-1 hover:bg-slate-200 rounded"
+                          >
+                            <X className="w-4 h-4 text-slate-500" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label htmlFor={`comprobante-${gasto.id}`} className="cursor-pointer block">
+                          <Upload className="w-4 h-4 text-slate-400 mx-auto mb-1" />
+                          <p className="text-xs text-slate-600">Haz clic para seleccionar archivo</p>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       {/* Gastos Cards - Mobile View */}
@@ -272,7 +380,12 @@ export function GastosTable({
           const catInfo = getCategoriaInfo(gasto.categoria)
 
           return (
-            <div key={gasto.id} className="rounded-lg border border-slate-200 p-3">
+            <div
+              key={gasto.id}
+              className={`rounded-lg border p-3 transition-colors ${
+                isEditing ? 'border-yellow-300 bg-yellow-50' : 'border-slate-200'
+              }`}
+            >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1">
                   <p className="font-medium text-slate-900">{gasto.descripcion}</p>
@@ -297,7 +410,11 @@ export function GastosTable({
                 <p className="text-xs text-muted-foreground mb-2">Proveedor: {gasto.proveedor}</p>
               )}
 
-              <div className="flex items-center justify-between">
+              {!isEditing && gasto.comprobante_numero && (
+                <p className="text-xs text-muted-foreground mb-2">Comprobante: {gasto.comprobante_numero}</p>
+              )}
+
+              <div className="flex items-center justify-between mb-2">
                 <div className="font-semibold text-slate-900">
                   {isEditing ? (
                     <input
@@ -336,6 +453,19 @@ export function GastosTable({
                   </div>
                 ) : (
                   <div className="flex gap-1">
+                    {gasto.comprobante_url && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        asChild
+                        className="h-8 w-8 p-0"
+                        title="Ver comprobante"
+                      >
+                        <a href={gasto.comprobante_url} target="_blank" rel="noopener noreferrer">
+                          <FileText className="w-4 h-4 text-blue-500" />
+                        </a>
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
@@ -357,6 +487,86 @@ export function GastosTable({
                   </div>
                 )}
               </div>
+
+              {/* Editing details for mobile */}
+              {isEditing && (
+                <div className="border-t border-yellow-200 pt-3 mt-3 space-y-3">
+                  <div>
+                    <Label className="text-xs font-medium text-slate-700">Número Comprobante</Label>
+                    <input
+                      type="text"
+                      value={editingComprobanteNumero}
+                      onChange={(e) => setEditingComprobanteNumero(e.target.value)}
+                      placeholder="Ej: FAC-001234"
+                      className="w-full mt-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                      disabled={isPending}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-medium text-slate-700">Notas</Label>
+                    <input
+                      type="text"
+                      value={editingNotas}
+                      onChange={(e) => setEditingNotas(e.target.value)}
+                      placeholder="Observaciones adicionales..."
+                      className="w-full mt-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                      disabled={isPending}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-medium text-slate-700">
+                      Comprobante
+                      {gasto.comprobante_url && (
+                        <span className="text-xs text-green-600 ml-2">✓ Archivo actual</span>
+                      )}
+                    </Label>
+                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-3 mt-1 text-center">
+                      <input
+                        id={`comprobante-mobile-${gasto.id}`}
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            if (file.size > 10 * 1024 * 1024) {
+                              toast.error('El archivo debe ser menor a 10 MB')
+                              return
+                            }
+                            setArchivoComprobante(file)
+                          }
+                        }}
+                        disabled={isPending}
+                        className="hidden"
+                      />
+                      {archivoComprobante ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Upload className="w-4 h-4 text-green-600" />
+                            <span className="text-xs text-slate-700 font-medium">
+                              {archivoComprobante.name}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setArchivoComprobante(null)}
+                            disabled={isPending}
+                            className="p-1 hover:bg-slate-200 rounded"
+                          >
+                            <X className="w-3 h-3 text-slate-500" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label htmlFor={`comprobante-mobile-${gasto.id}`} className="cursor-pointer block">
+                          <Upload className="w-4 h-4 text-slate-400 mx-auto mb-1" />
+                          <p className="text-xs text-slate-600">Toca para seleccionar archivo</p>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}

@@ -92,7 +92,8 @@ export async function createGasto(gastoData: {
 
 export async function updateGasto(
   gastoId: string,
-  updates: Partial<Omit<GastoObra, 'id' | 'created_by' | 'created_at'>>
+  updates: Partial<Omit<GastoObra, 'id' | 'created_by' | 'created_at'>>,
+  comprobante_archivo?: File
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -101,7 +102,7 @@ export async function updateGasto(
   // Get original gasto to find obra_id
   const { data: gasto, error: fetchError } = await supabase
     .from('gastos_obra')
-    .select('obra_id, fecha')
+    .select('obra_id, fecha, comprobante_url')
     .eq('id', gastoId)
     .single()
 
@@ -116,10 +117,30 @@ export async function updateGasto(
     if (fecha > new Date()) return { error: 'No se puede registrar gasto a fecha futura' }
   }
 
+  // Handle comprobante file upload
+  let updateData = { ...updates }
+  if (comprobante_archivo) {
+    const timestamp = Date.now()
+    const fileExt = comprobante_archivo.name.split('.').pop()
+    const fileName = `${user.id}/${gasto.obra_id}/gasto_${timestamp}.${fileExt}`
+
+    const { error: uploadError, data: uploadData } = await supabase.storage
+      .from('comprobantes_gastos')
+      .upload(fileName, comprobante_archivo, { upsert: false })
+
+    if (uploadError) return { error: `Error subiendo comprobante: ${uploadError.message}` }
+
+    const { data: publicUrl } = supabase.storage
+      .from('comprobantes_gastos')
+      .getPublicUrl(fileName)
+
+    updateData.comprobante_url = publicUrl?.publicUrl || null
+  }
+
   // Update gasto
   const { error: updateError } = await supabase
     .from('gastos_obra')
-    .update(updates)
+    .update(updateData)
     .eq('id', gastoId)
 
   if (updateError) return { error: updateError.message }
