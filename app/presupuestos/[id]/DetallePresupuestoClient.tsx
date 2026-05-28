@@ -1292,10 +1292,28 @@ function KpiCard({
 // ─── Plan de Obra View ────────────────────────────────────────────────────────
 
 function PlanEjecucionView({ data }: { data: PlanEjecucionData }) {
-  if (!data || !data.semanas || data.semanas.length === 0) {
+  if (!data) {
     return (
-      <div className="text-center py-8 text-slate-500">
-        <p>No hay cronograma disponible.</p>
+      <div className="text-center py-8">
+        <div className="text-slate-400 mb-4 text-2xl">📅</div>
+        <p className="text-slate-600 font-semibold mb-2">Cronograma no generado</p>
+        <p className="text-sm text-slate-500">Generá el plan de ejecución en el módulo de Análisis.</p>
+      </div>
+    )
+  }
+
+  if (!data.semanas || data.semanas.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-slate-400 mb-4 text-2xl">⚠️</div>
+        <p className="text-slate-600 font-semibold mb-2">Cronograma vacío</p>
+        <p className="text-sm text-slate-500">El plan de ejecución existe pero no tiene semanas definidas.</p>
+        <div className="mt-4 p-3 bg-slate-50 rounded-lg text-left text-xs text-slate-600 font-mono max-w-md mx-auto">
+          <p className="mb-1"><strong>Datos recibidos:</strong></p>
+          <p>duracion_semanas: {data.duracion_semanas}</p>
+          <p>anticipo_porcentaje: {data.anticipo_porcentaje}</p>
+          <p>anticipo_monto: {data.anticipo_monto}</p>
+        </div>
       </div>
     )
   }
