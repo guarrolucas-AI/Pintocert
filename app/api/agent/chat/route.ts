@@ -19,7 +19,7 @@ const MODEL_POR_MODO: Record<ModuloAgente, string> = {
   materiales:   'claude-haiku-4-5',
   personal:     'claude-haiku-4-5',
   herramientas: 'claude-haiku-4-5',
-  analisis:     'claude-sonnet-4-6',
+  analisis:     'claude-haiku-4-5',
 }
 
 /**
@@ -124,8 +124,7 @@ export async function POST(req: NextRequest) {
   }
 
   const systemPrompt = getSystemPrompt(modo, enriquecidoContexto)
-  const model = MODEL_POR_MODO[modo] ?? 'claude-sonnet-4-6'
-  const usaThinking = modo === 'analisis'
+  const model = MODEL_POR_MODO[modo] ?? 'claude-haiku-4-5'
 
   // System prompt con cache_control — se cachea en la primera llamada
   // y se reutiliza en todos los turnos siguientes de la misma sesión.
@@ -158,8 +157,7 @@ export async function POST(req: NextRequest) {
           // El agente usa precios en caché (más rápido y económico)
           const msgStream = anthropic.messages.stream({
             model,
-            max_tokens: usaThinking ? 8000 : 4096,
-            ...(usaThinking ? { thinking: { type: 'adaptive' } } : {}),
+            max_tokens: 4096,
             system: systemMessages,
             messages: buildMessages(messages),
           })

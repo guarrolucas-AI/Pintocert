@@ -119,9 +119,6 @@ export default function AgentChat({
                 setBuscandoWeb(true)
               } else if (evento.type === 'tool_end') {
                 setBuscandoWeb(false)
-              } else if (evento.type === 'done') {
-                // Buscar bloques JSON en el texto final
-                detectarJSON(textoCompleto)
               } else if (evento.type === 'error') {
                 textoCompleto = `❌ ${evento.message}`
                 setTextoActual(textoCompleto)
@@ -133,6 +130,10 @@ export default function AgentChat({
             }
           }
         }
+
+        // Detectar JSON siempre al finalizar el stream,
+        // sin importar si llegó el evento 'done' o si el stream se cortó.
+        detectarJSON(textoCompleto)
 
         // Agregar respuesta del asistente al historial (solo si tiene contenido)
         if (textoCompleto.trim()) {
