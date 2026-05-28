@@ -1,5 +1,7 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Anthropic from '@anthropic-ai/sdk'
@@ -202,4 +204,29 @@ export async function cambiarEstadoPresupuesto(
     .eq('id', presupuestoId)
 
   return { error: error?.message ?? null }
+}
+
+export async function eliminarPresupuesto(presupuestoId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  const admin = createAdminClient()
+
+  // Solo admin puede eliminar
+  const { data: perfil } = await admin.from('perfiles').select('rol').eq('id', user.id).single()
+  if (perfil?.rol !== 'admin') return { error: 'Sin permisos' }
+
+  // Delete presupuesto_mensajes first (references presupuestos)
+  await admin.from('presupuesto_mensajes').delete().eq('presupuesto_id', presupuestoId)
+
+  // Delete the presupuesto itself
+  const { error } = await admin.from('presupuestos').delete().eq('id', presupuestoId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/presupuestos')
+  return { error: null }
 }

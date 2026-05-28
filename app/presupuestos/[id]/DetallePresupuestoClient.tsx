@@ -10,7 +10,7 @@ import AgentChat from '@/components/agente/AgentChat'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatARS, calculateItemSubtotal, calculatePresupuestoTotals } from '@/lib/utils'
-import { aprobarPresupuesto, cambiarEstadoPresupuesto, distribuirPreciosDesdeAnalisis } from './actions'
+import { aprobarPresupuesto, cambiarEstadoPresupuesto, distribuirPreciosDesdeAnalisis, eliminarPresupuesto } from './actions'
 import type {
   Presupuesto,
   PresupuestoMensajes,
@@ -264,6 +264,21 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
     })
   }
 
+  function handleEliminar() {
+    if (!confirm(`¿Eliminar el presupuesto de ${presupuesto.cliente}? Esta acción no se puede deshacer.`)) {
+      return
+    }
+    startTransition(async () => {
+      const { error } = await eliminarPresupuesto(presupuesto.id)
+      if (error) {
+        toast.error('Error: ' + error)
+        return
+      }
+      toast.success('Presupuesto eliminado')
+      router.push('/presupuestos')
+    })
+  }
+
   function handleEditChange(field: keyof Presupuesto, value: any) {
     setEditedPresupuesto((prev) => {
       if (!prev) return { ...presupuesto, [field]: value }
@@ -411,6 +426,17 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
               disabled={isPending}
             >
               Volver a borrador
+            </Button>
+          )}
+          {presupuesto.estado !== 'aprobado' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleEliminar}
+              disabled={isPending}
+              className="border-red-200 text-red-600 hover:bg-red-50"
+            >
+              {isPending ? 'Eliminando...' : '🗑️ Eliminar'}
             </Button>
           )}
         </div>
