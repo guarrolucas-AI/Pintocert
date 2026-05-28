@@ -268,6 +268,21 @@ export interface CategoriaGastoPersonalizado {
   created_at: string
 }
 
+// ─── Fotos de Obra ─────────────────────────────────────────────────────────
+
+export interface FotoObra {
+  id: string
+  obra_id: string
+  foto_url: string  // Public URL from Supabase Storage
+  titulo: string
+  descripcion?: string
+  fecha_foto: string  // Date when photo was taken
+  tags?: string[]  // For categorizing (frente, costado, interior, etc)
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
 // ─── Cash Flow ─────────────────────────────────────────────────────────────
 
 export interface FlujoCajaReal {
