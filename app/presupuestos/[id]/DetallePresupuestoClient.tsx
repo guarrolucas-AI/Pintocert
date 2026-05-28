@@ -1271,9 +1271,12 @@ function AnalisisView({ data }: { data: AnalisisData }) {
       ? data.precio_venta
       : (data?.costo_total ?? 0) + (data?.ganancia_bruta ?? 0)
 
+  // Calcular ganancia_bruta correctamente: precio_venta - costo_total
+  const gananciaBruta = precioVentaReal - (data?.costo_total ?? 0)
+
   const rentabilidad =
     precioVentaReal > 0
-      ? ((data?.ganancia_bruta ?? 0) / precioVentaReal) * 100
+      ? (gananciaBruta / precioVentaReal) * 100
       : (data?.rentabilidad_sobre_ventas ?? 0)
   const rentabilidadColor =
     rentabilidad >= 25
@@ -1288,7 +1291,7 @@ function AnalisisView({ data }: { data: AnalisisData }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="Precio de venta" value={formatARS(precioVentaReal)} />
         <KpiCard label="Costo total" value={formatARS(data?.costo_total ?? 0)} />
-        <KpiCard label="Ganancia bruta" value={formatARS(data?.ganancia_bruta ?? 0)} />
+        <KpiCard label="Ganancia bruta" value={formatARS(gananciaBruta)} />
         <KpiCard
           label="Rentabilidad s/ ventas"
           value={`${rentabilidad.toFixed(1)}%`}
