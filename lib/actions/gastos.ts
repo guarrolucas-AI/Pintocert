@@ -404,3 +404,105 @@ export async function getCategoriasPersonalizadasUsuario() {
   if (error) return { error: error.message }
   return { data }
 }
+
+// ──────────────────────────────────────────────────────────────────────
+// Recalculate Flujo de Caja for all existing gastos
+// ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Recalculates flujo_caja_real for all obras that have gastos
+ * Use this to backfill data when flujo_caja_real table is created after gastos exist
+ */
+export async function recalculateFlujoCajaForAllObras() {
+  const admin = createAdminClient()
+
+  // Get all unique (obra_id, mes, anio) combinations from gastos_obra
+  const { data: gastos, error: gastosError } = await admin
+    .from('gastos_obra')
+    .select('obra_id, fecha')
+
+  if (gastosError || !gastos) {
+    return { error: `No se pudieron obtener gastos: ${gastosError?.message}` }
+  }
+
+  // Extract unique combinations
+  const uniqueCombos = new Map<string, Date>()
+  for (const gasto of gastos) {
+    const fecha = new Date(gasto.fecha)
+    const key = `${gasto.obra_id}-${fecha.getFullYear()}-${fecha.getMonth() + 1}`
+    if (!uniqueCombos.has(key)) {
+      uniqueCombos.set(key, fecha)
+    }
+  }
+
+  // Recalculate for each combination
+  let recalculados = 0
+  const errores: string[] = []
+
+  for (const [_, fecha] of uniqueCombos) {
+    const obraId = _.split('-')[0]
+    try {
+      await recalculateFlujoCajaReal(obraId, fecha)
+      recalculados++
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      errores.push(`${obraId} (${fecha.toISOString().split('T')[0]}): ${msg}`)
+    }
+  }
+
+  return {
+    success: true,
+    recalculados,
+    errores: errores.length > 0 ? errores : undefined,
+    mensaje: `Se recalcularon ${recalculados} períodos de flujo de caja`
+  }
+}
+
+/**
+ * Recalculates flujo_caja_real for a specific obra (all months with gastos)
+ */
+export async function recalculateFlujoCajaForObra(obraId: string) {
+  const admin = createAdminClient()
+
+  // Get all unique months for this obra
+  const { data: gastos, error: gastosError } = await admin
+    .from('gastos_obra')
+    .select('fecha')
+    .eq('obra_id', obraId)
+
+  if (gastosError || !gastos) {
+    return { error: `No se pudieron obtener gastos: ${gastosError?.message}` }
+  }
+
+  // Extract unique months
+  const uniqueMeses = new Set<string>()
+  for (const gasto of gastos) {
+    const fecha = new Date(gasto.fecha)
+    const key = `${fecha.getFullYear()}-${fecha.getMonth() + 1}`
+    uniqueMeses.add(key)
+  }
+
+  // Recalculate for each month
+  let recalculados = 0
+  const errores: string[] = []
+
+  for (const mesAno of uniqueMeses) {
+    const [anio, mes] = mesAno.split('-').map(Number)
+    const fecha = new Date(anio, mes - 1, 1)
+
+    try {
+      await recalculateFlujoCajaReal(obraId, fecha)
+      recalculados++
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      errores.push(`${mesAno}: ${msg}`)
+    }
+  }
+
+  return {
+    success: true,
+    recalculados,
+    errores: errores.length > 0 ? errores : undefined,
+    mensaje: `Se recalcularon ${recalculados} períodos para obra ${obraId}`
+  }
+}

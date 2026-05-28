@@ -6,6 +6,7 @@ import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { FlujoCajaTableClient } from '@/components/dashboard/FlujoCajaTableClient'
 import { FlujoCajaChartsClient } from '@/components/dashboard/FlujoCajaChartsClient'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
+import { RecalculateFlujoCajaButton } from '@/components/dashboard/RecalculateFlujoCajaButton'
 import type { FlujoCajaReal, ObraConAvance } from '@/lib/types'
 
 export const revalidate = 0
@@ -66,12 +67,15 @@ export default async function FlujoCajaPage() {
 
       {flujoCajaData.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 p-12 text-center">
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground mb-6">
             No hay datos de flujo de caja aún
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mb-6">
             Los datos de flujo de caja se generan automáticamente al registrar gastos en obras en ejecución
           </p>
+          <div className="flex justify-center">
+            <RecalculateFlujoCajaButton />
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
