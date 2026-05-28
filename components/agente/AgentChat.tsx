@@ -159,31 +159,45 @@ export default function AgentChat({
   )
 
   function detectarJSON(texto: string) {
-    const regex = /```json\s*([\s\S]*?)\s*```/g
+    // Intento 1: bloque ```json ... ```
+    const regexBloque = /```json\s*([\s\S]*?)\s*```/g
     let match
     let encontrado = false
-    while ((match = regex.exec(texto)) !== null) {
-      try {
-        const jsonStr = match[1].trim()
-        const obj = JSON.parse(jsonStr) as { tipo?: string; datos?: unknown }
-        if (obj.tipo && obj.datos) {
-          encontrado = true
-          onDataGenerada?.(obj.tipo, obj.datos)
-          console.log(`✓ JSON detectado: tipo=${obj.tipo}`)
-        } else {
-          // JSON válido pero sin tipo/datos — loguear para debug
-          console.warn('⚠ JSON sin tipo/datos:', Object.keys(obj).join(', '))
-        }
-      } catch (err) {
-        // JSON malformado — mostrar error visible
-        const preview = match[1].slice(0, 120).replace(/\n/g, ' ')
-        console.error('❌ JSON parse error:', err, '| Preview:', preview)
-        toast.error('Error procesando datos del agente. Pedile que regenere la respuesta.')
+
+    while ((match = regexBloque.exec(texto)) !== null) {
+      if (intentarParsear(match[1].trim())) encontrado = true
+    }
+
+    // Intento 2: JSON plano con {"tipo": "...", "datos": {...}}
+    // El agente a veces no usa backticks
+    if (!encontrado) {
+      const regexPlano = /\{\s*"tipo"\s*:\s*"[^"]+"\s*,\s*"datos"\s*:\s*\{[\s\S]*?\}\s*\}/g
+      while ((match = regexPlano.exec(texto)) !== null) {
+        if (intentarParsear(match[0])) encontrado = true
       }
     }
-    if (!encontrado && !texto.includes('```json')) {
-      // El agente respondió sin bloque JSON — no es error, es conversación normal
-      console.log('ℹ Sin bloque JSON en este mensaje')
+
+    // Intento 3: buscar cualquier objeto JSON grande que empiece con {
+    // Solo si tiene más de 200 chars (es un JSON de datos, no un fragmento)
+    if (!encontrado) {
+      const regexGrande = /(\{[\s\S]{200,}\})/g
+      while ((match = regexGrande.exec(texto)) !== null) {
+        if (intentarParsear(match[1])) { encontrado = true; break }
+      }
+    }
+  }
+
+  function intentarParsear(jsonStr: string): boolean {
+    try {
+      const obj = JSON.parse(jsonStr) as { tipo?: string; datos?: unknown }
+      if (obj.tipo && obj.datos) {
+        onDataGenerada?.(obj.tipo, obj.datos)
+        console.log(`✓ JSON detectado: tipo=${obj.tipo}`)
+        return true
+      }
+      return false
+    } catch {
+      return false
     }
   }
 

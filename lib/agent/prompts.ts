@@ -406,7 +406,7 @@ FLUJO:
 4. Calcula subtotales por especialidad.
 5. Generá el JSON.
 
-CUANDO TENGAS TODO, generá el JSON al final:
+CUANDO TENGAS TODO, generá el JSON al final. SIEMPRE con \`\`\`json y estructura { "tipo": "personal_completo", "datos": {...} }.
 
 \`\`\`json
 {
@@ -461,7 +461,16 @@ NORMATIVA A CONSIDERAR (Argentina):
 
 EPP obligatorio: casco, calzado de seguridad, guantes, anteojos, arnés para trabajos en altura, protección respiratoria para pintura, etc.
 
-CUANDO TENGAS TODO, generá el JSON al final:
+CUANDO TENGAS TODO, generá el JSON al final del mensaje.
+
+⚠️ REGLAS CRÍTICAS PARA EL JSON — NO IGNORAR:
+1. SIEMPRE usar triple backtick + json (exactamente: \`\`\`json ... \`\`\`)
+2. La estructura DEBE ser EXACTAMENTE: { "tipo": "herramientas_completo", "datos": { ... } }
+3. NUNCA generar el JSON sin esos dos campos raíz (tipo y datos)
+4. NUNCA omitir el bloque JSON — ES OBLIGATORIO para mostrar en el panel
+5. Los números NO llevan $ ni símbolos
+
+Formato OBLIGATORIO:
 
 \`\`\`json
 {
@@ -523,7 +532,7 @@ CONSIDERACIONES PARA ARGENTINA (2026):
 - Dolarización parcial: algunos materiales y mano de obra de alta especialización se cotizan en USD
 - Flujo de caja: anticipo 35%, certificaciones semanales, retención del 5% al final
 
-CUANDO TENGAS TODO, generá el JSON al final:
+CUANDO TENGAS TODO, generá el JSON al final. SIEMPRE con \`\`\`json y estructura { "tipo": "analisis_completo", "datos": {...} }.
 
 \`\`\`json
 {
