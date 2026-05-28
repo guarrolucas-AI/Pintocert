@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import type { ModuloAgente, MensajeChat, Presupuesto } from '@/lib/types'
 import { validatePresupuesto } from '@/lib/utils'
 import { Send, Bot, User, Loader2, Globe } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface AgentChatProps {
   modo: ModuloAgente
@@ -158,28 +159,31 @@ export default function AgentChat({
   )
 
   function detectarJSON(texto: string) {
-    // Intenta 3 formatos de bloque JSON:
-    // 1. ```json\n...JSON...\n```
-    // 2. ```json\r\n...JSON...\r\n```
-    // 3. ```json ...JSON... ``` (sin saltos de línea estrictos)
     const regex = /```json\s*([\s\S]*?)\s*```/g
     let match
+    let encontrado = false
     while ((match = regex.exec(texto)) !== null) {
       try {
         const jsonStr = match[1].trim()
         const obj = JSON.parse(jsonStr) as { tipo?: string; datos?: unknown }
         if (obj.tipo && obj.datos) {
+          encontrado = true
           onDataGenerada?.(obj.tipo, obj.datos)
-          if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-            console.log(`✓ JSON detectado: tipo=${obj.tipo}`)
-          }
+          console.log(`✓ JSON detectado: tipo=${obj.tipo}`)
+        } else {
+          // JSON válido pero sin tipo/datos — loguear para debug
+          console.warn('⚠ JSON sin tipo/datos:', Object.keys(obj).join(', '))
         }
       } catch (err) {
-        // Log para debug en development
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-          console.warn('⚠ JSON inválido detectado:', match[1].slice(0, 100), err)
-        }
+        // JSON malformado — mostrar error visible
+        const preview = match[1].slice(0, 120).replace(/\n/g, ' ')
+        console.error('❌ JSON parse error:', err, '| Preview:', preview)
+        toast.error('Error procesando datos del agente. Pedile que regenere la respuesta.')
       }
+    }
+    if (!encontrado && !texto.includes('```json')) {
+      // El agente respondió sin bloque JSON — no es error, es conversación normal
+      console.log('ℹ Sin bloque JSON en este mensaje')
     }
   }
 
