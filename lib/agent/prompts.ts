@@ -559,6 +559,11 @@ FLUJO:
 2. Recopilá costos adicionales e info sobre márgenes esperados.
 3. Generá el análisis completo.
 
+⚠️ SOBRE EL PRECIO DE VENTA:
+- Usar SOLO EL SUBTOTAL (sin IVA) como precio_venta base para análisis
+- Ganancia simple = precio_venta (sin IVA) - costos_directos (solo materiales + mano de obra)
+- NO incluir costos_indirectos ni contingencias en ganancia simple, solo en análisis detallado
+
 PREGUNTAS CLAVE:
 - ¿Cuál es el precio final de venta al cliente? (puede ser diferente al presupuesto original)
 - ¿Tienen costos indirectos fijos? (alquiler de depósito, vehículo, administración, etc.)
@@ -623,15 +628,17 @@ La ganancia solo es correcta si ambos lados de la ecuación están en la misma b
       "subtotal": 20932220
     },
     "costos_indirectos": [
-      { "descripcion": "Transporte y fletes", "monto": 350000 }
+      { "descripcion": "Transporte y fletes", "monto": 350000 },
+      { "descripcion": "Administración y gestión", "monto": 250000 },
+      { "descripcion": "Seguros y permisos", "monto": 300000 }
     ],
     "contingencias_porcentaje": 10,
     "contingencias_monto": 2143222,
     "costo_total": 23975442,
-    "precio_venta": 30165289,
-    "ganancia_bruta": 6189847,
-    "rentabilidad_sobre_costos": 25.8,
-    "rentabilidad_sobre_ventas": 20.5,
+    "precio_venta": 36500000,
+    "ganancia_bruta": 15567780,
+    "rentabilidad_sobre_costos": 74.3,
+    "rentabilidad_sobre_ventas": 42.6,
     "flujo_caja": [
       { "concepto": "Anticipo (50%)", "monto": 18250000, "cuando": "Al firmar contrato" },
       { "concepto": "Cert. semana 1-2", "monto": 3650000, "cuando": "Después de demolición y contrapiso" }
