@@ -1198,6 +1198,12 @@ function HerramientasView({ data }: { data: HerramientasData }) {
   )
 }
 
+function ensureArray(value: any): any[] {
+  if (Array.isArray(value)) return value
+  if (value === null || value === undefined) return []
+  return []
+}
+
 function AnalisisView({ data }: { data: AnalisisData }) {
   // Defensive: check if data exists
   if (!data) {
@@ -1207,6 +1213,11 @@ function AnalisisView({ data }: { data: AnalisisData }) {
       </div>
     )
   }
+
+  // Ensure critical arrays exist
+  const costosIndirectos = ensureArray(data?.costos_indirectos) as Array<{ descripcion: string; monto?: number }>
+  const flujoCaja = ensureArray(data?.flujo_caja) as Array<{ concepto: string; monto: number; cuando: string }>
+  const recomendaciones = ensureArray(data?.recomendaciones) as string[]
 
   // Defensive: si el agente no incluyó subtotal directo, calcularlo
   const subtotalDirecto =
@@ -1268,7 +1279,7 @@ function AnalisisView({ data }: { data: AnalisisData }) {
         <div className="rounded-lg border bg-white p-4">
           <h4 className="text-sm font-semibold text-slate-700 mb-3">Costos indirectos y contingencias</h4>
           <div className="space-y-2 text-sm">
-            {(data?.costos_indirectos ?? []).map((ci, i) => (
+            {costosIndirectos.map((ci, i) => (
               <div key={i} className="flex justify-between text-slate-600">
                 <span>{ci.descripcion}</span>
                 <span className="font-medium">{formatARS(ci.monto ?? 0)}</span>
@@ -1285,7 +1296,7 @@ function AnalisisView({ data }: { data: AnalisisData }) {
       </div>
 
       {/* Flujo de caja */}
-      {data.flujo_caja && data.flujo_caja.length > 0 && (
+      {flujoCaja.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-slate-700 mb-3">Flujo de caja proyectado</h4>
           <div className="rounded-lg border overflow-hidden">
@@ -1298,7 +1309,7 @@ function AnalisisView({ data }: { data: AnalisisData }) {
                 </tr>
               </thead>
               <tbody>
-                {data.flujo_caja.map((fc, i) => (
+                {flujoCaja.map((fc, i) => (
                   <tr key={i} className="border-b last:border-0">
                     <td className="px-3 py-2 font-medium text-slate-800">{fc.concepto}</td>
                     <td className="px-3 py-2 text-right font-bold text-slate-900">{formatARS(fc.monto)}</td>
@@ -1312,11 +1323,11 @@ function AnalisisView({ data }: { data: AnalisisData }) {
       )}
 
       {/* Recomendaciones */}
-      {data.recomendaciones && data.recomendaciones.length > 0 && (
+      {recomendaciones.length > 0 && (
         <div className="rounded-lg bg-blue-50 border border-blue-100 p-4">
           <h4 className="text-sm font-semibold text-blue-800 mb-2">Recomendaciones</h4>
           <ul className="space-y-1.5">
-            {data.recomendaciones.map((r, i) => (
+            {recomendaciones.map((r, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-blue-700">
                 <span className="text-blue-400 mt-0.5">·</span>
                 {r}
