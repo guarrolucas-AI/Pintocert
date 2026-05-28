@@ -1209,16 +1209,18 @@ function AnalisisView({ data }: { data: AnalisisData }) {
         <div className="rounded-lg border bg-white p-4">
           <h4 className="text-sm font-semibold text-slate-700 mb-3">Costos indirectos y contingencias</h4>
           <div className="space-y-2 text-sm">
-            {data.costos_indirectos.map((ci, i) => (
+            {(data?.costos_indirectos ?? []).map((ci, i) => (
               <div key={i} className="flex justify-between text-slate-600">
                 <span>{ci.descripcion}</span>
-                <span className="font-medium">{formatARS(ci.monto)}</span>
+                <span className="font-medium">{formatARS(ci.monto ?? 0)}</span>
               </div>
             ))}
-            <div className="flex justify-between text-slate-600">
-              <span>Contingencias ({data.contingencias_porcentaje}%)</span>
-              <span className="font-medium">{formatARS(data.contingencias_monto)}</span>
-            </div>
+            {(data?.contingencias_monto ?? 0) > 0 && (
+              <div className="flex justify-between text-slate-600">
+                <span>Contingencias ({data?.contingencias_porcentaje ?? 0}%)</span>
+                <span className="font-medium">{formatARS(data?.contingencias_monto ?? 0)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
