@@ -94,7 +94,7 @@ export interface Pago {
 // ─── Presupuestos ───────────────────────────────────────────────────────────
 
 export type EstadoPresupuesto = 'borrador' | 'pendiente' | 'aprobado' | 'rechazado'
-export type ModuloAgente = 'presupuesto' | 'materiales' | 'personal' | 'herramientas' | 'analisis'
+export type ModuloAgente = 'presupuesto' | 'materiales' | 'personal' | 'herramientas' | 'analisis' | 'plan_ejecucion'
 
 export interface ItemPresupuesto {
   descripcion: string

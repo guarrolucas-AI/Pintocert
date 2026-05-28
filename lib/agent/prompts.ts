@@ -106,6 +106,8 @@ export function getSystemPrompt(modo: ModuloAgente, contexto?: Record<string, un
       return promptHerramientas(contexto)
     case 'analisis':
       return promptAnalisis(contexto)
+    case 'plan_ejecucion':
+      return promptPlanEjecucion(contexto)
     default:
       return BASE_CONTEXT
   }
@@ -718,5 +720,87 @@ ESTRUCTURA FINAL OBLIGATORIA DE TU RESPUESTA:
 NO PUEDES ENVIÁR LA RESPUESTA SIN QUE AMBOS JSON ESTÉN PRESENTES.
 ESTO ES OBLIGATORIO. PÉRDIDA DE PUNTOS SI FALTA ALGUNO.
 ═════════════════════════════════════════════════════════════════
+`
+}
+
+// ─── MÓDULO: PLAN DE EJECUCIÓN ───────────────────────────────────────────
+
+function promptPlanEjecucion(ctx?: Record<string, unknown>) {
+  const obra = ctx?.presupuesto as Partial<Presupuesto> | undefined
+  const obraDesc = obra?.obra_descripcion ?? ''
+  const cliente = obra?.cliente ?? 'Sin especificar'
+  const precioVenta = obra?.subtotal ?? 0
+  const analisisData = ctx?.analisisData as Partial<{ duracion_semanas?: number; flujo_caja?: unknown[] }> | undefined
+  const duracionEstimada = analisisData?.duracion_semanas ?? 0
+
+  return `${BASE_CONTEXT}
+
+Tu tarea es generar o refinar el plan de ejecución (cronograma) de la obra.
+
+OBRA:
+- Cliente: ${cliente}
+- Descripción: ${obraDesc}
+- Precio de venta (sin IVA): $${precioVenta.toLocaleString('es-AR')}
+- Duración estimada: ${duracionEstimada} semanas
+
+FLUJO:
+1. Si el primer mensaje es "__INIT__", preséntate brevemente y pregunta si el cronograma propuesto les parece correcto o si necesita ajustes.
+2. Recopilá cambios en la duración, orden de fases, o distribución de certificaciones.
+3. Recalcula las semanas y montos certificables según cambios.
+4. Genera el JSON final.
+
+REGLAS CRÍTICAS:
+1. El cronograma debe tener un número de semanas coherente con la duración total.
+2. Cada semana describe una FASE de trabajo (no un día específico).
+3. Los porcentaje_avance de todas las semanas DEBEN sumar ~100% (típicamente 95-105% es aceptable).
+4. monto_certificar para cada semana = (porcentaje_avance / 100) × precio_venta_total
+5. anticipo_porcentaje = típicamente 35-50% (preguntá si no está especificado).
+6. anticipo_monto = (anticipo_porcentaje / 100) × precio_venta_total
+
+PREGUNTAS CLAVE:
+- ¿El cronograma de ${duracionEstimada} semanas es realista o necesita ajustes?
+- ¿Prefieren otros porcentajes de anticipo o formas de certificación?
+- ¿Hay condiciones especiales (trabajos nocturnos, restricciones horarias, dependencias externas)?
+
+CUANDO TENGAS TODO, GENERA EL JSON AL FINAL:
+
+\`\`\`json
+{
+  "tipo": "plan_ejecucion_completo",
+  "datos": {
+    "duracion_semanas": 6,
+    "anticipo_porcentaje": 35,
+    "anticipo_monto": 10557851,
+    "semanas": [
+      {
+        "numero": 1,
+        "descripcion": "Descripción clara de la fase (ej: Demolición y preparación)",
+        "items_incluidos": ["Item 1", "Item 2", "Item 3"],
+        "porcentaje_avance": 18,
+        "monto_certificar": 5429192
+      },
+      {
+        "numero": 2,
+        "descripcion": "Segunda fase de trabajo",
+        "items_incluidos": ["Item 1", "Item 2"],
+        "porcentaje_avance": 18,
+        "monto_certificar": 5429192
+      }
+    ]
+  }
+}
+\`\`\`
+
+REGLAS OBLIGATORIAS DEL JSON:
+1. DEBE tener "tipo": "plan_ejecucion_completo" (exactamente así)
+2. duracion_semanas = número total de semanas (entero positivo)
+3. anticipo_porcentaje = valor entre 30-60
+4. anticipo_monto = (anticipo_porcentaje / 100) × ${precioVenta}
+5. semanas[] = array con N elementos (donde N = duracion_semanas)
+6. Cada elemento de semanas DEBE tener: numero, descripcion, items_incluidos[], porcentaje_avance, monto_certificar
+7. La suma de todos los porcentaje_avance debe ser ~100 (95-105% es válido)
+8. monto_certificar de cada semana = (porcentaje_avance / 100) × ${precioVenta}
+9. TODOS los números son enteros (sin decimales)
+10. El JSON DEBE ser válido y parsearse con JSON.parse
 `
 }

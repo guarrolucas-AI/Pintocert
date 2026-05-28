@@ -109,6 +109,7 @@ const MODULO_TAB: Record<string, ModuloAgente> = {
   personal_completo: 'personal',
   herramientas_completo: 'herramientas',
   analisis_completo: 'analisis',
+  plan_ejecucion_completo: 'plan_ejecucion',
 }
 
 interface Props {
@@ -545,15 +546,16 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
         />
       )}
       {tab === 'plan_ejecucion' && (
-        presupuesto.plan_ejecucion ? (
-          <div className="space-y-6">
-            <PlanEjecucionView data={presupuesto.plan_ejecucion} />
-          </div>
-        ) : (
-          <div className="text-center py-8 text-slate-500">
-            <p>No hay plan de ejecución disponible. Generalo en el módulo de Análisis.</p>
-          </div>
-        )
+        <TabAgente
+          modo="plan_ejecucion"
+          presupuesto={presupuesto}
+          mensajesIniciales={mensajesPorModulo['plan_ejecucion']?.messages}
+          onDataGenerada={handleDataGenerada}
+          onMensajesActualizados={(m) => handleMensajesActualizados('plan_ejecucion', m)}
+          datosGenerados={presupuesto.plan_ejecucion}
+          renderDatos={(d) => <PlanEjecucionView data={d as PlanEjecucionData} />}
+          onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
+        />
       )}
     </div>
   )

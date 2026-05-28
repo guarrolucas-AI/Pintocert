@@ -15,11 +15,12 @@ const anthropic = new Anthropic({
 // El resto usa Haiku: más rápido y suficientemente capaz.
 // (Precios se buscan via /api/precios/buscar, no en agente)
 const MODEL_POR_MODO: Record<ModuloAgente, string> = {
-  presupuesto:  'claude-haiku-4-5',
-  materiales:   'claude-haiku-4-5',
-  personal:     'claude-haiku-4-5',
-  herramientas: 'claude-haiku-4-5',
-  analisis:     'claude-haiku-4-5',
+  presupuesto:     'claude-haiku-4-5',
+  materiales:      'claude-haiku-4-5',
+  personal:        'claude-haiku-4-5',
+  herramientas:    'claude-haiku-4-5',
+  analisis:        'claude-haiku-4-5',
+  plan_ejecucion:  'claude-haiku-4-5',
 }
 
 /**
