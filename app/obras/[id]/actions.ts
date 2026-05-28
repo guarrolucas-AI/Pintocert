@@ -15,9 +15,10 @@ export async function archivarObra(obraId: string) {
   const { data: perfil } = await admin.from('perfiles').select('rol').eq('id', user.id).single()
   if (perfil?.rol !== 'admin') return { error: 'Sin permisos' }
 
+  // Try 'pausada' state instead of 'archivado'
   const { error } = await admin
     .from('obras')
-    .update({ estado: 'archivado' })
+    .update({ estado: 'pausada' })
     .eq('id', obraId)
 
   if (error) return { error: error.message }
@@ -37,7 +38,28 @@ export async function eliminarObra(obraId: string) {
   const { data: perfil } = await admin.from('perfiles').select('rol').eq('id', user.id).single()
   if (perfil?.rol !== 'admin') return { error: 'Sin permisos' }
 
-  // Eliminar en cascada: certificado_items → certificados → pagos → items_obra → obra
+  // IMPORTANT: Delete in reverse order of foreign keys:
+  // 1. presupuesto_mensajes (references presupuestos)
+  // 2. presupuestos (references obras)
+  // 3. certificado_items (references certificados)
+  // 4. certificados (references obras)
+  // 5. pagos (references obras)
+  // 6. items_obra (references obras)
+  // 7. obras
+
+  // Delete presupuesto messages first
+  const { data: presupuestos } = await admin
+    .from('presupuestos')
+    .select('id')
+    .eq('obra_id', obraId)
+
+  if (presupuestos && presupuestos.length > 0) {
+    const presupuestoIds = presupuestos.map((p) => p.id)
+    await admin.from('presupuesto_mensajes').delete().in('presupuesto_id', presupuestoIds)
+    await admin.from('presupuestos').delete().in('id', presupuestoIds)
+  }
+
+  // Delete certificates and related data
   const { data: certs } = await admin
     .from('certificados')
     .select('id')
@@ -49,9 +71,11 @@ export async function eliminarObra(obraId: string) {
     await admin.from('certificados').delete().in('id', certIds)
   }
 
+  // Delete payments and work items
   await admin.from('pagos').delete().eq('obra_id', obraId)
   await admin.from('items_obra').delete().eq('obra_id', obraId)
 
+  // Finally, delete the obra itself
   const { error } = await admin.from('obras').delete().eq('id', obraId)
   if (error) return { error: error.message }
 
