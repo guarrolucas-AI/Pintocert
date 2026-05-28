@@ -30,6 +30,7 @@ interface EditingGasto {
   monto: number
   notas: string
   comprobante_numero: string
+  categoria: string
 }
 
 export function GastosTable({
@@ -44,6 +45,7 @@ export function GastosTable({
   const [editingMonto, setEditingMonto] = useState('')
   const [editingNotas, setEditingNotas] = useState('')
   const [editingComprobanteNumero, setEditingComprobanteNumero] = useState('')
+  const [editingCategoria, setEditingCategoria] = useState('')
   const [archivoComprobante, setArchivoComprobante] = useState<File | null>(null)
 
   const todasLasCategorias = [
@@ -81,10 +83,12 @@ export function GastosTable({
       monto: gasto.monto,
       notas: gasto.notas || '',
       comprobante_numero: gasto.comprobante_numero || '',
+      categoria: gasto.categoria,
     })
     setEditingMonto(gasto.monto.toString())
     setEditingNotas(gasto.notas || '')
     setEditingComprobanteNumero(gasto.comprobante_numero || '')
+    setEditingCategoria(gasto.categoria)
     setArchivoComprobante(null)
   }
 
@@ -97,6 +101,11 @@ export function GastosTable({
       return
     }
 
+    if (!editingCategoria) {
+      toast.error('La categoría es requerida')
+      return
+    }
+
     startTransition(async () => {
       const { error } = await updateGasto(
         editingGasto.id,
@@ -104,6 +113,7 @@ export function GastosTable({
           monto: montoNum,
           notas: editingNotas || undefined,
           comprobante_numero: editingComprobanteNumero || undefined,
+          categoria: editingCategoria,
         },
         archivoComprobante || undefined
       )
@@ -317,6 +327,23 @@ export function GastosTable({
                   </div>
 
                   <div>
+                    <Label className="text-xs font-medium text-slate-700">Categoría</Label>
+                    <select
+                      value={editingCategoria}
+                      onChange={(e) => setEditingCategoria(e.target.value)}
+                      className="w-full mt-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                      disabled={isPending}
+                    >
+                      <option value="">Seleccionar categoría...</option>
+                      {todasLasCategorias.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
                     <Label className="text-xs font-medium text-slate-700">
                       Comprobante (PDF o imagen)
                       {gasto.comprobante_url && (
@@ -513,6 +540,23 @@ export function GastosTable({
                       className="w-full mt-1 px-2 py-1 border border-slate-300 rounded text-sm"
                       disabled={isPending}
                     />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-medium text-slate-700">Categoría</Label>
+                    <select
+                      value={editingCategoria}
+                      onChange={(e) => setEditingCategoria(e.target.value)}
+                      className="w-full mt-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                      disabled={isPending}
+                    >
+                      <option value="">Seleccionar categoría...</option>
+                      {todasLasCategorias.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.nombre}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>

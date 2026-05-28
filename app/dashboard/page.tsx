@@ -7,6 +7,7 @@ import { KPIHeader } from '@/components/dashboard/KPIHeader'
 import { EstadoBreakdown } from '@/components/dashboard/EstadoBreakdown'
 import { ObrasAnalyticsTableClient } from '@/components/dashboard/ObrasAnalyticsTableClient'
 import { DownloadPDFButton } from '@/components/dashboard/DownloadPDFButton'
+import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { calculateDashboardKPIs } from '@/lib/dashboard-utils'
 import { Plus } from 'lucide-react'
 import type { ObraConAvance } from '@/lib/types'
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Dashboard' }]} />
+      <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }]} />
 
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -57,6 +58,9 @@ export default async function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Dashboard Navigation */}
+      <DashboardNav current="comercial" />
 
       {/* KPI Header */}
       <KPIHeader
