@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { createGasto, getCategoriasPredefinidas, getCategoriasPersonalizadasUsuario } from '@/lib/actions/gastos'
-import { Calendar, DollarSign, Package } from 'lucide-react'
+import { Calendar, DollarSign, Package, Upload, X } from 'lucide-react'
 import type { CategoriaGastoPersonalizado } from '@/lib/types'
 
 const gastoSchema = z.object({
@@ -44,6 +44,7 @@ export function GastoObraForm({ obraId, onSuccess }: GastoObraFormProps) {
   const [isPending, startTransition] = useTransition()
   const [categoriasPersonalizadas, setCategoriasPersonalizadas] = useState<CategoriaGastoPersonalizado[]>([])
   const [mostrarForm, setMostrarForm] = useState(false)
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState<File | null>(null)
 
   const {
     register,
@@ -81,6 +82,7 @@ export function GastoObraForm({ obraId, onSuccess }: GastoObraFormProps) {
         comprobante_numero: data.comprobante_numero || undefined,
         proveedor: data.proveedor || undefined,
         notas: data.notas || undefined,
+        comprobante_archivo: archivoSeleccionado || undefined,
       })
 
       if (error) {
@@ -91,6 +93,7 @@ export function GastoObraForm({ obraId, onSuccess }: GastoObraFormProps) {
       toast.success('Gasto registrado correctamente')
       reset()
       setMostrarForm(false)
+      setArchivoSeleccionado(null)
       onSuccess?.()
     })
   }
@@ -228,6 +231,52 @@ export function GastoObraForm({ obraId, onSuccess }: GastoObraFormProps) {
             className="text-sm"
             rows={2}
           />
+        </div>
+
+        {/* Comprobante */}
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="comprobante">Comprobante (PDF o imagen)</Label>
+          <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-slate-400 transition-colors">
+            <input
+              id="comprobante"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  if (file.size > 10 * 1024 * 1024) {
+                    toast.error('El archivo debe ser menor a 10 MB')
+                    return
+                  }
+                  setArchivoSeleccionado(file)
+                }
+              }}
+              disabled={isPending}
+              className="hidden"
+            />
+            {archivoSeleccionado ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-slate-700 font-medium">{archivoSeleccionado.name}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setArchivoSeleccionado(null)}
+                  disabled={isPending}
+                  className="p-1 hover:bg-slate-200 rounded"
+                >
+                  <X className="w-4 h-4 text-slate-500" />
+                </button>
+              </div>
+            ) : (
+              <label htmlFor="comprobante" className="cursor-pointer block">
+                <Upload className="w-5 h-5 text-slate-400 mx-auto mb-2" />
+                <p className="text-sm text-slate-600">Haz clic para subir o arrastra un archivo</p>
+                <p className="text-xs text-slate-500 mt-1">PDF, JPG, PNG (máx 10 MB)</p>
+              </label>
+            )}
+          </div>
         </div>
       </div>
 

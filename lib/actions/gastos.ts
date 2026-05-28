@@ -18,6 +18,7 @@ export async function createGasto(gastoData: {
   proveedor?: string
   comprobante_url?: string
   notas?: string
+  comprobante_archivo?: File
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -42,6 +43,26 @@ export async function createGasto(gastoData: {
     return { error: 'Solo se pueden registrar gastos en obras en ejecución o pausadas' }
   }
 
+  // Upload comprobante if provided
+  let comprobante_url: string | null = null
+  if (gastoData.comprobante_archivo) {
+    const timestamp = Date.now()
+    const fileExt = gastoData.comprobante_archivo.name.split('.').pop()
+    const fileName = `${user.id}/${gastoData.obra_id}/gasto_${timestamp}.${fileExt}`
+
+    const { error: uploadError, data: uploadData } = await supabase.storage
+      .from('comprobantes_gastos')
+      .upload(fileName, gastoData.comprobante_archivo, { upsert: false })
+
+    if (uploadError) return { error: `Error subiendo comprobante: ${uploadError.message}` }
+
+    const { data: publicUrl } = supabase.storage
+      .from('comprobantes_gastos')
+      .getPublicUrl(fileName)
+
+    comprobante_url = publicUrl?.publicUrl || null
+  }
+
   // Insert gasto
   const { data, error } = await supabase
     .from('gastos_obra')
@@ -53,7 +74,7 @@ export async function createGasto(gastoData: {
       monto: gastoData.monto,
       comprobante_numero: gastoData.comprobante_numero?.trim() || null,
       proveedor: gastoData.proveedor?.trim() || null,
-      comprobante_url: gastoData.comprobante_url || null,
+      comprobante_url,
       notas: gastoData.notas?.trim() || null,
       created_by: user.id,
     })
