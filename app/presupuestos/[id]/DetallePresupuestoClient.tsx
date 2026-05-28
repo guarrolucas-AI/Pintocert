@@ -39,7 +39,6 @@ import {
   Edit,
   X,
   Save,
-  DollarSign,
 } from 'lucide-react'
 
 const PresupuestoPDFDownload = dynamic(
@@ -94,7 +93,6 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
   const [editMode, setEditMode] = useState(false)
   const [editedPresupuesto, setEditedPresupuesto] = useState<Presupuesto | null>(null)
   const [isPending, startTransition] = useTransition()
-  const [searchingPrices, setSearchingPrices] = useState(false)
 
   const { label, variant, icon: EstadoIcon } = ESTADO_CONFIG[presupuesto.estado]
 
@@ -115,45 +113,6 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
     if (data) {
       setPresupuesto(data as Presupuesto)
       toast.success('Presupuesto actualizado')
-    }
-  }
-
-  async function handleBuscarPrecios() {
-    // Materiales comunes a buscar
-    const materiales = [
-      'Pintura Sinteplast interior',
-      'Pintura Sinteplast exterior',
-      'Fijador Sinteplast',
-      'Impermeabilizante Sinteplast',
-      'Masilla Recuplast',
-      'Pintura Alba Duralba',
-    ]
-
-    setSearchingPrices(true)
-    try {
-      const toastId = toast.loading('Buscando precios actualizados...')
-      const res = await fetch('/api/precios/buscar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ materiales }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        toast.error('Error: ' + (data.error || 'No se pudieron buscar precios'), { id: toastId })
-        return
-      }
-
-      toast.success(`✅ ${data.resumen}`, { id: toastId })
-      if (data.errores.length > 0) {
-        console.warn('Errores en búsqueda:', data.errores)
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      toast.error('Error: ' + msg)
-    } finally {
-      setSearchingPrices(false)
     }
   }
 
@@ -300,16 +259,6 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
               </Link>
             </Button>
           )}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleBuscarPrecios}
-            disabled={searchingPrices}
-            title="Buscar y actualizar precios en caché"
-          >
-            <DollarSign className="w-4 h-4" />
-            {searchingPrices ? 'Buscando...' : 'Actualizar precios'}
-          </Button>
           <PresupuestoPDFDownload
             presupuesto={presupuesto}
             className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 font-medium h-9"

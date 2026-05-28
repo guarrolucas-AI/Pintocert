@@ -6,17 +6,64 @@ Respondé siempre en español rioplatense, de forma concisa y profesional.
 Nunca respondas en inglés.
 `
 
-// ─── PRECIOS DE REFERENCIA (ARS, Mayo 2026 - MercadoLibre) ───────────────────
-// Precios REALES encontrados en MercadoLibre Argentina
-// Estos precios se actualizan cuando usuario hace click en "Actualizar precios"
+// ─── PRECIOS DE REFERENCIA (ARS, Mayo 2026) ───────────────────────────────────
+// Fuentes: MercadoLibre AR, Red Materiales, La Nacion, ferreterías online
+// Última actualización: 27/05/2026
+// Para actualizar algún precio: decile al agente y actualiza acá manualmente
 const PRECIOS_REFERENCIA = {
-  // PINTURA SINTEPLAST (MercadoLibre - Mayo 2026)
+  // PINTURA Y ACABADOS (MercadoLibre - Mayo 2026)
   pintura_sinteplast_interior: 28000,    // por litro (rango: $20.795-$35.418)
   pintura_sinteplast_exterior: 26000,    // por litro (rango: $18.606-$33.000)
   fijador_sinteplast: 35000,             // por litro (rango: $16.449-$68.300)
   impermeabilizante_sinteplast: 89900,   // por litro (rango: $35.700-$103.700)
   masilla_recuplast: 27500,              // por kg (rango: $10.333-$43.989)
   pintura_alba_duralba: 50000,           // por litro (rango: $35.000-$65.000)
+  pintura_exterior_latex_10L: 45000,     // balde 10L pintura exterior mate (Lusqtoff y similares)
+  pintura_anticorrosiva_10L: 45000,      // balde 10L anticorrosiva (para hierro/portones)
+  sellador_acrilico_10L: 25000,          // balde 10L sellador acrílico pisos/juntas
+
+  // CEMENTO, CAL Y MORTEROS (Red Materiales / La Nacion - Mayo 2026)
+  cemento_portland_50kg: 10000,          // bolsa 50kg (Holcim $9.800-$10.500, Avellaneda $13.900)
+  cemento_portland_25kg: 5500,           // bolsa 25kg aprox mitad del de 50
+  cal_hidratada_20kg: 5500,              // bolsa 20kg (Hidralit, rango $4.950-$7.000)
+  cal_hidratada_25kg: 7000,              // bolsa 25kg (Extra Avellaneda $6.200-$9.000)
+  cemento_cola_25kg: 12000,              // bolsa 25kg adhesivo cerámica estándar (Weber Basic $7.979, Weber Flex $21.285)
+  cemento_cola_flex_25kg: 21000,         // bolsa 25kg adhesivo flexible/porcellanato (Weber Flex)
+  mortero_adhesivo_30kg: 11500,          // bolsa 30kg (Retak $10.088 en marzo 2026)
+  pastina_juntas_25kg: 5500,             // bolsa 25kg concreto/junta cerámica (Weber Classic/Prestige)
+
+  // ÁRIDOS Y AGREGADOS (La Nacion / Red Materiales - Mayo 2026)
+  arena_gruesa_m3: 35000,               // por m³ (La Nacion: $47.200 con entrega, sin entrega ~$30.000-$35.000)
+  arena_fina_bolsa_30kg: 8000,           // bolsa 30kg (La Nacion: $6.000-$12.500)
+  piedra_partida_m3: 130000,             // por m³ en bolsón (La Nacion: desde $130.000)
+
+  // LADRILLOS Y MAMPOSTERÍA (Red Materiales - Mayo 2026)
+  ladrillo_comun_unidad: 280,            // por unidad (Red Materiales prom $268, rango $220-$328)
+  ladrillo_visto_unidad: 500,            // por unidad (Córdoba prom $543, Chacabuco prom $432)
+  ladrillo_hueco_9x18x33: 785,           // por unidad (prom $785, rango $720-$835)
+
+  // PISOS Y REVESTIMIENTOS (ferreterías online - Mayo 2026)
+  baldosa_ceramica_roja_m2: 20000,       // por m² baldosa roja exterior (baldosa 20x20 patio ~$23.000/m² en Rosario)
+  ceramico_interior_m2: 15000,           // por m² cerámica interior estándar
+
+  // HIERRO Y ACERO (MercadoLibre / redacíndar - Mayo 2026)
+  acero_estructural_kg: 2000,            // por kg (varilla 8mm→$10.500/barra 4.7kg = ~$2.128/kg)
+  cano_estructural_40x40_metro: 4700,    // por metro lineal (barra 6m = $28.110 → $4.685/m)
+  malla_electrosoldada_4mm_plancha: 104589, // plancha 4mm 2.35×6m = $104.589 (Construmole)
+  malla_electrosoldada_4mm_rollo_100m2: 200000, // rollo 2m×50m=100m² (estimado, cotizar con proveedor)
+  soldadura_electrodo_6013_kg: 4500,     // por kg electrodo 6013 (rango $3.500-$6.000)
+  varilla_hierro_8mm_barra12m: 10500,    // barra 8mm×12m (La Nacion: $9.000-$12.000)
+
+  // IMPERMEABILIZACIÓN (Ormiflex / MercadoLibre - Mayo 2026)
+  membrana_asfaltica_rollo: 95000,       // rollo membrana asfáltica geotextil profesional ~10m² (Ormiflex $93.504)
+  membrana_asfaltica_premium_rollo: 159000, // rollo premium código 50 4mm (Ormiflex $158.999)
+  membrana_polietileno_rollo_50m2: 35000, // rollo polietileno impermeable 50m² (para contrapisos)
+
+  // BOLSAS Y DESCARTE
+  bolsa_escombros_unidad: 280,           // por unidad bolsa reforzada 50kg (x10: $2.961 → $296/u)
+
+  // ACCESORIOS Y HERRERÍA
+  guias_rodillos_porton_par: 18000,      // par guías+rodillos portón corredizo (ML: $8.988-$20.748)
 
   // SERVICIOS Y MANO DE OBRA (precios de referencia)
   preparacion_superficie: 2000,          // por m²
@@ -161,26 +208,75 @@ ${items}
 
 ${notas}
 ${preciosCacheSection}
-PRECIOS ACTUALIZADOS (MercadoLibre Argentina, Mayo 2026):
-- Pintura Sinteplast interior: $28.000/litro (rango: $20.795-$35.418)
-- Pintura Sinteplast exterior: $26.000/litro (rango: $18.606-$33.000)
-- Fijador Sinteplast: $35.000/litro (rango: $16.449-$68.300)
-- Impermeabilizante Sinteplast: $89.900/litro (rango: $35.700-$103.700)
-- Masilla Recuplast: $27.500/kg (rango: $10.333-$43.989)
-- Pintura Alba Duralba: $50.000/litro (rango: $35.000-$65.000)
+MATRIZ DE PRECIOS REALES (Mayo 2026 - MercadoLibre AR, Red Materiales, La Nacion):
+USA ESTOS PRECIOS. NO BUSQUES EN INTERNET.
 
-✅ ESTOS PRECIOS SON REALES y están actualizados.
-Si el usuario hizo click en "Actualizar precios", usa esos valores en caché.
-De lo contrario, usa estos precios de referencia.
+PINTURA Y ACABADOS:
+- Pintura Sinteplast interior: $28.000/litro
+- Pintura Sinteplast exterior: $26.000/litro
+- Fijador Sinteplast: $35.000/litro
+- Impermeabilizante Sinteplast: $89.900/litro
+- Masilla Recuplast: $27.500/kg
+- Pintura Alba Duralba: $50.000/litro
+- Pintura exterior látex balde 10L: $45.000
+- Pintura anticorrosiva balde 10L: $45.000
+- Sellador acrílico balde 10L: $25.000
+
+CEMENTO, CAL Y MORTEROS:
+- Cemento Portland bolsa 50kg: $10.000 (Holcim ~$10.150, Avellaneda ~$13.900)
+- Cemento Portland bolsa 25kg: $5.500
+- Cal hidratada bolsa 20kg: $5.500
+- Cal hidratada bolsa 25kg: $7.000
+- Cemento cola estándar bolsa 25kg: $12.000 (Weber Basic ~$8.000, Weber Cerecita ~$11.400)
+- Cemento cola flex/porcellanato bolsa 25kg: $21.000
+- Mortero adhesivo bolsa 30kg: $11.500 (Retak)
+- Pastina/concreto juntas bolsa 25kg: $5.500
+
+ÁRIDOS:
+- Arena gruesa m³: $35.000 (con entrega puede llegar a $47.200)
+- Arena fina bolsa 30kg: $8.000
+- Piedra partida m³ (bolsón): $130.000
+
+LADRILLOS:
+- Ladrillo común: $280/unidad
+- Ladrillo visto: $500/unidad (Córdoba $543, Chacabuco $432)
+- Ladrillo hueco 9x18x33: $785/unidad
+
+PISOS Y REVESTIMIENTOS:
+- Baldosa cerámica roja exterior m²: $20.000
+- Cerámica interior estándar m²: $15.000
+
+HIERRO Y ACERO:
+- Acero estructural: $2.000/kg
+- Caño estructural 40x40 perfil: $4.700/metro lineal
+- Malla electrosoldada 4mm plancha 2.35×6m: $104.600
+- Malla electrosoldada 4mm rollo 2m×50m: $200.000 (cotizar con proveedor)
+- Electrodo soldadura 6013: $4.500/kg
+- Varilla hierro 8mm barra 12m: $10.500
+
+IMPERMEABILIZACIÓN:
+- Membrana asfáltica geotextil profesional (rollo ~10m²): $95.000
+- Membrana asfáltica premium 4mm (rollo ~10m²): $159.000
+- Membrana polietileno impermeable (rollo 50m²): $35.000
+
+BOLSAS Y DESCARTE:
+- Bolsa para escombros reforzada 50kg: $280/unidad
+
+ACCESORIOS:
+- Guías y rodillos portón corredizo (par): $18.000
+
+⚠️ AVISO IMPORTANTE: Si necesitás un material que NO está en esta matriz, NO inventes el precio.
+En cambio, incluí el material con precio_estimado: 0 y agregá una nota así:
+"⚠️ [nombre del material]: precio no disponible en la matriz — necesita actualización"
+El usuario actualizará la matriz con el precio real.
 
 REGLAS CRÍTICAS:
-1. USA LOS PRECIOS EN CACHÉ si están disponibles (usuario hizo click en "Actualizar precios").
-2. SI NO hay precios en caché, usa la MATRIZ DE REFERENCIA actualizada.
-3. SIEMPRE incluye precio_estimado en cada material (NO vacío, NO cero).
-4. Calcula total_estimado como suma de (cantidad × precio_estimado).
-5. No duplicar ni multiplicar cantidades — cada línea es material independiente.
-6. Si cliente pide marcas específicas o premium, ajustá el precio (hasta +30%).
-7. Los precios están ACTUALIZADOS de MercadoLibre (mayo 2026).
+1. USA SOLO los precios de la matriz — son datos reales de mayo 2026.
+2. SIEMPRE incluí precio_estimado en cada material (nunca vacío ni cero, salvo aviso de faltante).
+3. Calculá total_estimado = suma de (cantidad × precio_estimado).
+4. No duplicar ni multiplicar cantidades.
+5. Si piden marcas premium, ajustá hasta +30%.
+6. NO inventes precios para materiales que no están en la matriz.
 
 PREGUNTAS CLAVE (máx. 3):
 - ¿Prefieren marcas premium o estándar?
