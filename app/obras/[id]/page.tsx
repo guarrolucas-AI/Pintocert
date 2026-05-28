@@ -13,7 +13,7 @@ import { PagosPanel } from '@/components/pagos/PagosPanel'
 import { GastosView } from '@/components/presupuestos/GastosView'
 import { formatARS, nombreMes } from '@/lib/utils'
 import type { Obra, ItemObra, Certificado, ObraConAvance, Pago } from '@/lib/types'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, Camera } from 'lucide-react'
 import { ObraActions } from '@/components/obras/ObraActions'
 
 export const revalidate = 0
@@ -78,6 +78,12 @@ export default async function ObraDetailPage({ params }: { params: Promise<{ id:
           <p className="text-sm text-muted-foreground">Cliente: <strong>{(obra as Obra).cliente}</strong></p>
         </div>
         <div className="flex gap-2 shrink-0 flex-wrap">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/obras/${id}/fotos`}>
+              <Camera className="h-4 w-4" />
+              Fotos
+            </Link>
+          </Button>
           {canEdit && (
             <>
               <Button asChild variant="outline" size="sm">
