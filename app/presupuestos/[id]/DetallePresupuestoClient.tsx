@@ -177,11 +177,16 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
 
     toast.loading('Distribuyendo precios con IA...', { id: 'distribuir' })
 
+    // Pasar los costos confirmados (materiales + MO) para que Haiku asigne proporciones correctas
     const result = await distribuirPreciosDesdeAnalisis(
       presupuesto.id,
       presupuesto.items,
       totalSinIva,
-      presupuesto.iva_porcentaje
+      presupuesto.iva_porcentaje,
+      {
+        totalMateriales: presupuesto.lista_materiales?.total_estimado,
+        totalManoObra: presupuesto.plan_personal?.total_mano_obra,
+      }
     )
 
     toast.dismiss('distribuir')
