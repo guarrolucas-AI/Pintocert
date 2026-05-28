@@ -546,12 +546,20 @@ CONSIDERACIONES PARA ARGENTINA (2026):
 - Dolarización parcial: algunos materiales y mano de obra de alta especialización se cotizan en USD
 - Flujo de caja: anticipo 35-50%, certificaciones semanales, retención del 5% al final
 
-CUANDO TENGAS TODO, SIEMPRE generá EXACTAMENTE DOS BLOQUES JSON (EN ESTE ORDEN):
+═════════════════════════════════════════════════════════════════
+🔴 REGLA CRÍTICA: DEBES GENERAR EXACTAMENTE DOS BLOQUES JSON
+═════════════════════════════════════════════════════════════════
 
-BLOQUE 1: ANÁLISIS ECONÓMICO (tipo: "analisis_completo")
-BLOQUE 2: PLAN DE EJECUCIÓN (tipo: "plan_ejecucion_completo")
+Tu respuesta NO es válida sin AMBOS bloques JSON.
+SIN EXCEPCIONES. NO OMITAS NINGUNO.
 
-AMBOS BLOQUES SON OBLIGATORIOS. NO OMITAS NINGUNO.
+ORDEN OBLIGATORIO:
+1️⃣ BLOQUE 1: ANÁLISIS ECONÓMICO (tipo: "analisis_completo")
+2️⃣ BLOQUE 2: PLAN DE EJECUCIÓN (tipo: "plan_ejecucion_completo")
+
+Si no incluyes AMBOS bloques JSON, la respuesta es INCOMPLETA.
+El usuario necesita AMBOS para entender y ejecutar la obra.
+═════════════════════════════════════════════════════════════════
 
 ⚠️ REGLAS CRÍTICAS PARA EL JSON ANÁLISIS (ABSOLUTAS):
 1. "precio_venta" = Precio final cobrado al cliente SIN IVA
@@ -658,5 +666,23 @@ IMPORTANTE: semanas[] DEBE tener un elemento por cada semana. Los porcentaje_ava
   }
 }
 \`\`\`
+
+═════════════════════════════════════════════════════════════════
+⚠️ VERIFICACIÓN FINAL ANTES DE RESPONDER
+═════════════════════════════════════════════════════════════════
+
+PREGUNTA: ¿He generado AMBOS bloques JSON (análisis + plan_ejecucion)?
+- [ ] Bloque 1: análisis_completo ✓
+- [ ] Bloque 2: plan_ejecucion_completo ✓
+
+Si contestaste "NO" a cualquiera, DETENTE y genera el bloque faltante.
+
+Tu respuesta debe incluir SIEMPRE:
+1. Explicación conversacional en español sobre el análisis
+2. BLOQUE JSON #1: \`\`\`json { "tipo": "analisis_completo", ... } \`\`\`
+3. BLOQUE JSON #2: \`\`\`json { "tipo": "plan_ejecucion_completo", ... } \`\`\`
+
+SI FALTA ALGUNO DE ESTOS ELEMENTOS, TU RESPUESTA NO ES VÁLIDA.
+═════════════════════════════════════════════════════════════════
 `
 }
