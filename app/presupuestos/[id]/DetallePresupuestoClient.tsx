@@ -156,13 +156,24 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
 
   async function handleDistribuirPrecios(analisisDatos: unknown) {
     const data = analisisDatos as AnalisisData
-    if (!data?.precio_venta || data.precio_venta <= 0) {
-      toast.error('El análisis no tiene precio de venta válido')
+
+    // precio_venta puede venir en 0 si el agente no lo completó bien.
+    // Fallback 1: costo_total + ganancia_bruta (siempre presentes)
+    // Fallback 2: presupuesto.total (lo que el cliente firmó)
+    let precioVenta = data?.precio_venta ?? 0
+    if (precioVenta <= 0 && data?.costo_total > 0) {
+      precioVenta = (data.costo_total ?? 0) + (data.ganancia_bruta ?? 0)
+    }
+    if (precioVenta <= 0) {
+      precioVenta = presupuesto.total
+    }
+    if (precioVenta <= 0) {
+      toast.error('No se pudo determinar el precio de venta del análisis')
       return
     }
 
-    // precio_venta ya incluye IVA → calculamos subtotal sin IVA
-    const totalSinIva = Math.round(data.precio_venta / (1 + presupuesto.iva_porcentaje / 100))
+    // precio_venta incluye IVA → calculamos subtotal sin IVA
+    const totalSinIva = Math.round(precioVenta / (1 + presupuesto.iva_porcentaje / 100))
 
     toast.loading('Distribuyendo precios con IA...', { id: 'distribuir' })
 
@@ -1010,8 +1021,22 @@ function HerramientasView({ data }: { data: HerramientasData }) {
 }
 
 function AnalisisView({ data }: { data: AnalisisData }) {
-  // Default values if data is incomplete
-  const rentabilidad = data?.rentabilidad_sobre_ventas ?? 0
+  // Defensive: si el agente no incluyó subtotal directo, calcularlo
+  const subtotalDirecto =
+    typeof data?.costos_directos?.subtotal === 'number' && !isNaN(data.costos_directos.subtotal)
+      ? data.costos_directos.subtotal
+      : (data?.costos_directos?.materiales ?? 0) + (data?.costos_directos?.mano_obra ?? 0)
+
+  // Si precio_venta viene en 0, reconstruirlo de costo_total + ganancia_bruta
+  const precioVentaReal =
+    (data?.precio_venta ?? 0) > 0
+      ? data.precio_venta
+      : (data?.costo_total ?? 0) + (data?.ganancia_bruta ?? 0)
+
+  const rentabilidad =
+    precioVentaReal > 0
+      ? ((data?.ganancia_bruta ?? 0) / precioVentaReal) * 100
+      : (data?.rentabilidad_sobre_ventas ?? 0)
   const rentabilidadColor =
     rentabilidad >= 25
       ? 'text-green-700'
@@ -1023,7 +1048,7 @@ function AnalisisView({ data }: { data: AnalisisData }) {
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard label="Precio de venta" value={formatARS(data?.precio_venta ?? 0)} />
+        <KpiCard label="Precio de venta" value={formatARS(precioVentaReal)} />
         <KpiCard label="Costo total" value={formatARS(data?.costo_total ?? 0)} />
         <KpiCard label="Ganancia bruta" value={formatARS(data?.ganancia_bruta ?? 0)} />
         <KpiCard
@@ -1040,15 +1065,15 @@ function AnalisisView({ data }: { data: AnalisisData }) {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-slate-600">
               <span>Materiales</span>
-              <span className="font-medium">{formatARS(data.costos_directos.materiales)}</span>
+              <span className="font-medium">{formatARS(data?.costos_directos?.materiales ?? 0)}</span>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>Mano de obra</span>
-              <span className="font-medium">{formatARS(data.costos_directos.mano_obra)}</span>
+              <span className="font-medium">{formatARS(data?.costos_directos?.mano_obra ?? 0)}</span>
             </div>
             <div className="flex justify-between pt-2 border-t font-semibold text-slate-800">
               <span>Subtotal directo</span>
-              <span>{formatARS(data.costos_directos.subtotal)}</span>
+              <span>{formatARS(subtotalDirecto)}</span>
             </div>
           </div>
         </div>

@@ -521,41 +521,48 @@ FLUJO:
 3. Generá el análisis completo.
 
 PREGUNTAS CLAVE:
+- ¿Cuál es el precio final de venta al cliente? (puede ser diferente al presupuesto original)
 - ¿Tienen costos indirectos fijos? (alquiler de depósito, vehículo, administración, etc.)
 - ¿Qué margen de ganancia esperan? (porcentaje sobre costo)
 - ¿Trabajaron obras similares? ¿Cuál fue la rentabilidad real?
-- ¿Cómo manejan la inflación durante la obra? ¿Ajustan precios?
 
 CONSIDERACIONES PARA ARGENTINA (2026):
 - Inflación mensual: considerar actualización de precios de materiales
 - Contingencias recomendadas: 15-25% sobre costo total (en construcción suelen aparecer imprevistos)
 - Dolarización parcial: algunos materiales y mano de obra de alta especialización se cotizan en USD
-- Flujo de caja: anticipo 35%, certificaciones semanales, retención del 5% al final
+- Flujo de caja: anticipo 35-50%, certificaciones semanales, retención del 5% al final
 
 CUANDO TENGAS TODO, generá el JSON al final. SIEMPRE con \`\`\`json y estructura { "tipo": "analisis_completo", "datos": {...} }.
+
+⚠️ REGLAS CRÍTICAS PARA EL JSON:
+1. "precio_venta" = precio final cobrado al cliente SIN IVA (NUNCA 0 — si el cliente paga $36.5M con IVA al 21%, precio_venta = 30.165.289)
+2. "costos_directos.subtotal" = materiales + mano_obra (calculá la suma, NUNCA omitir)
+3. "ganancia_bruta" = precio_venta - costo_total
+4. "rentabilidad_sobre_ventas" = (ganancia_bruta / precio_venta) × 100
+5. Todos los campos numéricos DEBEN tener un número real, NUNCA 0 si no corresponde
 
 \`\`\`json
 {
   "tipo": "analisis_completo",
   "datos": {
     "costos_directos": {
-      "materiales": 0,
-      "mano_obra": 0,
-      "subtotal": 0
+      "materiales": 16632220,
+      "mano_obra": 4300000,
+      "subtotal": 20932220
     },
     "costos_indirectos": [
-      { "descripcion": "Alquiler de equipos", "monto": 0 }
+      { "descripcion": "Transporte y fletes", "monto": 350000 }
     ],
-    "contingencias_porcentaje": 20,
-    "contingencias_monto": 0,
-    "costo_total": 0,
-    "precio_venta": 0,
-    "ganancia_bruta": 0,
-    "rentabilidad_sobre_costos": 0,
-    "rentabilidad_sobre_ventas": 0,
+    "contingencias_porcentaje": 10,
+    "contingencias_monto": 2143222,
+    "costo_total": 23975442,
+    "precio_venta": 30165289,
+    "ganancia_bruta": 6189847,
+    "rentabilidad_sobre_costos": 25.8,
+    "rentabilidad_sobre_ventas": 20.5,
     "flujo_caja": [
-      { "concepto": "Anticipo (35%)", "monto": 0, "cuando": "Al firmar contrato" },
-      { "concepto": "Cert. semana 1", "monto": 0, "cuando": "Semana 1" }
+      { "concepto": "Anticipo (50%)", "monto": 18250000, "cuando": "Al firmar contrato" },
+      { "concepto": "Cert. semana 1-2", "monto": 3650000, "cuando": "Después de demolición y contrapiso" }
     ],
     "notas": "...",
     "recomendaciones": ["..."]
