@@ -52,7 +52,7 @@ export function UsuarioRow({ perfil, currentUserId }: { perfil: Perfil; currentU
           <div className="flex gap-2 items-center">
             <select
               value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
+              onChange={(e) => setSelectedRole(e.target.value as "admin" | "capataz" | "operario")}
               className="text-sm border border-slate-200 rounded px-2 py-1 bg-white"
             >
               {ROLES_DISPONIBLES.map((r) => (
