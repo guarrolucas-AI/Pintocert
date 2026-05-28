@@ -18,23 +18,25 @@ export function FlujoCajaChartsClient({ flujoCaja, obras }: FlujoCajaChartsClien
     : flujoCaja
 
   // Group by obra and get latest data
-  const obraStats = obras.map((obra) => {
-    const obraFlujoCaja = flujoCaja.filter((f) => f.obra_id === obra.obra_id)
-    if (obraFlujoCaja.length === 0) return null
+  const obraStats = obras
+    .map((obra) => {
+      const obraFlujoCaja = flujoCaja.filter((f) => f.obra_id === obra.obra_id)
+      if (obraFlujoCaja.length === 0) return null
 
-    const totalIngresos = obraFlujoCaja.reduce((sum, f) => sum + f.ingresos_total, 0)
-    const totalEgresos = obraFlujoCaja.reduce((sum, f) => sum + f.egresos_total, 0)
-    const saldoFinal = obraFlujoCaja[0]?.saldo_acumulado || 0
+      const totalIngresos = obraFlujoCaja.reduce((sum, f) => sum + f.ingresos_total, 0)
+      const totalEgresos = obraFlujoCaja.reduce((sum, f) => sum + f.egresos_total, 0)
+      const saldoFinal = obraFlujoCaja[0]?.saldo_acumulado || 0
 
-    return {
-      obra_id: obra.obra_id,
-      nombre: obra.nombre,
-      totalIngresos,
-      totalEgresos,
-      saldoFinal,
-      mesesRegistrados: obraFlujoCaja.length,
-    }
-  }).filter(Boolean)
+      return {
+        obra_id: obra.obra_id,
+        nombre: obra.nombre,
+        totalIngresos,
+        totalEgresos,
+        saldoFinal,
+        mesesRegistrados: obraFlujoCaja.length,
+      }
+    })
+    .filter((stat): stat is NonNullable<typeof stat> => stat !== null)
 
   const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
