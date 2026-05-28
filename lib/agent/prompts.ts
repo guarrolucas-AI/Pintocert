@@ -539,30 +539,19 @@ Tu tarea es generar un análisis económico COMPLETO + cronograma de ejecución 
 ⚠️ OBLIGATORIO: Generarás DOS bloques JSON separados (ambos son requeridos).
 No omitas ninguno. El usuario necesita AMBOS para entender la obra.
 
-DATOS DEL PRESUPUESTO CONFIRMADO:
-- Cliente: ${cliente}
-- Obra: ${obra_desc}
-- **Precio de venta al cliente (CON IVA 21%): $${total.toLocaleString('es-AR')}**
-- **Precio de venta SIN IVA (para análisis): $${subtotal.toLocaleString('es-AR')}**
-- IVA 21%: $${monto_iva.toLocaleString('es-AR')}
+⚠️ VALORES EXACTOS - NO MODIFICAR:
+- PRECIO DE VENTA: **${subtotal.toLocaleString('es-AR')}** (este es el valor a usar, exactamente así)
+- COSTO MATERIALES: $${materiales.toLocaleString('es-AR')}
+- COSTO MANO DE OBRA: $${manoObra.toLocaleString('es-AR')}
+- COSTO DIRECTO TOTAL: $${(materiales + manoObra).toLocaleString('es-AR')}
 
-COSTOS CONFIRMADOS (TODOS SIN IVA - para que el cálculo de ganancia sea correcto):
-- Costo materiales (SIN IVA): $${materiales.toLocaleString('es-AR')}
-- Costo mano de obra (SIN IVA): $${manoObra.toLocaleString('es-AR')}
-- Costo directo TOTAL (SIN IVA): $${(materiales + manoObra).toLocaleString('es-AR')}
-
-⚠️ IMPORTANTE: Los precios de venta y costos DEBEN estar en la misma base (SIN IVA)
-para que la ganancia bruta sea correcta: ganancia = precio_venta - costos
+REGLA SIMPLE:
+ganancia_bruta = ${subtotal.toLocaleString('es-AR')} - ${(materiales + manoObra).toLocaleString('es-AR')} = ${(subtotal - (materiales + manoObra)).toLocaleString('es-AR')}
 
 FLUJO:
 1. Si el primer mensaje es "__INIT__", preséntate y empezá con preguntas.
 2. Recopilá costos adicionales e info sobre márgenes esperados.
-3. Generá el análisis completo.
-
-⚠️ SOBRE EL PRECIO DE VENTA:
-- Usar SOLO EL SUBTOTAL (sin IVA) como precio_venta base para análisis
-- Ganancia simple = precio_venta (sin IVA) - costos_directos (solo materiales + mano de obra)
-- NO incluir costos_indirectos ni contingencias en ganancia simple, solo en análisis detallado
+3. Generá el análisis completo CON LOS VALORES EXACTOS DE ARRIBA.
 
 PREGUNTAS CLAVE:
 - ¿Cuál es el precio final de venta al cliente? (puede ser diferente al presupuesto original)
@@ -593,30 +582,20 @@ El usuario necesita AMBOS para entender y ejecutar la obra.
 
 ⚠️ REGLAS CRÍTICAS PARA EL JSON ANÁLISIS (ABSOLUTAS):
 
-🚨 REGLA DE ORO: TODOS LOS VALORES (precio_venta y costos) SIN IVA 🚨
-La ganancia solo es correcta si ambos lados de la ecuación están en la misma base.
+🚨 REGLA ABSOLUTA - LEE ESTO:
 
-1. "precio_venta" = Precio final cobrado al cliente SIN IVA
-   - NUNCA CERO — USAR EL SUBTOTAL CONFIRMADO ARRIBA: $${subtotal.toLocaleString('es-AR')}
-   - Ej: si presupuesto total=$36.5M con IVA 21%, entonces precio_venta = subtotal sin IVA
+"precio_venta" DEBE SER **EXACTAMENTE: ${subtotal.toLocaleString('es-AR')}**
+- NO cambiar, NO recalcular, USAR ESTE NÚMERO TAL CUAL
+- Si tu JSON tiene otro precio_venta, ESTÁ INCORRECTO
 
-2. "costos_directos" (TODOS SIN IVA para consistencia):
-   - "materiales" (SIN IVA): $${materiales}
-   - "mano_obra" (SIN IVA): $${manoObra}
-   - "subtotal": SUMA EXACTA de materiales + mano_obra = $${(materiales + manoObra).toLocaleString('es-AR')} (SIN IVA)
+costos_directos:
+- materiales: ${materiales}
+- mano_obra: ${manoObra}
+- subtotal: ${(materiales + manoObra).toLocaleString('es-AR')}
 
-3. "costos_indirectos": cualquier otro costo operativo, TAMBIÉN SIN IVA
-   - Ejemplos: transporte, alquiler, administración, seguros
-   - Estos NO se restan del IVA, ya que están en la misma base que precio_venta
+ganancia_bruta = ${subtotal.toLocaleString('es-AR')} - costo_total
 
-4. "costo_total": costos_directos.subtotal + costos_indirectos + contingencias (NUNCA CERO)
-
-5. "ganancia_bruta": precio_venta - costo_total = $${subtotal.toLocaleString('es-AR')} - costos (SIEMPRE positivo para obras rentables)
-   - CORRECTA solo si ambos están SIN IVA
-
-6. "rentabilidad_sobre_ventas": (ganancia_bruta / precio_venta) × 100 (SIEMPRE entre 0-100%)
-
-7. TODOS los números DEBEN ser valores reales > 0. NUNCA DEJES CAMPOS EN 0 O NULL.
+TODOS los números > 0. NUNCA EN 0 O NULL.
 
 \`\`\`json
 {
