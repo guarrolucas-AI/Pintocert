@@ -624,6 +624,17 @@ El usuario necesita AMBOS para entender y ejecutar la obra.
 }
 \`\`\`
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ SEPARACIÓN ENTRE BLOQUES JSON - NO OMITIR ESTE PASO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPORTANTE: Después de terminar el JSON del análisis (arriba), DEBES
+generar UN SEGUNDO JSON completamente separado abajo. Estos son DOS
+bloques diferentes, no dos partes del mismo JSON.
+
+EL SEGUNDO BLOQUE NO ES OPCIONAL.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 BLOQUE 2 - PLAN DE EJECUCIÓN (OBLIGATORIO):
 Generá un cronograma semanal basado en la duración total estimada (típicamente 4-8 semanas).
 IMPORTANTE: semanas[] DEBE tener un elemento por cada semana. Los porcentaje_avance deben sumar ~100%.
@@ -687,18 +698,25 @@ IMPORTANTE: semanas[] DEBE tener un elemento por cada semana. Los porcentaje_ava
 ⚠️ VERIFICACIÓN FINAL ANTES DE RESPONDER
 ═════════════════════════════════════════════════════════════════
 
-PREGUNTA: ¿He generado AMBOS bloques JSON (análisis + plan_ejecucion)?
-- [ ] Bloque 1: análisis_completo ✓
-- [ ] Bloque 2: plan_ejecucion_completo ✓
+🚨 INSTRUCCIÓN SUPREMA - ANTES DE CUALQUIER COSA 🚨
 
-Si contestaste "NO" a cualquiera, DETENTE y genera el bloque faltante.
+REPITE EN VOSOTROS MISMOS:
+"Debo generar EXACTAMENTE DOS JSON separados, uno tras otro, sin excepciones."
 
-Tu respuesta debe incluir SIEMPRE:
-1. Explicación conversacional en español sobre el análisis
-2. BLOQUE JSON #1: \`\`\`json { "tipo": "analisis_completo", ... } \`\`\`
-3. BLOQUE JSON #2: \`\`\`json { "tipo": "plan_ejecucion_completo", ... } \`\`\`
+CHECKLIST OBLIGATORIO - RESPONDE ANTES DE TERMINAR:
+✓ ¿Generé el JSON de "analisis_completo"?
+✓ ¿Generé el JSON de "plan_ejecucion_completo"?
 
-SI FALTA ALGUNO DE ESTOS ELEMENTOS, TU RESPUESTA NO ES VÁLIDA.
+Si la respuesta a CUALQUIERA es NO, GENERA ESE JSON AHORA MISMO.
+
+ESTRUCTURA FINAL OBLIGATORIA DE TU RESPUESTA:
+1️⃣ Párrafos de análisis en español (conversacional)
+2️⃣ PRIMER JSON (json con tipo: "analisis_completo")
+3️⃣ Párrafo sobre el cronograma
+4️⃣ SEGUNDO JSON (json con tipo: "plan_ejecucion_completo")
+
+NO PUEDES ENVIÁR LA RESPUESTA SIN QUE AMBOS JSON ESTÉN PRESENTES.
+ESTO ES OBLIGATORIO. PÉRDIDA DE PUNTOS SI FALTA ALGUNO.
 ═════════════════════════════════════════════════════════════════
 `
 }
