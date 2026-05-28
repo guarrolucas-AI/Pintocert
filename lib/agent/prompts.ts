@@ -508,94 +508,31 @@ Formato OBLIGATORIO:
 
 function promptAnalisis(ctx?: Record<string, unknown>) {
   const obra = ctx?.presupuesto as Partial<Presupuesto> | undefined
-  const total = obra?.total ?? 0
   const subtotal = obra?.subtotal ?? 0
-  const monto_iva = obra?.monto_iva ?? 0
   const materiales = (obra?.lista_materiales as { total_estimado?: number })?.total_estimado ?? 0
   const manoObra = (obra?.plan_personal as { total_mano_obra?: number })?.total_mano_obra ?? 0
-  const cliente = obra?.cliente ?? 'Sin especificar'
-  const obra_desc = obra?.obra_descripcion ?? 'Sin descripción'
+  const costoDirectoTotal = materiales + manoObra
+  const ganancia = subtotal - costoDirectoTotal
 
-  return `${BASE_CONTEXT}
+  return `Tu tarea: Generar análisis económico + cronograma de obra.
 
-╔═══════════════════════════════════════════════════════════════════╗
-║ 🚨 INSTRUCCIÓN CRÍTICA - LEE ESTO PRIMERO ANTES QUE NADA 🚨      ║
-╠═══════════════════════════════════════════════════════════════════╣
-║ Tu tarea es generar EXACTAMENTE DOS bloques JSON.                 ║
-║ NO ES OPCIONAL. NO PUEDES OMITIR NINGUNO.                         ║
-║                                                                     ║
-║ BLOQUE 1: analisis_completo (análisis económico)                  ║
-║ BLOQUE 2: plan_ejecucion_completo (cronograma semanal)            ║
-║                                                                     ║
-║ Si tu respuesta no incluye AMBOS bloques JSON con los dos tipos,  ║
-║ la respuesta FALLARÁ y el usuario NO podrá usar tus datos.        ║
-║                                                                     ║
-║ REPITE: Debo generar DOS JSON. Uno tras otro. Ambos son           ║
-║ OBLIGATORIOS o mi respuesta no es válida.                          ║
-╚═══════════════════════════════════════════════════════════════════╝
-
-Tu tarea es generar un análisis económico COMPLETO + cronograma de ejecución (plan de obra).
-
-⚠️ OBLIGATORIO: Generarás DOS bloques JSON separados (ambos son requeridos).
-No omitas ninguno. El usuario necesita AMBOS para entender la obra.
-
-⚠️ VALORES EXACTOS - NO MODIFICAR:
-- PRECIO DE VENTA: **${subtotal.toLocaleString('es-AR')}** (este es el valor a usar, exactamente así)
-- COSTO MATERIALES: $${materiales.toLocaleString('es-AR')}
-- COSTO MANO DE OBRA: $${manoObra.toLocaleString('es-AR')}
-- COSTO DIRECTO TOTAL: $${(materiales + manoObra).toLocaleString('es-AR')}
-
-REGLA SIMPLE:
-ganancia_bruta = ${subtotal.toLocaleString('es-AR')} - ${(materiales + manoObra).toLocaleString('es-AR')} = ${(subtotal - (materiales + manoObra)).toLocaleString('es-AR')}
+DATOS FIJOS (NO CAMBIAR):
+- Precio de venta: $${subtotal.toLocaleString('es-AR')}
+- Costo materiales: $${materiales.toLocaleString('es-AR')}
+- Costo mano de obra: $${manoObra.toLocaleString('es-AR')}
+- Costo total: $${costoDirectoTotal.toLocaleString('es-AR')}
+- Ganancia bruta: $${ganancia.toLocaleString('es-AR')}
 
 FLUJO:
-1. Si el primer mensaje es "__INIT__", preséntate y empezá con preguntas.
-2. Recopilá costos adicionales e info sobre márgenes esperados.
-3. Generá el análisis completo CON LOS VALORES EXACTOS DE ARRIBA.
+1. Si ves "__INIT__", preséntate y haz preguntas sobre costos indirectos y contingencias.
+2. Recopila info del usuario (márgenes esperados, riesgos, etc).
+3. Luego genera DOS bloques JSON (obligatorio).
 
-PREGUNTAS CLAVE:
-- ¿Cuál es el precio final de venta al cliente? (puede ser diferente al presupuesto original)
-- ¿Tienen costos indirectos fijos? (alquiler de depósito, vehículo, administración, etc.)
-- ¿Qué margen de ganancia esperan? (porcentaje sobre costo)
-- ¿Trabajaron obras similares? ¿Cuál fue la rentabilidad real?
+⚠️ CRÍTICO: Debes generar EXACTAMENTE dos bloques JSON:
+1️⃣ BLOQUE 1 (análisis_completo) - datos económicos
+2️⃣ BLOQUE 2 (plan_ejecucion_completo) - cronograma semanal
 
-CONSIDERACIONES PARA ARGENTINA (2026):
-- Inflación mensual: considerar actualización de precios de materiales
-- Contingencias recomendadas: 15-25% sobre costo total (en construcción suelen aparecer imprevistos)
-- Dolarización parcial: algunos materiales y mano de obra de alta especialización se cotizan en USD
-- Flujo de caja: anticipo 35-50%, certificaciones semanales, retención del 5% al final
-
-═════════════════════════════════════════════════════════════════
-🔴 REGLA CRÍTICA: DEBES GENERAR EXACTAMENTE DOS BLOQUES JSON
-═════════════════════════════════════════════════════════════════
-
-Tu respuesta NO es válida sin AMBOS bloques JSON.
-SIN EXCEPCIONES. NO OMITAS NINGUNO.
-
-ORDEN OBLIGATORIO:
-1️⃣ BLOQUE 1: ANÁLISIS ECONÓMICO (tipo: "analisis_completo")
-2️⃣ BLOQUE 2: PLAN DE EJECUCIÓN (tipo: "plan_ejecucion_completo")
-
-Si no incluyes AMBOS bloques JSON, la respuesta es INCOMPLETA.
-El usuario necesita AMBOS para entender y ejecutar la obra.
-═════════════════════════════════════════════════════════════════
-
-⚠️ REGLAS CRÍTICAS PARA EL JSON ANÁLISIS (ABSOLUTAS):
-
-🚨 REGLA ABSOLUTA - LEE ESTO:
-
-"precio_venta" DEBE SER **EXACTAMENTE: ${subtotal.toLocaleString('es-AR')}**
-- NO cambiar, NO recalcular, USAR ESTE NÚMERO TAL CUAL
-- Si tu JSON tiene otro precio_venta, ESTÁ INCORRECTO
-
-costos_directos:
-- materiales: ${materiales}
-- mano_obra: ${manoObra}
-- subtotal: ${(materiales + manoObra).toLocaleString('es-AR')}
-
-ganancia_bruta = ${subtotal.toLocaleString('es-AR')} - costo_total
-
-TODOS los números > 0. NUNCA EN 0 O NULL.
+Sin ambos bloques = FALLO. Genera SIEMPRE los dos.
 
 \`\`\`json
 {
@@ -626,7 +563,7 @@ TODOS los números > 0. NUNCA EN 0 O NULL.
     "recomendaciones": ["..."]
   }
 }
-\`\`\`
+\`\`\`\`
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠️ SEPARACIÓN ENTRE BLOQUES JSON - NO OMITIR ESTE PASO
@@ -696,7 +633,7 @@ IMPORTANTE: semanas[] DEBE tener un elemento por cada semana. Los porcentaje_ava
     ]
   }
 }
-\`\`\`
+\`\`\`\`
 
 ═════════════════════════════════════════════════════════════════
 ⚠️ VERIFICACIÓN FINAL ANTES DE RESPONDER
