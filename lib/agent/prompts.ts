@@ -186,14 +186,13 @@ PRECIOS DE REFERENCIA (solo como guía — BUSCA PRECIOS ACTUALES EN WEB):
 DEBES USAR WEB_SEARCH para encontrar precios ACTUALES Y REALES en el mercado argentino.
 
 REGLAS CRÍTICAS:
-1. USA WEB_SEARCH para buscar precios ACTUALES en MercadoLibre y ferreterías online.
-2. BUSCA por material específico (ej: "Pintura Sinteplast interior MercadoLibre ARS 2026").
-3. SI EL USUARIO HA BUSCADO PRECIOS RECIENTEMENTE (botón "Actualizar precios"), usa esos valores en caché como base — son más actuales.
-4. SIEMPRE incluye precio_estimado en cada material (NO vacío, NO cero).
-5. Calcula total_estimado como suma de (cantidad × precio_estimado).
-6. No duplicar ni multiplicar cantidades — cada línea es material independiente.
-7. Si cliente pide marcas específicas o premium, ajustá el precio (hasta +30%).
-8. Los precios DEBEN ser realistas (no el 10% del valor real).
+1. SI EL USUARIO HA BUSCADO PRECIOS (botón "Actualizar precios"), usa esos valores en caché — fueron buscados en web y son ACTUALES.
+2. SI NO hay precios en caché, usa la MATRIZ DE REFERENCIA como base.
+3. SIEMPRE incluye precio_estimado en cada material (NO vacío, NO cero).
+4. Calcula total_estimado como suma de (cantidad × precio_estimado).
+5. No duplicar ni multiplicar cantidades — cada línea es material independiente.
+6. Si cliente pide marcas específicas o premium, ajustá el precio (hasta +30%).
+7. Los precios DEBEN ser realistas y basados en datos actualizados.
 
 PREGUNTAS CLAVE (máx. 3):
 - ¿Prefieren marcas premium o estándar?

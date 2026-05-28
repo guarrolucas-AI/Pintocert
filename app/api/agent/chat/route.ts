@@ -11,12 +11,12 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
 
-// Análisis usa Opus con thinking para razonamiento profundo.
-// Materiales usa Sonnet (soporta web_search).
+// Análisis usa Sonnet con thinking para razonamiento profundo.
 // El resto usa Haiku: más rápido y suficientemente capaz.
+// (Precios se buscan via /api/precios/buscar, no en agente)
 const MODEL_POR_MODO: Record<ModuloAgente, string> = {
   presupuesto:  'claude-haiku-4-5',
-  materiales:   'claude-sonnet-4-6',  // Sonnet soporta web_search para búsqueda de precios
+  materiales:   'claude-haiku-4-5',
   personal:     'claude-haiku-4-5',
   herramientas: 'claude-haiku-4-5',
   analisis:     'claude-sonnet-4-6',
@@ -153,17 +153,15 @@ export async function POST(req: NextRequest) {
 
       for (let intento = 0; intento <= MAX_REINTENTOS; intento++) {
         try {
-          // Web search HABILITADO para materiales (búsqueda de precios reales)
-          // Deshabilitado para otros módulos para reducir costos
-          const toolsConfig = modo === 'materiales' ? [{ type: 'web_search' as const }] : undefined
-
+          // Web search deshabilitado en agente
+          // Los precios se buscan via /api/precios/buscar (que usa web_search)
+          // El agente usa precios en caché (más rápido y económico)
           const msgStream = anthropic.messages.stream({
             model,
             max_tokens: usaThinking ? 8000 : 4096,
             ...(usaThinking ? { thinking: { type: 'adaptive' } } : {}),
             system: systemMessages,
             messages: buildMessages(messages),
-            ...(toolsConfig ? { tools: toolsConfig } : {}),
           })
 
           for await (const event of msgStream) {
