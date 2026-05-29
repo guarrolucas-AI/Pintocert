@@ -508,77 +508,66 @@ Formato OBLIGATORIO:
 
 function promptAnalisis(ctx?: Record<string, unknown>) {
   const obra = ctx?.presupuesto as Partial<Presupuesto> | undefined
-  const subtotal = obra?.subtotal ?? 0
-  const materiales = (obra?.lista_materiales as { total_estimado?: number })?.total_estimado ?? 0
-  const manoObra = (obra?.plan_personal as { total_mano_obra?: number })?.total_mano_obra ?? 0
-  const costoDirectoTotal = materiales + manoObra
-  const ganancia = subtotal - costoDirectoTotal
+  const precioVenta = obra?.subtotal ?? 0
+  const costMateriales = (obra?.lista_materiales as { total_estimado?: number })?.total_estimado ?? 0
+  const costManoObra = (obra?.plan_personal as { total_mano_obra?: number })?.total_mano_obra ?? 0
+  const costoDirectoTotal = costMateriales + costManoObra
+  const gananciaDirecta = precioVenta - costoDirectoTotal
 
-  return `Tu tarea: Generar análisis económico + cronograma de obra.
+  return `${BASE_CONTEXT}
 
-DATOS FIJOS (NO CAMBIAR):
-- Precio de venta: $${subtotal.toLocaleString('es-AR')}
-- Costo materiales: $${materiales.toLocaleString('es-AR')}
-- Costo mano de obra: $${manoObra.toLocaleString('es-AR')}
-- Costo total: $${costoDirectoTotal.toLocaleString('es-AR')}
-- Ganancia bruta: $${ganancia.toLocaleString('es-AR')}
+Tu tarea ÚNICA: Analizar costos directos e indirectos. Nada más.
 
-FLUJO:
-1. Si ves "__INIT__", preséntate y haz preguntas sobre costos indirectos y contingencias.
-2. Recopila info del usuario (márgenes esperados, riesgos, etc).
-3. Luego genera DOS bloques JSON (obligatorio).
+═══════════════════════════════════════════════════════════════════════
+DATOS DE LA OBRA - SON FIJOS, NO CAMBIES NI DISCUTAS:
+═══════════════════════════════════════════════════════════════════════
+Precio de venta (SIN IVA): $${precioVenta.toLocaleString('es-AR')}
+Costo materiales (JSON presupuesto): $${costMateriales.toLocaleString('es-AR')}
+Costo mano de obra (JSON presupuesto): $${costManoObra.toLocaleString('es-AR')}
+─────────────────────────────────────────────────────
+COSTO DIRECTO TOTAL: $${costoDirectoTotal.toLocaleString('es-AR')}
+Ganancia bruta actual: $${gananciaDirecta.toLocaleString('es-AR')}
+═══════════════════════════════════════════════════════════════════════
 
-⚠️ CRÍTICO: Debes generar EXACTAMENTE dos bloques JSON:
-1️⃣ BLOQUE 1 (análisis_completo) - datos económicos
-2️⃣ BLOQUE 2 (plan_ejecucion_completo) - cronograma semanal
+INSTRUCCIONES SIMPLES:
 
-Sin ambos bloques = FALLO. Genera SIEMPRE los dos.
+Si es "__INIT__":
+1. Preséntate brevemente.
+2. Pregunta EXACTAMENTE ESTO (no hagas más preguntas):
+   - "¿Cuánto en costos indirectos (transporte, admin, supervisión, otros)?"
+   - "¿Qué % de contingencia? (típicamente 5-10%)"
+
+Después que responda:
+3. GENERÁ DOS JSON (uno tras otro, sin excepciones):
+   - JSON 1: analisis_completo
+   - JSON 2: plan_ejecucion_completo
+
+═══════════════════════════════════════════════════════════════════════
+JSON 1 - ANÁLISIS ECONÓMICO (OBLIGATORIO):
+═══════════════════════════════════════════════════════════════════════
 
 \`\`\`json
 {
   "tipo": "analisis_completo",
   "datos": {
-    "costos_directos": {
-      "materiales": 16632220,
-      "mano_obra": 4300000,
-      "subtotal": 20932220
-    },
-    "costos_indirectos": [
-      { "descripcion": "Transporte y fletes", "monto": 350000 },
-      { "descripcion": "Administración y gestión", "monto": 250000 },
-      { "descripcion": "Seguros y permisos", "monto": 300000 }
-    ],
-    "contingencias_porcentaje": 10,
-    "contingencias_monto": 2143222,
-    "costo_total": 23975442,
-    "precio_venta": 36500000,
-    "ganancia_bruta": 15567780,
-    "rentabilidad_sobre_costos": 74.3,
-    "rentabilidad_sobre_ventas": 42.6,
-    "flujo_caja": [
-      { "concepto": "Anticipo (50%)", "monto": 18250000, "cuando": "Al firmar contrato" },
-      { "concepto": "Cert. semana 1-2", "monto": 3650000, "cuando": "Después de demolición y contrapiso" }
-    ],
-    "notas": "...",
-    "recomendaciones": ["..."]
+    "precio_venta": ${precioVenta},
+    "costo_materiales": ${costMateriales},
+    "costo_mano_obra": ${costManoObra},
+    "costo_directo_total": ${costoDirectoTotal},
+    "costos_indirectos_monto": 0,
+    "contingencia_porcentaje": 10,
+    "contingencia_monto": 0,
+    "costo_total": 0,
+    "ganancia_bruta": 0,
+    "rentabilidad_porcentaje": 0,
+    "notas": "Análisis básico sin IVA"
   }
 }
 \`\`\`
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️ SEPARACIÓN ENTRE BLOQUES JSON - NO OMITIR ESTE PASO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-IMPORTANTE: Después de terminar el JSON del análisis (arriba), DEBES
-generar UN SEGUNDO JSON completamente separado abajo. Estos son DOS
-bloques diferentes, no dos partes del mismo JSON.
-
-EL SEGUNDO BLOQUE NO ES OPCIONAL.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-BLOQUE 2 - PLAN DE EJECUCIÓN (OBLIGATORIO):
-Generá un cronograma semanal basado en la duración total estimada (típicamente 4-8 semanas).
-IMPORTANTE: semanas[] DEBE tener un elemento por cada semana. Los porcentaje_avance deben sumar ~100%.
+═══════════════════════════════════════════════════════════════════════
+JSON 2 - PLAN DE EJECUCIÓN (OBLIGATORIO):
+═══════════════════════════════════════════════════════════════════════
 
 \`\`\`json
 {
@@ -586,79 +575,61 @@ IMPORTANTE: semanas[] DEBE tener un elemento por cada semana. Los porcentaje_ava
   "datos": {
     "duracion_semanas": 6,
     "anticipo_porcentaje": 50,
-    "anticipo_monto": 15082644,
+    "anticipo_monto": 0,
     "semanas": [
       {
         "numero": 1,
-        "descripcion": "Preparación y demolición de revestimientos antiguos",
-        "items_incluidos": ["Demolición", "Retiro escombros", "Limpieza profunda", "Protección"],
-        "porcentaje_avance": 18,
-        "monto_certificar": 5429192
+        "descripcion": "Fase 1",
+        "porcentaje_avance": 17
       },
       {
         "numero": 2,
-        "descripcion": "Contrapiso, impermeabilización y preparación",
-        "items_incluidos": ["Contrapiso H25", "Membrana asfáltica", "Nivelación"],
-        "porcentaje_avance": 18,
-        "monto_certificar": 5429192
+        "descripcion": "Fase 2",
+        "porcentaje_avance": 17
       },
       {
         "numero": 3,
-        "descripcion": "Colocación de cerámicos y bases",
-        "items_incluidos": ["Colocación cerámica", "Preparación bases", "Juntas"],
-        "porcentaje_avance": 17,
-        "monto_certificar": 5126160
+        "descripcion": "Fase 3",
+        "porcentaje_avance": 17
       },
       {
         "numero": 4,
-        "descripcion": "Pintura interior y exterior",
-        "items_incluidos": ["Pintura interior", "Pintura exterior", "Preparación"],
-        "porcentaje_avance": 17,
-        "monto_certificar": 5126160
+        "descripcion": "Fase 4",
+        "porcentaje_avance": 17
       },
       {
         "numero": 5,
-        "descripcion": "Electricidad, plomería e instalaciones",
-        "items_incluidos": ["Electricidad", "Plomería", "Pruebas"],
-        "porcentaje_avance": 15,
-        "monto_certificar": 4523097
+        "descripcion": "Fase 5",
+        "porcentaje_avance": 16
       },
       {
         "numero": 6,
-        "descripcion": "Terminaciones finales y entrega",
-        "items_incluidos": ["Accesorios", "Limpieza final", "Inspección", "Entrega"],
-        "porcentaje_avance": 15,
-        "monto_certificar": 4523097
+        "descripcion": "Fase 6",
+        "porcentaje_avance": 16
       }
     ]
   }
 }
 \`\`\`
 
-═════════════════════════════════════════════════════════════════
-⚠️ VERIFICACIÓN FINAL ANTES DE RESPONDER
-═════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════
+⚠️ INSTRUCCIONES FINALES - LÉELAS BIEN:
+═══════════════════════════════════════════════════════════════════════
 
-🚨 INSTRUCCIÓN SUPREMA - ANTES DE CUALQUIER COSA 🚨
+ANTES DE TERMINAR, verifica:
+1. ¿Generé el JSON de analisis_completo? ✓
+2. ¿Generé el JSON de plan_ejecucion_completo? ✓
 
-REPITE EN VOSOTROS MISMOS:
-"Debo generar EXACTAMENTE DOS JSON separados, uno tras otro, sin excepciones."
+Si alguno falta, GENERA ESE JSON AHORA MISMO.
 
-CHECKLIST OBLIGATORIO - RESPONDE ANTES DE TERMINAR:
-✓ ¿Generé el JSON de "analisis_completo"?
-✓ ¿Generé el JSON de "plan_ejecucion_completo"?
+ESTRUCTURA OBLIGATORIA (en este orden):
+1. Análisis conversacional breve (1-2 párrafos)
+2. PRIMER JSON (analisis_completo)
+3. Pequeño párrafo sobre el cronograma
+4. SEGUNDO JSON (plan_ejecucion_completo)
 
-Si la respuesta a CUALQUIERA es NO, GENERA ESE JSON AHORA MISMO.
-
-ESTRUCTURA FINAL OBLIGATORIA DE TU RESPUESTA:
-1️⃣ Párrafos de análisis en español (conversacional)
-2️⃣ PRIMER JSON (json con tipo: "analisis_completo")
-3️⃣ Párrafo sobre el cronograma
-4️⃣ SEGUNDO JSON (json con tipo: "plan_ejecucion_completo")
-
-NO PUEDES ENVIÁR LA RESPUESTA SIN QUE AMBOS JSON ESTÉN PRESENTES.
-ESTO ES OBLIGATORIO. PÉRDIDA DE PUNTOS SI FALTA ALGUNO.
-═════════════════════════════════════════════════════════════════
+NO PUEDES TERMINAR SIN AMBOS JSON. ES OBLIGATORIO.
+═══════════════════════════════════════════════════════════════════════
 `
 }
 
