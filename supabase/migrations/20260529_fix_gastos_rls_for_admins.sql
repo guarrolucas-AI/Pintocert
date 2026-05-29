@@ -28,7 +28,7 @@ create policy "Gastos select policy"
     -- Users can see gastos for obras where they created the presupuesto
     exists (
       select 1 from public.presupuestos
-      where id = (select presupuesto_id from public.obras where id = gastos_obra.obra_id)
+      where obra_id = gastos_obra.obra_id
       and created_by = auth.uid()
     )
   );
@@ -53,7 +53,7 @@ create policy "Gastos insert policy"
     -- Users can insert for obras where they created the presupuesto
     exists (
       select 1 from public.presupuestos
-      where id = (select presupuesto_id from public.obras where id = gastos_obra.obra_id)
+      where obra_id = gastos_obra.obra_id
       and created_by = auth.uid()
     )
   );
@@ -78,7 +78,7 @@ create policy "Gastos update policy"
     -- Users can update gastos for obras where they created the presupuesto
     exists (
       select 1 from public.presupuestos
-      where id = (select presupuesto_id from public.obras where id = gastos_obra.obra_id)
+      where obra_id = gastos_obra.obra_id
       and created_by = auth.uid()
     )
   );
@@ -103,7 +103,7 @@ create policy "Gastos delete policy"
     -- Users can delete gastos for obras where they created the presupuesto
     exists (
       select 1 from public.presupuestos
-      where id = (select presupuesto_id from public.obras where id = gastos_obra.obra_id)
+      where obra_id = gastos_obra.obra_id
       and created_by = auth.uid()
     )
   );
