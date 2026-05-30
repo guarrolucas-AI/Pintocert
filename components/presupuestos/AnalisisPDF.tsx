@@ -108,18 +108,33 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
   let costosIndirectosMonto = 0
   const costosIndirectosData = d?.datos?.costos_indirectos ?? d?.costos_indirectos
   if (Array.isArray(costosIndirectosData)) {
-    // Si es un array, sumar todos los montos
-    costosIndirectosMonto = costosIndirectosData.reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
+    // Si es un array, buscar el "Subtotal indirectos" o sumar items que no sean subtotal
+    const subtotalItem = costosIndirectosData.find(ci => ci.descripcion?.toLowerCase().includes('subtotal'))
+    if (subtotalItem) {
+      costosIndirectosMonto = subtotalItem.monto ?? 0
+    } else {
+      // Si no hay subtotal, sumar solo items que no sean subtotal
+      costosIndirectosMonto = costosIndirectosData
+        .filter(ci => !ci.descripcion?.toLowerCase().includes('subtotal'))
+        .reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
+    }
   } else if (typeof costosIndirectosData === 'number') {
     // Si es un número, usarlo directamente
     costosIndirectosMonto = costosIndirectosData
   }
 
+  // Contingencias: primero buscar el monto directo, luego calcular si no existe
+  let contingenciaMonto = d?.datos?.contingencias_monto ?? d?.contingencias_monto ?? 0
   const contingenciaPct = d?.datos?.contingencia_porcentaje ?? d?.contingencia_porcentaje ?? 0
+
+  // Si no hay monto de contingencias pero sí hay porcentaje, calcular
+  if (contingenciaMonto === 0 && contingenciaPct > 0) {
+    const costoDirecto = materiales + manoObra
+    contingenciaMonto = (contingenciaPct / 100) * (costoDirecto + costosIndirectosMonto)
+  }
 
   // Calcular valores (SIN IVA en los costos)
   const costoDirecto = materiales + manoObra
-  const contingenciaMonto = (contingenciaPct / 100) * (costoDirecto + costosIndirectosMonto)
   const costo = costoDirecto + costosIndirectosMonto + contingenciaMonto
 
   // precio_venta debería venir del análisis, pero fallback al subtotal del presupuesto
