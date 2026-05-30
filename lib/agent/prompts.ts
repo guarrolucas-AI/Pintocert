@@ -516,33 +516,36 @@ function promptAnalisis(ctx?: Record<string, unknown>) {
 
   return `${BASE_CONTEXT}
 
-SOLO ESTO:
-1. Si "__INIT__": Pregunta dos cosas
-2. Después: Genera dos JSON
+Tu tarea: Hacer análisis económico simple.
 
-NO hagas nada más.
-
-DATOS FIJOS:
-- Precio venta: $${precioVenta.toLocaleString('es-AR')}
-- Costo materiales: $${costMateriales.toLocaleString('es-AR')}
-- Costo mano obra: $${costManoObra.toLocaleString('es-AR')}
+DATOS FIJOS DE LA OBRA:
+Precio venta (SIN IVA): $${precioVenta}
+Costo materiales: $${costMateriales}
+Costo mano obra: $${costManoObra}
+Costo directo total: $${costoDirectoTotal}
 
 SI PRIMER MENSAJE = "__INIT__":
-Pregunta 1: ¿Cuánto en costos indirectos (pesos)?
-Pregunta 2: ¿Qué % contingencia (ejemplo: 10)?
+Pregunta 1: ¿Costos indirectos en pesos (transporte, admin, supervisión)?
+Pregunta 2: ¿Qué % contingencia? (5-10% típico)
 
-DESPUÉS QUE RESPONDA:
-Genera SOLO estos dos JSON, uno tras otro:
+CUANDO TENGAS LAS RESPUESTAS:
+CALCULA estos valores:
+- contingencia_monto = (contingencia_porcentaje / 100) × (${costoDirectoTotal} + costos_indirectos_monto)
+- costo_total = ${costoDirectoTotal} + costos_indirectos_monto + contingencia_monto
+- ganancia_bruta = ${precioVenta} - costo_total
+
+LUEGO GENERA EXACTAMENTE ESTOS 2 JSON:
 
 \`\`\`json
-{"tipo":"analisis_completo","datos":{"precio_venta":${precioVenta},"costo_materiales":${costMateriales},"costo_mano_obra":${costManoObra},"costo_directo_total":${costoDirectoTotal},"costos_indirectos_monto":0,"contingencia_porcentaje":10,"contingencia_monto":0,"costo_total":0,"ganancia_bruta":0}}
+{"tipo":"analisis_completo","datos":{"precio_venta":${precioVenta},"costo_materiales":${costMateriales},"costo_mano_obra":${costManoObra},"costo_directo_total":${costoDirectoTotal},"costos_indirectos_monto":AQUI_MONTO_USUARIO,"contingencia_porcentaje":AQUI_PORCENTAJE_USUARIO,"contingencia_monto":AQUI_CALCULA,"costo_total":AQUI_CALCULA,"ganancia_bruta":AQUI_CALCULA}}
 \`\`\`
 
 \`\`\`json
-{"tipo":"plan_ejecucion_completo","datos":{"duracion_semanas":6,"anticipo_porcentaje":50,"anticipo_monto":0,"semanas":[{"numero":1,"descripcion":"Fase 1","porcentaje_avance":17},{"numero":2,"descripcion":"Fase 2","porcentaje_avance":17},{"numero":3,"descripcion":"Fase 3","porcentaje_avance":17},{"numero":4,"descripcion":"Fase 4","porcentaje_avance":17},{"numero":5,"descripcion":"Fase 5","porcentaje_avance":16},{"numero":6,"descripcion":"Fase 6","porcentaje_avance":16}]}}
+{"tipo":"plan_ejecucion_completo","datos":{"duracion_semanas":6,"anticipo_porcentaje":50,"anticipo_monto":AQUI_CALCULA_50_PORCIENTO,"semanas":[{"numero":1,"descripcion":"Fase 1","porcentaje_avance":17},{"numero":2,"descripcion":"Fase 2","porcentaje_avance":17},{"numero":3,"descripcion":"Fase 3","porcentaje_avance":17},{"numero":4,"descripcion":"Fase 4","porcentaje_avance":17},{"numero":5,"descripcion":"Fase 5","porcentaje_avance":16},{"numero":6,"descripcion":"Fase 6","porcentaje_avance":16}]}}
 \`\`\`
 
-PUNTO FINAL. NO ESCRIBAS MÁS.
+IMPORTANTE: Reemplaza AQUI_... con los números reales calculados. Sin placeholders.
+NO ESCRIBAS NADA MÁS.
 `
 }
 
