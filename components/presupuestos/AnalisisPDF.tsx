@@ -179,9 +179,15 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
 
   // IMPORTANTE: Eliminar completamente cualquier línea de IVA
   // El IVA NO es parte del análisis económico, está separado del costo
-  const costosIndirectosSinIVA = costosIndirectosCombinados.filter(
-    ci => !ci.descripcion?.toLowerCase().includes('iva')
-  )
+  const costosIndirectosSinIVA = costosIndirectosCombinados
+    .filter(ci => !ci.descripcion?.toLowerCase().includes('iva'))
+    .map(ci => ({
+      ...ci,
+      descripcion: (ci.descripcion || '')
+        .trim()
+        .replace(/^[^a-zA-Zá-ú0-9\s]+/g, '') // Remover CUALQUIER carácter especial al inicio (incluyendo =, -, *, emojis, etc)
+        .trim()
+    }))
 
   const costoIndirecto = costosIndirectosSinIVA.reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
 
@@ -239,14 +245,14 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
             </View>
             {materiales > 0 && (
               <View style={s.tableRow}>
-                <Text style={[s.td, { flex: 2 }]}>🔨 Materiales</Text>
+                <Text style={[s.td, { flex: 2 }]}>Materiales</Text>
                 <Text style={[s.td, s.right]}>{formatARS(materiales)}</Text>
                 <Text style={[s.td, s.right]}>{costo > 0 ? ((materiales / costo) * 100).toFixed(0) : 0}%</Text>
               </View>
             )}
             {manoObra > 0 && (
               <View style={s.tableRow}>
-                <Text style={[s.td, { flex: 2 }]}>👷 Mano de Obra</Text>
+                <Text style={[s.td, { flex: 2 }]}>Mano de Obra</Text>
                 <Text style={[s.td, s.right]}>{formatARS(manoObra)}</Text>
                 <Text style={[s.td, s.right]}>{costo > 0 ? ((manoObra / costo) * 100).toFixed(0) : 0}%</Text>
               </View>
