@@ -105,10 +105,19 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
   const manoObra = d?.costos_directos?.mano_obra ?? presupuesto.plan_personal?.total_mano_obra ?? 0
 
   // Costos indirectos: buscar en ambas ubicaciones (datos.costos_indirectos o directamente costos_indirectos)
-  const costosIndirectosMonto = d?.datos?.costos_indirectos ?? d?.costos_indirectos ?? 0
+  let costosIndirectosMonto = 0
+  const costosIndirectosData = d?.datos?.costos_indirectos ?? d?.costos_indirectos
+  if (Array.isArray(costosIndirectosData)) {
+    // Si es un array, sumar todos los montos
+    costosIndirectosMonto = costosIndirectosData.reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
+  } else if (typeof costosIndirectosData === 'number') {
+    // Si es un número, usarlo directamente
+    costosIndirectosMonto = costosIndirectosData
+  }
+
   const contingenciaPct = d?.datos?.contingencia_porcentaje ?? d?.contingencia_porcentaje ?? 0
 
-  // Calcular valores
+  // Calcular valores (SIN IVA en los costos)
   const costoDirecto = materiales + manoObra
   const contingenciaMonto = (contingenciaPct / 100) * (costoDirecto + costosIndirectosMonto)
   const costo = costoDirecto + costosIndirectosMonto + contingenciaMonto
@@ -117,21 +126,27 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
   const ventaDelAnalisis = d?.precio_venta ?? d?.datos?.precio_venta ?? 0
   const venta = ventaDelAnalisis > 0 ? ventaDelAnalisis : presupuesto.subtotal ?? 0
 
-  // IVA es un costo que debe restarse de la ganancia
-  const montoIVA = presupuesto.monto_iva ?? 0
-  const ganancia = d?.ganancia_bruta ?? Math.max(0, venta - costo - montoIVA)
+  // Ganancia = Venta - Costo (SIN restar IVA)
+  const ganancia = d?.ganancia_bruta ?? Math.max(0, venta - costo)
   const rentabilidad = d?.rentabilidad_sobre_ventas ?? (venta > 0 ? (ganancia / venta) * 100 : 0)
 
-  // Combinar costos indirectos con IVA
+  // Costos indirectos y contingencias (SIN IVA)
   const costosIndirectosCombinados = []
-  if (costosIndirectosMonto > 0) {
+
+  // Si los costos indirectos vienen como un array del agente, mostrar los items individuales
+  if (Array.isArray(costosIndirectosData)) {
+    // Filtrar para no mostrar el "Subtotal" que es redundante
+    const itemsIndividuales = costosIndirectosData.filter(
+      ci => !ci.descripcion?.toLowerCase().includes('subtotal')
+    )
+    costosIndirectosCombinados.push(...itemsIndividuales)
+  } else if (costosIndirectosMonto > 0) {
+    // Si es un número, crear un item genérico
     costosIndirectosCombinados.push({ descripcion: 'Costos indirectos', monto: costosIndirectosMonto })
   }
+
   if (contingenciaMonto > 0) {
     costosIndirectosCombinados.push({ descripcion: `Contingencias (${contingenciaPct.toFixed(1)}%)`, monto: contingenciaMonto })
-  }
-  if (montoIVA > 0) {
-    costosIndirectosCombinados.push({ descripcion: 'IVA (21%)', monto: montoIVA })
   }
   const costoIndirecto = costosIndirectosCombinados.reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
 
