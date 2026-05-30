@@ -98,24 +98,41 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
   }
 
   // Valores del análisis con fallbacks del presupuesto
-  const costo = analisis.costo_total ?? presupuesto.total ?? 0
+  const d = analisis as Record<string, any>
+
+  // Obtener materiales y mano de obra del presupuesto (no del JSON del agente)
+  const materiales = d?.costos_directos?.materiales ?? presupuesto.lista_materiales?.total_estimado ?? 0
+  const manoObra = d?.costos_directos?.mano_obra ?? presupuesto.plan_personal?.total_mano_obra ?? 0
+
+  // Costos indirectos: buscar en ambas ubicaciones (datos.costos_indirectos o directamente costos_indirectos)
+  const costosIndirectosMonto = d?.datos?.costos_indirectos ?? d?.costos_indirectos ?? 0
+  const contingenciaPct = d?.datos?.contingencia_porcentaje ?? d?.contingencia_porcentaje ?? 0
+
+  // Calcular valores
+  const costoDirecto = materiales + manoObra
+  const contingenciaMonto = (contingenciaPct / 100) * (costoDirecto + costosIndirectosMonto)
+  const costo = costoDirecto + costosIndirectosMonto + contingenciaMonto
+
   // precio_venta debería venir del análisis, pero fallback al subtotal del presupuesto
-  const ventaDelAnalisis = analisis.precio_venta ?? 0
+  const ventaDelAnalisis = d?.precio_venta ?? d?.datos?.precio_venta ?? 0
   const venta = ventaDelAnalisis > 0 ? ventaDelAnalisis : presupuesto.subtotal ?? 0
 
   // IVA es un costo que debe restarse de la ganancia
   const montoIVA = presupuesto.monto_iva ?? 0
-  const ganancia = analisis.ganancia_bruta ?? Math.max(0, venta - costo - montoIVA)
-  const rentabilidad = analisis.rentabilidad_sobre_ventas ?? (venta > 0 ? (ganancia / venta) * 100 : 0)
+  const ganancia = d?.ganancia_bruta ?? Math.max(0, venta - costo - montoIVA)
+  const rentabilidad = d?.rentabilidad_sobre_ventas ?? (venta > 0 ? (ganancia / venta) * 100 : 0)
 
-  const materiales = analisis.costos_directos?.materiales ?? 0
-  const manoObra = analisis.costos_directos?.mano_obra ?? 0
-
-  // Combinar IVA con otros costos indirectos
-  const costosIndirectosBase = analisis.costos_indirectos ?? []
-  const costosIndirectosCombinados = montoIVA > 0
-    ? [{ descripcion: 'IVA (21%)', monto: montoIVA }, ...costosIndirectosBase]
-    : costosIndirectosBase
+  // Combinar costos indirectos con IVA
+  const costosIndirectosCombinados = []
+  if (costosIndirectosMonto > 0) {
+    costosIndirectosCombinados.push({ descripcion: 'Costos indirectos', monto: costosIndirectosMonto })
+  }
+  if (contingenciaMonto > 0) {
+    costosIndirectosCombinados.push({ descripcion: `Contingencias (${contingenciaPct.toFixed(1)}%)`, monto: contingenciaMonto })
+  }
+  if (montoIVA > 0) {
+    costosIndirectosCombinados.push({ descripcion: 'IVA (21%)', monto: montoIVA })
+  }
   const costoIndirecto = costosIndirectosCombinados.reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
 
   return (
