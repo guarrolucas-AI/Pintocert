@@ -516,105 +516,33 @@ function promptAnalisis(ctx?: Record<string, unknown>) {
 
   return `${BASE_CONTEXT}
 
-⚠️ INSTRUCCIÓN SUPREMA: Tu única responsabilidad es hacer 2 cosas, nada más:
-1. Recopilar información de costos indirectos y contingencia
-2. Generar EXACTAMENTE 2 bloques JSON (no 3, no 4, no más)
+SOLO ESTO:
+1. Si "__INIT__": Pregunta dos cosas
+2. Después: Genera dos JSON
 
-NO HAGAS:
-- Análisis de rentabilidad detallado
-- Análisis de flujo de caja
-- Recomendaciones adicionales
-- Evaluaciones de riesgo
-- Ningún otro análisis
+NO hagas nada más.
 
-SOLO 2 JSON. PUNTO.
+DATOS FIJOS:
+- Precio venta: $${precioVenta.toLocaleString('es-AR')}
+- Costo materiales: $${costMateriales.toLocaleString('es-AR')}
+- Costo mano obra: $${costManoObra.toLocaleString('es-AR')}
 
-═══════════════════════════════════════════════════════════════════════
-DATOS FIJOS (NO CAMBIAR):
-═══════════════════════════════════════════════════════════════════════
-Precio de venta (SIN IVA): $${precioVenta.toLocaleString('es-AR')}
-Costo materiales: $${costMateriales.toLocaleString('es-AR')}
-Costo mano de obra: $${costManoObra.toLocaleString('es-AR')}
-─────────────────────────────────────────────────────
-COSTO DIRECTO TOTAL: $${costoDirectoTotal.toLocaleString('es-AR')}
-═══════════════════════════════════════════════════════════════════════
+SI PRIMER MENSAJE = "__INIT__":
+Pregunta 1: ¿Cuánto en costos indirectos (pesos)?
+Pregunta 2: ¿Qué % contingencia (ejemplo: 10)?
 
-FLUJO EXACTO:
-
-Si el usuario escribe "__INIT__":
-→ Preséntate en 1 línea
-→ Pregunta: "¿Costos indirectos en pesos (transporte, admin, supervisión, otros)?"
-→ Pregunta: "¿Qué % de contingencia? (típicamente 5-10%)"
-→ Espera respuestas
-
-Cuando tengas las respuestas:
-→ Genera JSON 1 (analisis_completo)
-→ Genera JSON 2 (plan_ejecucion_completo)
-→ Termina (no escribas nada más)
-
-═══════════════════════════════════════════════════════════════════════
-BLOQUE JSON 1 OBLIGATORIO - CÓPIALO EXACTAMENTE:
-═══════════════════════════════════════════════════════════════════════
+DESPUÉS QUE RESPONDA:
+Genera SOLO estos dos JSON, uno tras otro:
 
 \`\`\`json
-{
-  "tipo": "analisis_completo",
-  "datos": {
-    "precio_venta": ${precioVenta},
-    "costo_materiales": ${costMateriales},
-    "costo_mano_obra": ${costManoObra},
-    "costo_directo_total": ${costoDirectoTotal},
-    "costos_indirectos_monto": 0,
-    "contingencia_porcentaje": 10,
-    "contingencia_monto": 0,
-    "costo_total": 0,
-    "ganancia_bruta": 0
-  }
-}
+{"tipo":"analisis_completo","datos":{"precio_venta":${precioVenta},"costo_materiales":${costMateriales},"costo_mano_obra":${costManoObra},"costo_directo_total":${costoDirectoTotal},"costos_indirectos_monto":0,"contingencia_porcentaje":10,"contingencia_monto":0,"costo_total":0,"ganancia_bruta":0}}
 \`\`\`
-
-═══════════════════════════════════════════════════════════════════════
-BLOQUE JSON 2 OBLIGATORIO - CÓPIALO EXACTAMENTE:
-═══════════════════════════════════════════════════════════════════════
 
 \`\`\`json
-{
-  "tipo": "plan_ejecucion_completo",
-  "datos": {
-    "duracion_semanas": 6,
-    "anticipo_porcentaje": 50,
-    "anticipo_monto": 0,
-    "semanas": [
-      {"numero": 1, "descripcion": "Fase 1", "porcentaje_avance": 17},
-      {"numero": 2, "descripcion": "Fase 2", "porcentaje_avance": 17},
-      {"numero": 3, "descripcion": "Fase 3", "porcentaje_avance": 17},
-      {"numero": 4, "descripcion": "Fase 4", "porcentaje_avance": 17},
-      {"numero": 5, "descripcion": "Fase 5", "porcentaje_avance": 16},
-      {"numero": 6, "descripcion": "Fase 6", "porcentaje_avance": 16}
-    ]
-  }
-}
+{"tipo":"plan_ejecucion_completo","datos":{"duracion_semanas":6,"anticipo_porcentaje":50,"anticipo_monto":0,"semanas":[{"numero":1,"descripcion":"Fase 1","porcentaje_avance":17},{"numero":2,"descripcion":"Fase 2","porcentaje_avance":17},{"numero":3,"descripcion":"Fase 3","porcentaje_avance":17},{"numero":4,"descripcion":"Fase 4","porcentaje_avance":17},{"numero":5,"descripcion":"Fase 5","porcentaje_avance":16},{"numero":6,"descripcion":"Fase 6","porcentaje_avance":16}]}}
 \`\`\`
 
-═══════════════════════════════════════════════════════════════════════
-🚨 VERIFICACIÓN ANTES DE TERMINAR:
-═══════════════════════════════════════════════════════════════════════
-
-Pregúntate:
-✓ ¿Generé JSON con "tipo": "analisis_completo"?
-✓ ¿Generé JSON con "tipo": "plan_ejecucion_completo"?
-✓ ¿Ambos tienen estructura válida?
-✓ ¿Escribí más de estos dos JSON? (INCORRECTO SI ES SÍ)
-
-Si algo falla → corrige y regenera los 2 JSON.
-
-ESTRUCTURA FINAL OBLIGATORIA:
-1. Saludo/respuesta conversacional (1-2 párrafos máximo)
-2. PRIMER JSON (con "tipo": "analisis_completo")
-3. SEGUNDO JSON (con "tipo": "plan_ejecucion_completo")
-4. Punto final (no escribas más)
-
-═══════════════════════════════════════════════════════════════════════
+PUNTO FINAL. NO ESCRIBAS MÁS.
 `
 }
 
