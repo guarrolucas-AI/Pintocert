@@ -1248,14 +1248,18 @@ function ensureArray(value: any): any[] {
 }
 
 function AnalisisView({ data, presupuesto }: { data: AnalisisData; presupuesto?: Presupuesto }) {
-  // Extract from presupuesto
-  const costMateriales = (presupuesto?.lista_materiales as { total_estimado?: number })?.total_estimado ?? 0
-  const costManoObra = (presupuesto?.plan_personal as { total_mano_obra?: number })?.total_mano_obra ?? 0
-  const precioVentaReal = presupuesto?.subtotal ?? 0
+  // Extract from analysis JSON data (agent-generated)
+  const costMaterialesFromJSON = (data as Record<string, any>)?.costos_directos?.materiales ?? 0
+  const costManoObraFromJSON = (data as Record<string, any>)?.costos_directos?.mano_obra ?? 0
+  const costosIndirectosFromJSON = (data as Record<string, any>)?.datos?.costos_indirectos ?? 0
+  const contingenciaPctFromJSON = (data as Record<string, any>)?.datos?.contingencia_porcentaje ?? 0
 
-  // Extract from analysis data (from agent JSON)
-  const costosIndirectosData = (data as Record<string, any>)?.datos?.costos_indirectos ?? 0
-  const contingenciaPct = (data as Record<string, any>)?.datos?.contingencia_porcentaje ?? 0
+  // Fallback: Extract from presupuesto if JSON doesn't have values
+  const costMateriales = costMaterialesFromJSON > 0 ? costMaterialesFromJSON : (presupuesto?.lista_materiales as { total_estimado?: number })?.total_estimado ?? 0
+  const costManoObra = costManoObraFromJSON > 0 ? costManoObraFromJSON : (presupuesto?.plan_personal as { total_mano_obra?: number })?.total_mano_obra ?? 0
+  const precioVentaReal = presupuesto?.subtotal ?? 0
+  const costosIndirectosData = costosIndirectosFromJSON
+  const contingenciaPct = contingenciaPctFromJSON
 
   // Calculate all KPIs
   const costoDirecto = costMateriales + costManoObra
