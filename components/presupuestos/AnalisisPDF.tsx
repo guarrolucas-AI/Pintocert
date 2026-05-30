@@ -176,7 +176,14 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
   if (contingenciaMonto > 0) {
     costosIndirectosCombinados.push({ descripcion: `Contingencias (${contingenciaPct.toFixed(1)}%)`, monto: contingenciaMonto })
   }
-  const costoIndirecto = costosIndirectosCombinados.reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
+
+  // IMPORTANTE: Eliminar completamente cualquier línea de IVA
+  // El IVA NO es parte del análisis económico, está separado del costo
+  const costosIndirectosSinIVA = costosIndirectosCombinados.filter(
+    ci => !ci.descripcion?.toLowerCase().includes('iva')
+  )
+
+  const costoIndirecto = costosIndirectosSinIVA.reduce((sum, ci) => sum + (ci.monto ?? 0), 0)
 
   return (
     <Document title={`analisis-${presupuesto.cliente}`}>
@@ -244,8 +251,8 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
                 <Text style={[s.td, s.right]}>{costo > 0 ? ((manoObra / costo) * 100).toFixed(0) : 0}%</Text>
               </View>
             )}
-            {costosIndirectosCombinados
-              .filter(ci => ci.monto > 0 && !ci.descripcion?.toLowerCase().includes('iva'))
+            {costosIndirectosSinIVA
+              .filter(ci => ci.monto > 0)
               .map((ci, idx) => (
                 <View key={idx} style={s.tableRow}>
                   <Text style={[s.td, { flex: 2 }]}>{ci.descripcion}</Text>
