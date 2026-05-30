@@ -1319,11 +1319,11 @@ function AnalisisView({ data, presupuesto }: { data: AnalisisData; presupuesto?:
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-slate-600">
               <span>Materiales</span>
-              <span className="font-medium">{formatARS(data?.costos_directos?.materiales ?? 0)}</span>
+              <span className="font-medium">{formatARS(costMateriales)}</span>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>Mano de obra</span>
-              <span className="font-medium">{formatARS(data?.costos_directos?.mano_obra ?? 0)}</span>
+              <span className="font-medium">{formatARS(costManoObra)}</span>
             </div>
             <div className="flex justify-between pt-2 border-t font-semibold text-slate-800">
               <span>Subtotal directo</span>
@@ -1335,16 +1335,16 @@ function AnalisisView({ data, presupuesto }: { data: AnalisisData; presupuesto?:
         <div className="rounded-lg border bg-white p-4">
           <h4 className="text-sm font-semibold text-slate-700 mb-3">Costos indirectos y contingencias</h4>
           <div className="space-y-2 text-sm">
-            {costosIndirectos.map((ci, i) => (
-              <div key={i} className="flex justify-between text-slate-600">
-                <span>{ci.descripcion}</span>
-                <span className="font-medium">{formatARS(ci.monto ?? 0)}</span>
-              </div>
-            ))}
-            {(data?.contingencias_monto ?? 0) > 0 && (
+            {costosIndirectosMonto > 0 && (
               <div className="flex justify-between text-slate-600">
-                <span>Contingencias ({data?.contingencias_porcentaje ?? 0}%)</span>
-                <span className="font-medium">{formatARS(data?.contingencias_monto ?? 0)}</span>
+                <span>Costos indirectos</span>
+                <span className="font-medium">{formatARS(costosIndirectosMonto)}</span>
+              </div>
+            )}
+            {contingenciaPct > 0 && (
+              <div className="flex justify-between text-slate-600">
+                <span>Contingencias ({contingenciaPct.toFixed(1)}%)</span>
+                <span className="font-medium">{formatARS(contingenciaMonto)}</span>
               </div>
             )}
           </div>
