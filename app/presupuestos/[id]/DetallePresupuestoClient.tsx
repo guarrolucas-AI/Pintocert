@@ -1263,6 +1263,13 @@ function AnalisisView({ data, presupuesto }: { data: AnalisisData; presupuesto?:
   const costosIndirectosMonto = d?.datos?.costos_indirectos ?? 0
   const contingenciaPct = d?.datos?.contingencia_porcentaje ?? 0
 
+  // Debug
+  console.log('🔍 DEBUG AnalisisView:', {
+    costosIndirectosMonto,
+    contingenciaPct,
+    dataCompleta: d
+  })
+
   // Use direct values if available, otherwise calculate
   const precioVentaReal = precioVentaFromJSON > 0 ? precioVentaFromJSON : (presupuesto?.subtotal ?? 0)
   const costoDirecto = costMateriales + costManoObra
