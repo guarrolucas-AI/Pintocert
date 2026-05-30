@@ -138,7 +138,20 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
   const costo = costoDirecto + costosIndirectosMonto + contingenciaMonto
 
   // precio_venta debería venir del análisis, pero fallback al subtotal del presupuesto
-  const ventaDelAnalisis = d?.precio_venta ?? d?.datos?.precio_venta ?? 0
+  let ventaDelAnalisis = d?.precio_venta ?? d?.datos?.precio_venta ?? d?.precio_de_venta ?? 0
+
+  // Si el precio_venta del análisis incluye IVA, restarlo
+  // Comparar: si está cercano a presupuesto.total, incluye IVA; si está cercano a presupuesto.subtotal, no incluye
+  if (ventaDelAnalisis > 0 && presupuesto.subtotal && presupuesto.total) {
+    const diffConSubtotal = Math.abs(ventaDelAnalisis - presupuesto.subtotal)
+    const diffConTotal = Math.abs(ventaDelAnalisis - presupuesto.total)
+
+    // Si está más cercano al total que al subtotal, probablemente incluye IVA
+    if (diffConTotal < diffConSubtotal && presupuesto.monto_iva) {
+      ventaDelAnalisis = presupuesto.subtotal
+    }
+  }
+
   const venta = ventaDelAnalisis > 0 ? ventaDelAnalisis : presupuesto.subtotal ?? 0
 
   // Ganancia = Venta - Costo (SIN restar IVA)
@@ -231,13 +244,15 @@ export function AnalisisPDF({ presupuesto, analisis }: { presupuesto: Presupuest
                 <Text style={[s.td, s.right]}>{costo > 0 ? ((manoObra / costo) * 100).toFixed(0) : 0}%</Text>
               </View>
             )}
-            {costosIndirectosCombinados.filter(ci => ci.monto > 0).map((ci, idx) => (
-              <View key={idx} style={s.tableRow}>
-                <Text style={[s.td, { flex: 2 }]}>{ci.descripcion}</Text>
-                <Text style={[s.td, s.right]}>{formatARS(ci.monto)}</Text>
-                <Text style={[s.td, s.right]}>{costo > 0 ? ((ci.monto / costo) * 100).toFixed(0) : 0}%</Text>
-              </View>
-            ))}
+            {costosIndirectosCombinados
+              .filter(ci => ci.monto > 0 && !ci.descripcion?.toLowerCase().includes('iva'))
+              .map((ci, idx) => (
+                <View key={idx} style={s.tableRow}>
+                  <Text style={[s.td, { flex: 2 }]}>{ci.descripcion}</Text>
+                  <Text style={[s.td, s.right]}>{formatARS(ci.monto)}</Text>
+                  <Text style={[s.td, s.right]}>{costo > 0 ? ((ci.monto / costo) * 100).toFixed(0) : 0}%</Text>
+                </View>
+              ))}
             <View style={[s.tableRow, { backgroundColor: '#f1f5f9' }]}>
               <Text style={[s.th, { flex: 2 }]}>TOTAL COSTO</Text>
               <Text style={[s.th, s.right]}>{formatARS(costo)}</Text>
