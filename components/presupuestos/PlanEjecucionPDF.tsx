@@ -103,38 +103,44 @@ export function PlanEjecucionPDF({ presupuesto, plan }: { presupuesto: Presupues
         {plan.semanas && plan.semanas.length > 0 && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>Cronograma de Ejecución</Text>
-            {plan.semanas.map((semana, idx) => (
-              <View key={idx} style={s.semanaBox}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={s.semanaHeader}>Semana {semana.numero}</Text>
-                  <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#FFD600' }}>
-                    {semana.porcentaje_avance}% - {formatARS(semana.monto_certificar)}
-                  </Text>
-                </View>
-
-                <Text style={{ fontSize: 9, marginBottom: 4, color: '#475569' }}>
-                  {semana.descripcion}
-                </Text>
-
-                {semana.items_incluidos && semana.items_incluidos.length > 0 && (
-                  <View style={s.itemsList}>
-                    <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', marginBottom: 2, color: '#64748b' }}>
-                      Ítems incluidos:
-                    </Text>
-                    {semana.items_incluidos.map((item, itemIdx) => (
-                      <Text key={itemIdx} style={s.itemText}>
-                        • {item}
+            {(() => {
+              let acumulado = 0
+              return plan.semanas.map((semana, idx) => {
+                acumulado += semana.porcentaje_avance
+                return (
+                  <View key={idx} style={s.semanaBox}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={s.semanaHeader}>Semana {semana.numero}</Text>
+                      <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#FFD600' }}>
+                        {semana.porcentaje_avance}% - {formatARS(semana.monto_certificar)}
                       </Text>
-                    ))}
-                  </View>
-                )}
+                    </View>
 
-                {/* Barra de progreso */}
-                <View style={s.progressBar}>
-                  <View style={[s.progressFill, { width: `${semana.porcentaje_avance}%` }]} />
-                </View>
-              </View>
-            ))}
+                    <Text style={{ fontSize: 9, marginBottom: 4, color: '#475569' }}>
+                      {semana.descripcion}
+                    </Text>
+
+                    {semana.items_incluidos && semana.items_incluidos.length > 0 && (
+                      <View style={s.itemsList}>
+                        <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', marginBottom: 2, color: '#64748b' }}>
+                          Ítems incluidos:
+                        </Text>
+                        {semana.items_incluidos.map((item, itemIdx) => (
+                          <Text key={itemIdx} style={s.itemText}>
+                            • {item}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Barra de progreso ACUMULADA */}
+                    <View style={s.progressBar}>
+                      <View style={[s.progressFill, { width: `${Math.min(acumulado, 100)}%` }]} />
+                    </View>
+                  </View>
+                )
+              })
+            })()}
           </View>
         )}
       </Page>
