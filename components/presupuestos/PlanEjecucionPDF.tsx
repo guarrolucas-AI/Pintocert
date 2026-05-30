@@ -47,7 +47,7 @@ const s = StyleSheet.create({
   itemText: { fontSize: 8, color: '#64748b', marginBottom: 2 },
 
   progressBar: { height: 8, backgroundColor: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginTop: 4 },
-  progressFill: { height: '100%', backgroundColor: '#FFD600' },
+  progressFill: { height: '100%', backgroundColor: '#10B981' },
 })
 
 export function PlanEjecucionPDF({ presupuesto, plan }: { presupuesto: Presupuesto; plan: PlanEjecucionData }) {
