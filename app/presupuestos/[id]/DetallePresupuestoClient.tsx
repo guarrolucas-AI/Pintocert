@@ -1248,24 +1248,26 @@ function ensureArray(value: any): any[] {
 }
 
 function AnalisisView({ data, presupuesto }: { data: AnalisisData; presupuesto?: Presupuesto }) {
-  // Extract from analysis JSON data (agent-generated)
-  const costMaterialesFromJSON = (data as Record<string, any>)?.costos_directos?.materiales ?? 0
-  const costManoObraFromJSON = (data as Record<string, any>)?.costos_directos?.mano_obra ?? 0
-  const costosIndirectosFromJSON = (data as Record<string, any>)?.datos?.costos_indirectos ?? 0
-  const contingenciaPctFromJSON = (data as Record<string, any>)?.datos?.contingencia_porcentaje ?? 0
+  // Try to extract from agent-generated data first
+  const d = data as Record<string, any>
 
-  // Fallback: Extract from presupuesto if JSON doesn't have values
-  const costMateriales = costMaterialesFromJSON > 0 ? costMaterialesFromJSON : (presupuesto?.lista_materiales as { total_estimado?: number })?.total_estimado ?? 0
-  const costManoObra = costManoObraFromJSON > 0 ? costManoObraFromJSON : (presupuesto?.plan_personal as { total_mano_obra?: number })?.total_mano_obra ?? 0
-  const precioVentaReal = presupuesto?.subtotal ?? 0
-  const costosIndirectosData = costosIndirectosFromJSON
-  const contingenciaPct = contingenciaPctFromJSON
+  // Method 1: Direct values from JSON
+  const precioVentaFromJSON = d?.precio_venta ?? d?.datos?.precio_venta ?? d?.financiero?.precio_total_venta ?? 0
+  const costoTotalFromJSON = d?.costo_total ?? d?.datos?.costo_total ?? d?.financiero?.costo_total ?? 0
+  const gananciaBrutaFromJSON = d?.ganancia_bruta ?? d?.datos?.ganancia_bruta ?? d?.financiero?.ganancia_bruta ?? 0
 
-  // Calculate all KPIs
+  // Method 2: Extract components and calculate
+  const costMateriales = d?.costos_directos?.materiales ?? 0
+  const costManoObra = d?.costos_directos?.mano_obra ?? 0
+  const costosIndirectosMonto = d?.datos?.costos_indirectos ?? 0
+  const contingenciaPct = d?.datos?.contingencia_porcentaje ?? 0
+
+  // Use direct values if available, otherwise calculate
+  const precioVentaReal = precioVentaFromJSON > 0 ? precioVentaFromJSON : (presupuesto?.subtotal ?? 0)
   const costoDirecto = costMateriales + costManoObra
-  const contingenciaMonto = (contingenciaPct / 100) * (costoDirecto + costosIndirectosData)
-  const costoTotal = costoDirecto + costosIndirectosData + contingenciaMonto
-  const gananciaBruta = precioVentaReal - costoTotal
+  const contingenciaMonto = (contingenciaPct / 100) * (costoDirecto + costosIndirectosMonto)
+  const costoTotal = costoTotalFromJSON > 0 ? costoTotalFromJSON : (costoDirecto + costosIndirectosMonto + contingenciaMonto)
+  const gananciaBruta = gananciaBrutaFromJSON > 0 ? gananciaBrutaFromJSON : (precioVentaReal - costoTotal)
 
   // Defensive: check if data exists
   if (!data) {
