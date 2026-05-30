@@ -1260,15 +1260,10 @@ function AnalisisView({ data, presupuesto }: { data: AnalisisData; presupuesto?:
   // Materiales y mano de obra vienen del presupuesto, no del JSON del agente
   const costMateriales = d?.costos_directos?.materiales ?? presupuesto?.lista_materiales?.total_estimado ?? 0
   const costManoObra = d?.costos_directos?.mano_obra ?? presupuesto?.plan_personal?.total_mano_obra ?? 0
-  const costosIndirectosMonto = d?.datos?.costos_indirectos ?? 0
-  const contingenciaPct = d?.datos?.contingencia_porcentaje ?? 0
-
-  // Debug
-  console.log('🔍 DEBUG AnalisisView:', {
-    costosIndirectosMonto,
-    contingenciaPct,
-    dataCompleta: d
-  })
+  // Buscar costos_indirectos en ambas ubicaciones (datos.costos_indirectos o directamente costos_indirectos)
+  const costosIndirectosMonto = d?.datos?.costos_indirectos ?? d?.costos_indirectos ?? 0
+  // Buscar contingencia en ambas ubicaciones
+  const contingenciaPct = d?.datos?.contingencia_porcentaje ?? d?.contingencia_porcentaje ?? 0
 
   // Use direct values if available, otherwise calculate
   const precioVentaReal = precioVentaFromJSON > 0 ? precioVentaFromJSON : (presupuesto?.subtotal ?? 0)
