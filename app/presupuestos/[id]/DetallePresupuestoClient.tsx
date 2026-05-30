@@ -1257,8 +1257,9 @@ function AnalisisView({ data, presupuesto }: { data: AnalisisData; presupuesto?:
   const gananciaBrutaFromJSON = d?.ganancia_bruta ?? d?.datos?.ganancia_bruta ?? d?.financiero?.ganancia_bruta ?? 0
 
   // Method 2: Extract components and calculate
-  const costMateriales = d?.costos_directos?.materiales ?? 0
-  const costManoObra = d?.costos_directos?.mano_obra ?? 0
+  // Materiales y mano de obra vienen del presupuesto, no del JSON del agente
+  const costMateriales = d?.costos_directos?.materiales ?? presupuesto?.lista_materiales?.total_estimado ?? 0
+  const costManoObra = d?.costos_directos?.mano_obra ?? presupuesto?.plan_personal?.total_mano_obra ?? 0
   const costosIndirectosMonto = d?.datos?.costos_indirectos ?? 0
   const contingenciaPct = d?.datos?.contingencia_porcentaje ?? 0
 
