@@ -13,7 +13,9 @@ interface Props {
 export default function AnalisisPDFDownload({ presupuesto, analisis, className = '' }: Props) {
   if (!analisis) return null
 
-  const nombre = `analisis-${presupuesto.cliente.replace(/\s+/g, '-').toLowerCase() || 'sin-nombre'}.pdf`
+  // Add timestamp to force fresh PDF generation and avoid browser cache
+  const timestamp = new Date().getTime()
+  const nombre = `analisis-${presupuesto.cliente.replace(/\s+/g, '-').toLowerCase() || 'sin-nombre'}-${timestamp}.pdf`
 
   return (
     <PDFDownloadLink
