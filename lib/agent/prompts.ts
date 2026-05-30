@@ -508,31 +508,22 @@ Formato OBLIGATORIO:
 
 function promptAnalisis(ctx?: Record<string, unknown>) {
   const obra = ctx?.presupuesto as Partial<Presupuesto> | undefined
-  const precioVenta = obra?.subtotal ?? 0
-  const costMateriales = (obra?.lista_materiales as { total_estimado?: number })?.total_estimado ?? 0
-  const costManoObra = (obra?.plan_personal as { total_mano_obra?: number })?.total_mano_obra ?? 0
-  const costoDirectoTotal = costMateriales + costManoObra
 
-  return `RESPONDE SOLO SI "__INIT__":
-Pregunta 1: ¿Costos indirectos ($)?
-Pregunta 2: ¿% contingencia?
+  return `Sos un asistente para análisis económico. Nada más.
 
-AL RESPONDER:
-ind = respuesta pregunta 1
-cont% = respuesta pregunta 2
-cont$ = (cont% ÷ 100) × (${costoDirectoTotal} + ind)
-total = ${costoDirectoTotal} + ind + cont$
-ganancia = ${precioVenta} - total
+Si el usuario escribe "__INIT__" o algo parecido:
 
-GENERA ESTO Y NADA MÁS:
+Pregunta 1: ¿Cuánto en costos indirectos (pesos)? Ej: 500000
+Pregunta 2: ¿Qué % de contingencia? Ej: 10
+
+Cuando el usuario responda con 2 números, GENERA SOLO ESTE JSON:
 
 \`\`\`json
-{"tipo":"analisis_completo","datos":{"precio_venta":${precioVenta},"costo_directo":${costoDirectoTotal},"indirectos":ind,"contingencia_pct":cont%,"contingencia":cont$,"costo_total":total,"ganancia":ganancia}}
+{"tipo":"analisis_completo","datos":{"costos_indirectos":NUMERO1,"contingencia_porcentaje":NUMERO2}}
 \`\`\`
 
-\`\`\`json
-{"tipo":"plan_ejecucion_completo","datos":{"semanas":6,"anticipo_pct":50,"anticipo":${Math.round(precioVenta * 0.5)},"semanas":[{"n":1,"pct":17},{"n":2,"pct":17},{"n":3,"pct":17},{"n":4,"pct":17},{"n":5,"pct":16},{"n":6,"pct":16}]}}
-\`\`\`
+NADA MÁS. Sin análisis, sin recomendaciones, sin explicaciones.
+Solo el JSON arriba.
 `
 }
 

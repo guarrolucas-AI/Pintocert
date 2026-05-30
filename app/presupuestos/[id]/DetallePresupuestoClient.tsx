@@ -567,7 +567,7 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
           onDataGenerada={handleDataGenerada}
           onMensajesActualizados={(m) => handleMensajesActualizados('analisis', m)}
           datosGenerados={presupuesto.analisis_economico}
-          renderDatos={(d) => <AnalisisView data={d as AnalisisData} />}
+          renderDatos={(d) => <AnalisisView data={d as AnalisisData} presupuesto={presupuesto} />}
           onRefresh={() => setPresupuesto(prev => ({ ...prev }))}
           onReset={handleResetAnalisis}
           onDistribuirPrecios={handleDistribuirPrecios}
@@ -1247,7 +1247,22 @@ function ensureArray(value: any): any[] {
   return []
 }
 
-function AnalisisView({ data }: { data: AnalisisData }) {
+function AnalisisView({ data, presupuesto }: { data: AnalisisData; presupuesto?: Presupuesto }) {
+  // Extract from presupuesto
+  const costMateriales = (presupuesto?.lista_materiales as { total_estimado?: number })?.total_estimado ?? 0
+  const costManoObra = (presupuesto?.plan_personal as { total_mano_obra?: number })?.total_mano_obra ?? 0
+  const precioVentaReal = presupuesto?.subtotal ?? 0
+
+  // Extract from analysis data (from agent JSON)
+  const costosIndirectosData = (data as Record<string, any>)?.datos?.costos_indirectos ?? 0
+  const contingenciaPct = (data as Record<string, any>)?.datos?.contingencia_porcentaje ?? 0
+
+  // Calculate all KPIs
+  const costoDirecto = costMateriales + costManoObra
+  const contingenciaMonto = (contingenciaPct / 100) * (costoDirecto + costosIndirectosData)
+  const costoTotal = costoDirecto + costosIndirectosData + contingenciaMonto
+  const gananciaBruta = precioVentaReal - costoTotal
+
   // Defensive: check if data exists
   if (!data) {
     return (
@@ -1262,20 +1277,8 @@ function AnalisisView({ data }: { data: AnalisisData }) {
   const flujoCaja = ensureArray(data?.flujo_caja) as Array<{ concepto: string; monto: number; cuando: string }>
   const recomendaciones = ensureArray(data?.recomendaciones) as string[]
 
-  // Defensive: si el agente no incluyó subtotal directo, calcularlo
-  const subtotalDirecto =
-    typeof data?.costos_directos?.subtotal === 'number' && !isNaN(data.costos_directos.subtotal)
-      ? data.costos_directos.subtotal
-      : (data?.costos_directos?.materiales ?? 0) + (data?.costos_directos?.mano_obra ?? 0)
-
-  // Si precio_venta viene en 0, reconstruirlo de costo_total + ganancia_bruta
-  const precioVentaReal =
-    (data?.precio_venta ?? 0) > 0
-      ? data.precio_venta
-      : (data?.costo_total ?? 0) + (data?.ganancia_bruta ?? 0)
-
-  // Calcular ganancia_bruta correctamente: precio_venta - costo_total
-  const gananciaBruta = precioVentaReal - (data?.costo_total ?? 0)
+  // For display purposes
+  const subtotalDirecto = costoDirecto
 
   const rentabilidad =
     precioVentaReal > 0
@@ -1293,7 +1296,7 @@ function AnalisisView({ data }: { data: AnalisisData }) {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="Precio de venta" value={formatARS(precioVentaReal)} />
-        <KpiCard label="Costo total" value={formatARS(data?.costo_total ?? 0)} />
+        <KpiCard label="Costo total" value={formatARS(costoTotal)} />
         <KpiCard label="Ganancia bruta" value={formatARS(gananciaBruta)} />
         <KpiCard
           label="Rentabilidad s/ ventas"
