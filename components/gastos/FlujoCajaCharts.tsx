@@ -12,12 +12,12 @@ const MESES = [
 ]
 
 const TIPO_GASTO_COLORS: Record<string, string> = {
-  egresos_sueldo: '#10B981',
-  egresos_combustible: '#F59E0B',
-  egresos_maquina: '#6366F1',
-  egresos_material: '#3B82F6',
-  egresos_retiro_socio: '#EF4444',
-  egresos_otro: '#8B5CF6',
+  egresos_sueldo: '#DC2626', // Red
+  egresos_combustible: '#EA580C', // Orange
+  egresos_maquina: '#0EA5E9', // Blue
+  egresos_material: '#16A34A', // Green
+  egresos_retiro_socio: '#A855F7', // Purple
+  egresos_otro: '#64748B', // Slate
 }
 
 const TIPO_GASTO_LABELS: Record<string, string> = {
@@ -55,21 +55,24 @@ export function FlujoCajaCharts({ dataByMonth }: FlujoCajaChartsProps) {
   return (
     <div className="space-y-8">
       {/* Chart Legend */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-lg">
-        {Object.entries(TIPO_GASTO_LABELS).map(([key, label]) => (
-          <div key={key} className="flex items-center gap-2 text-sm">
-            <div
-              className="w-3 h-3 rounded"
-              style={{ backgroundColor: TIPO_GASTO_COLORS[key] }}
-            />
-            <span className="text-slate-700">{label}</span>
-          </div>
-        ))}
+      <div className="bg-white border border-slate-200 rounded-lg p-4">
+        <p className="text-sm font-semibold text-slate-900 mb-3">Leyenda de Gastos</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {Object.entries(TIPO_GASTO_LABELS).map(([key, label]) => (
+            <div key={key} className="flex items-center gap-2 text-sm">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: TIPO_GASTO_COLORS[key] }}
+              />
+              <span className="text-slate-700">{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Chart A: Simple Bar Chart - Monthly Egresos */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-slate-900">Egresos Mensuales</h3>
+      <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-4">
+        <h3 className="text-lg font-semibold text-slate-900">Egresos Mensuales</h3>
         <div className="space-y-3">
           {dataByMonth.map((data) => {
             const barWidth = (data.egresos_total / maxEgreso) * 100
@@ -79,9 +82,9 @@ export function FlujoCajaCharts({ dataByMonth }: FlujoCajaChartsProps) {
                   <span className="font-medium text-slate-900">{MESES[data.mes - 1]}</span>
                   <span className="text-slate-600">{formatARS(data.egresos_total)}</span>
                 </div>
-                <div className="h-6 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-6 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
                   <div
-                    className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full transition-all"
+                    className="h-full bg-gradient-to-r from-red-500 to-red-700 rounded-lg transition-all"
                     style={{ width: `${Math.max(barWidth, 2)}%` }}
                   />
                 </div>
@@ -92,8 +95,8 @@ export function FlujoCajaCharts({ dataByMonth }: FlujoCajaChartsProps) {
       </div>
 
       {/* Chart B: Stacked Bar Chart - Expense Categories Composition */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-slate-900">Composición de Egresos por Mes</h3>
+      <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-4">
+        <h3 className="text-lg font-semibold text-slate-900">Composición de Egresos por Mes</h3>
         <div className="space-y-3">
           {dataByMonth.map((data) => (
             <div key={data.mes} className="space-y-1">
@@ -101,7 +104,7 @@ export function FlujoCajaCharts({ dataByMonth }: FlujoCajaChartsProps) {
                 <span className="font-medium text-slate-900">{MESES[data.mes - 1]}</span>
                 <span className="text-slate-600">{formatARS(data.egresos_total)}</span>
               </div>
-              <div className="h-6 bg-slate-100 rounded-full overflow-hidden flex">
+              <div className="h-6 bg-slate-100 rounded-lg overflow-hidden flex border border-slate-200">
                 {/* Sueldo */}
                 {data.egresos_sueldo > 0 && (
                   <div
