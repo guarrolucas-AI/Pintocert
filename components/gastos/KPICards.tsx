@@ -24,15 +24,15 @@ export function KPICards({ dataByMonth, anio }: KPICardsProps) {
   const avgMonthly = totalEgresos / 12
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
       {/* Total Egresos Card */}
-      <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+      <div className="bg-red-50 rounded-lg p-6 border border-red-200">
         <p className="text-xs font-medium text-red-600 uppercase tracking-wide mb-2">Total Egresos ({anio})</p>
         <p className="text-2xl font-bold text-red-900">{formatARS(totalEgresos)}</p>
       </div>
 
       {/* Final Saldo Card */}
-      <div className={`rounded-lg p-4 border ${finalSaldo >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
+      <div className={`rounded-lg p-6 border ${finalSaldo >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
         <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{color: finalSaldo >= 0 ? '#1e40af' : '#991b1b'}}>
           Saldo Final
         </p>
@@ -42,7 +42,7 @@ export function KPICards({ dataByMonth, anio }: KPICardsProps) {
       </div>
 
       {/* Average Monthly Card */}
-      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+      <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
         <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">Promedio Mensual</p>
         <p className="text-2xl font-bold text-slate-900">{formatARS(avgMonthly)}</p>
       </div>

@@ -63,93 +63,99 @@ export function ContabilidadCentralView() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Breadcrumb
-          items={[
-            { label: 'Inicio', href: '/' },
-            { label: 'Contabilidad', href: '/contabilidad' },
-            { label: 'Central' },
-          ]}
-        />
-        <div className="flex items-center justify-center py-12">
-          <div className="text-slate-500">Cargando contabilidad...</div>
+      <div className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-8">
+            <Breadcrumb
+              items={[
+                { label: 'Inicio', href: '/' },
+                { label: 'Contabilidad', href: '/contabilidad' },
+                { label: 'Central' },
+              ]}
+            />
+            <div className="flex items-center justify-center py-12">
+              <div className="text-slate-500">Cargando contabilidad...</div>
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb
-        items={[
-          { label: 'Inicio', href: '/' },
-          { label: 'Contabilidad', href: '/contabilidad' },
-          { label: 'Central' },
-        ]}
-      />
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          <Breadcrumb
+            items={[
+              { label: 'Inicio', href: '/' },
+              { label: 'Contabilidad', href: '/contabilidad' },
+              { label: 'Central' },
+            ]}
+          />
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-slate-900">Contabilidad Central</h1>
-          <p className="text-sm text-slate-600">Gestiona los gastos generales de la empresa</p>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-slate-900">Contabilidad Central</h1>
+            <p className="text-slate-600">Gestiona los gastos generales de la empresa</p>
+          </div>
+
+          {error && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3 items-start">
+              <AlertCircle className="w-5 h-5 text-yellow-700 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-yellow-800">{error}</p>
+            </div>
+          )}
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-3 w-full bg-white border-b border-slate-200">
+              <TabsTrigger value="gastos" className="data-[state=active]:text-yellow-600 data-[state=active]:border-b-2 data-[state=active]:border-yellow-600">
+                Gastos ({gastos.length})
+              </TabsTrigger>
+              <TabsTrigger value="categorias" className="data-[state=active]:text-yellow-600 data-[state=active]:border-b-2 data-[state=active]:border-yellow-600">
+                Categorías
+              </TabsTrigger>
+              <TabsTrigger value="flujo" className="data-[state=active]:text-yellow-600 data-[state=active]:border-b-2 data-[state=active]:border-yellow-600">
+                Flujo de Caja
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Gastos Tab */}
+            <TabsContent value="gastos" className="space-y-6">
+              <CentralGastoForm categorias={categorias} onSuccess={handleSuccess} />
+              {gastos.length > 0 ? (
+                <CentralGastosTable
+                  gastos={gastos}
+                  categorias={categorias}
+                  onDelete={handleSuccess}
+                  onUpdate={handleSuccess}
+                />
+              ) : (
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
+                  <p className="text-slate-600 font-medium">No hay gastos centrales</p>
+                  <p className="text-sm text-slate-500 mt-1">Crea el primero usando el formulario arriba</p>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Categorías Tab */}
+            <TabsContent value="categorias" className="space-y-6">
+              <CategoriasGastoCentralModal categorias={categorias} onSuccess={handleSuccess} />
+            </TabsContent>
+
+            {/* Flujo de Caja Tab */}
+            <TabsContent value="flujo" className="space-y-6">
+              {flujoCaja.length > 0 ? (
+                <FlujoCajaCentralChart flujoCaja={flujoCaja} anio={currentYear} />
+              ) : (
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
+                  <p className="text-slate-600 font-medium">No hay datos de flujo de caja para {currentYear}</p>
+                  <p className="text-sm text-slate-500 mt-1">Agrega gastos para ver el análisis</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
-
-      {error && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3 items-start">
-          <AlertCircle className="w-5 h-5 text-yellow-700 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-yellow-800">{error}</p>
-        </div>
-      )}
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-3 w-full bg-white border-b border-slate-200">
-          <TabsTrigger value="gastos" className="data-[state=active]:text-yellow-600 data-[state=active]:border-b-2 data-[state=active]:border-yellow-600">
-            Gastos ({gastos.length})
-          </TabsTrigger>
-          <TabsTrigger value="categorias" className="data-[state=active]:text-yellow-600 data-[state=active]:border-b-2 data-[state=active]:border-yellow-600">
-            Categorías
-          </TabsTrigger>
-          <TabsTrigger value="flujo" className="data-[state=active]:text-yellow-600 data-[state=active]:border-b-2 data-[state=active]:border-yellow-600">
-            Flujo de Caja
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Gastos Tab */}
-        <TabsContent value="gastos" className="space-y-6 pt-6">
-          <CentralGastoForm categorias={categorias} onSuccess={handleSuccess} />
-          {gastos.length > 0 ? (
-            <CentralGastosTable
-              gastos={gastos}
-              categorias={categorias}
-              onDelete={handleSuccess}
-              onUpdate={handleSuccess}
-            />
-          ) : (
-            <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-200">
-              <p className="text-slate-600 font-medium">No hay gastos centrales</p>
-              <p className="text-sm text-slate-500 mt-1">Crea el primero usando el formulario arriba</p>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Categorías Tab */}
-        <TabsContent value="categorias" className="pt-6">
-          <CategoriasGastoCentralModal categorias={categorias} onSuccess={handleSuccess} />
-        </TabsContent>
-
-        {/* Flujo de Caja Tab */}
-        <TabsContent value="flujo" className="space-y-6 pt-6">
-          {flujoCaja.length > 0 ? (
-            <FlujoCajaCentralChart flujoCaja={flujoCaja} anio={currentYear} />
-          ) : (
-            <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-200">
-              <p className="text-slate-600 font-medium">No hay datos de flujo de caja para {currentYear}</p>
-              <p className="text-sm text-slate-500 mt-1">Agrega gastos para ver el análisis</p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
     </div>
   )
 }

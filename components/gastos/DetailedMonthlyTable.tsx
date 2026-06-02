@@ -27,8 +27,9 @@ const MESES = [
  */
 export function DetailedMonthlyTable({ dataByMonth }: DetailedMonthlyTableProps) {
   return (
-    <div className="overflow-x-auto bg-white border border-slate-200 rounded-lg">
-      <table className="w-full text-sm">
+    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
         <thead className="bg-slate-50 border-b border-slate-200">
           <tr>
             <th className="text-left px-4 py-3 font-semibold text-slate-900">Mes</th>
@@ -62,6 +63,7 @@ export function DetailedMonthlyTable({ dataByMonth }: DetailedMonthlyTableProps)
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
