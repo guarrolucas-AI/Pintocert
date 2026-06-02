@@ -4,10 +4,56 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { GastoCentral } from '@/lib/types'
 
-// ──────────────────────────────────────────────────────────────────────
-// Central Expenses CRUD Operations
-// ──────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════
+// GASTOS CENTRAL: RLS & Access Control Strategy
+// ══════════════════════════════════════════════════════════════════════
+//
+// Database Schema: gastos_central, categorias_gasto_central, flujo_caja_central
+//
+// RLS ENFORCEMENT:
+// - Row-level security enforced by Supabase database policies
+// - Users can only access gastos_central from their empresa (matched by empresa_id)
+// - Admins bypass RLS and see all gastos_central across all empresas
+// - File uploads scoped by user: {user.id}/central_gastos/{timestamp}.{ext}
+// - Monthly cash flow (flujo_caja_central) auto-recalculated after CRUD operations
+//
+// Access Control Policy:
+// SELECT:  User.empresa_id = gasto.empresa_id OR user.rol = 'admin'
+// INSERT:  User.empresa_id = gasto.empresa_id OR user.rol = 'admin'
+// UPDATE:  User.id = gasto.created_by OR user.rol = 'admin'
+// DELETE:  User.id = gasto.created_by OR user.rol = 'admin'
+//
+// Expense Types (6 categories with distinct colors):
+// - sueldo      → #10B981 (green) — Employee payroll
+// - combustible → #F59E0B (amber) — Fuel & operational
+// - maquina     → #6366F1 (indigo) — Equipment & machinery
+// - material    → #3B82F6 (blue) — Bulk materials & supplies
+// - retiro_socio → #EF4444 (red) — Partner/owner distributions
+// - otro        → #8B5CF6 (purple) — Miscellaneous expenses
+//
+// ══════════════════════════════════════════════════════════════════════
+// SECTION: Central Expenses CRUD Operations
+// ══════════════════════════════════════════════════════════════════════
 
+/**
+ * Creates a new central expense and recalculates monthly cash flow.
+ *
+ * RLS Access: User must belong to the same empresa (enforced by database RLS).
+ * Admin Override: Admins bypass RLS and can create gastos for any empresa.
+ *
+ * Side Effects:
+ * - Uploads comprobante file to storage bucket: {user.id}/central_gastos/{timestamp}.{ext}
+ * - Triggers recalculateFlujoCajaCentral() to auto-update flujo_caja_central
+ * - Revalidates cache for /contabilidad/central page
+ *
+ * Validations:
+ * - fecha must not be in the future (CHECK: fecha <= CURRENT_DATE)
+ * - monto must be > 0 (CHECK: monto > 0)
+ * - tipo_gasto must be one of 6 valid types (enum constraint)
+ * - descripcion must be non-empty (business rule)
+ *
+ * Returns: { error: string } | { data: GastoCentral }
+ */
 export async function createGastoCentral(gastoData: {
   fecha: string
   tipo_gasto: string
@@ -85,6 +131,23 @@ export async function createGastoCentral(gastoData: {
   return { success: true, data }
 }
 
+/**
+ * Updates an existing central expense and recalculates cash flow.
+ *
+ * RLS Access: User must be the creator (created_by) OR be admin.
+ * This check happens in code before database update (belt-and-suspenders approach).
+ *
+ * Side Effects:
+ * - Triggers recalculateFlujoCajaCentral() if monto changed (impacts cash flow)
+ * - Revalidates cache for /contabilidad/central page
+ *
+ * Common Updates:
+ * - monto (triggers cash flow recalc)
+ * - categoria, descripcion, notas (no flujo impact, purely informational)
+ * - comprobante_numero, proveedor (audit trail)
+ *
+ * Returns: { error: string } | { success: true }
+ */
 export async function updateGastoCentral(
   gastoId: string,
   updates: Partial<Omit<GastoCentral, 'id' | 'created_by' | 'created_at'>>
@@ -93,7 +156,7 @@ export async function updateGastoCentral(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
-  // Get gasto to check ownership and get fecha for flujo_caja recalc
+  // Get gasto to check ownership (RLS enforcement) and get fecha for flujo_caja recalc
   const { data: gasto, error: fetchError } = await supabase
     .from('gastos_central')
     .select('created_by, fecha')
@@ -127,12 +190,30 @@ export async function updateGastoCentral(
   return { success: true }
 }
 
+/**
+ * Deletes a central expense and recalculates monthly cash flow.
+ *
+ * RLS Access: User must be the creator (created_by) OR be admin.
+ * This check happens in code before database deletion (belt-and-suspenders approach).
+ *
+ * Side Effects:
+ * - Deletes comprobante file from storage: {user.id}/central_gastos/{timestamp}.{ext}
+ * - Triggers recalculateFlujoCajaCentral() to remove from monthly totals
+ * - Revalidates cache for /contabilidad/central page
+ * - If this is the only gasto in a month, flujo_caja_central row removed (soft-delete via upsert)
+ *
+ * File Cleanup:
+ * - Extracts file path from comprobante_url and removes from 'comprobantes_gastos' bucket
+ * - Handles case where comprobante doesn't exist (graceful no-op)
+ *
+ * Returns: { error: string } | { success: true }
+ */
 export async function deleteGastoCentral(gastoId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
-  // Get gasto to check ownership and get fecha for flujo_caja recalc
+  // Get gasto to check ownership (RLS enforcement) and get fecha for flujo_caja recalc
   const { data: gasto, error: fetchError } = await supabase
     .from('gastos_central')
     .select('created_by, fecha, comprobante_url')
@@ -326,14 +407,39 @@ export async function getFlujoCajaCentral(anio: number) {
 
 // ──────────────────────────────────────────────────────────────────────
 // Cash Flow Calculations
-// ──────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════
+// SECTION: Cash Flow Calculations & Aggregation
+// ══════════════════════════════════════════════════════════════════════
 
+/**
+ * Recalculates monthly cash flow (flujo_caja_central) for a given month.
+ *
+ * CRITICAL: Uses admin client to bypass RLS because this is a system operation
+ * that aggregates data across all empresas for that month. Individual user
+ * access is controlled at the SELECT level when fetching flujo_caja_central.
+ *
+ * Aggregation Logic:
+ * 1. Fetches all gastos_central for the month (mes, anio)
+ * 2. Groups by tipo_gasto and sums: sueldo, combustible, maquina, material, retiro_socio, otro
+ * 3. Calculates saldo_mes = -egresosTotal (negative because expenses reduce balance)
+ * 4. Carries forward saldo_acumulado from previous month (cumulative balance)
+ * 5. Upserts into flujo_caja_central (creates or updates row)
+ *
+ * Data Flow:
+ * - Input: Date object with mes/anio to aggregate
+ * - Process: Sum gastos_central by tipo_gasto enum
+ * - Output: Row in flujo_caja_central with breakdown by expense type
+ * - Side Effect: Reusable for backfill or recalc operations
+ *
+ * Called By: createGastoCentral(), updateGastoCentral(), deleteGastoCentral()
+ * Trigger: After every CRUD operation to keep flujo_caja_central in sync
+ */
 export async function recalculateFlujoCajaCentral(fecha: Date) {
   const admin = createAdminClient()
   const mes = fecha.getMonth() + 1
   const anio = fecha.getFullYear()
 
-  // Get date range for the month
+  // Get date range for the month (from 1st to last day)
   const mesInicio = new Date(anio, mes - 1, 1)
   const mesFin = new Date(anio, mes, 0, 23, 59, 59)
 
