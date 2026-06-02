@@ -10,7 +10,8 @@ import type { Obra } from '@/lib/types'
 
 export const revalidate = 0
 
-export default async function FotosPage({ params }: { params: { id: string } }) {
+export default async function FotosPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
   const {
     data: { user },
@@ -21,7 +22,7 @@ export default async function FotosPage({ params }: { params: { id: string } }) 
   const { data: obra, error: obraError } = await supabase
     .from('obras')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (obraError || !obra) {
@@ -35,7 +36,7 @@ export default async function FotosPage({ params }: { params: { id: string } }) 
   const obraData = obra as Obra
 
   // Get fotos
-  const { data: fotos, error: fotosError } = await getFotosObra(params.id)
+  const { data: fotos, error: fotosError } = await getFotosObra(id)
 
   if (fotosError) {
     return (
@@ -71,7 +72,7 @@ export default async function FotosPage({ params }: { params: { id: string } }) 
       </div>
 
       {/* Foto Client Component */}
-      <FotoObraClient obraId={params.id} fotosInitial={fotosData} />
+      <FotoObraClient obraId={id} fotosInitial={fotosData} />
     </div>
   )
 }
