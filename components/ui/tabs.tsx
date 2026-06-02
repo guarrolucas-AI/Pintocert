@@ -24,6 +24,7 @@ interface TabsTriggerProps {
 interface TabsContentProps {
   value: string
   children: React.ReactNode
+  className?: string
 }
 
 export function Tabs({ value, onValueChange, children, className = '' }: TabsProps) {
@@ -70,7 +71,7 @@ export function TabsTrigger({ value, children, className = '', active = false, o
   )
 }
 
-export function TabsContent({ value, children, activeValue }: TabsContentProps & { activeValue?: string }) {
+export function TabsContent({ value, children, activeValue, className = '' }: TabsContentProps & { activeValue?: string }) {
   if (activeValue !== value) return null
-  return <div className="py-4">{children}</div>
+  return <div className={`py-4 ${className}`}>{children}</div>
 }
