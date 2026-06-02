@@ -317,6 +317,51 @@ export interface FlujoCajaProyectado {
   updated_at: string
 }
 
+// ─── Contabilidad Central ──────────────────────────────────────────────
+
+export interface GastoCentral {
+  id: string
+  fecha: string
+  tipo_gasto: 'sueldo' | 'combustible' | 'maquina' | 'material' | 'retiro_socio' | 'otro'
+  categoria: string  // Custom category for organization
+  descripcion: string
+  monto: number
+  comprobante_numero?: string
+  proveedor?: string
+  comprobante_url?: string  // Public URL from Supabase Storage
+  notas?: string
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CategoriaGastoCentral {
+  id: string
+  nombre: string
+  color_hex?: string
+  activa: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface FlujoCajaCentral {
+  id: string
+  mes: number  // 1-12
+  anio: number
+  ingresos_total: number  // Always 0 for central expenses
+  egresos_total: number
+  egresos_sueldo: number
+  egresos_combustible: number
+  egresos_maquina: number
+  egresos_material: number
+  egresos_retiro_socio: number
+  egresos_otro: number
+  saldo_mes: number  // Negative (expenses reduce balance)
+  saldo_acumulado: number
+  created_at: string
+  updated_at: string
+}
+
 // ─── Dashboard KPIs ───────────────────────────────────────────────────────
 
 export interface KPISnapshot {

@@ -47,6 +47,12 @@ export function Topbar({ perfil }: TopbarProps) {
           >
             Presupuestos
           </Link>
+          <Link
+            href="/contabilidad/central"
+            className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block"
+          >
+            Contabilidad
+          </Link>
           {perfil?.rol === 'admin' && (
             <Link
               href="/usuarios"
@@ -99,6 +105,13 @@ export function Topbar({ perfil }: TopbarProps) {
             onClick={() => setMobileMenuOpen(false)}
           >
             Presupuestos
+          </Link>
+          <Link
+            href="/contabilidad/central"
+            className="block text-sm text-white/70 hover:text-white transition-colors py-2"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Contabilidad
           </Link>
           {perfil?.rol === 'admin' && (
             <Link
