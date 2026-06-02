@@ -48,7 +48,8 @@ export function TabsList({ children, className = '', value, onValueChange }: Tab
     <div className={`flex gap-0 border-b ${className}`}>
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child) && child.type === TabsTrigger) {
-          return React.cloneElement(child, { active: value === child.props.value, onClick: () => onValueChange?.(child.props.value) } as any)
+          const props = child.props as any
+          return React.cloneElement(child, { active: value === props.value, onClick: () => onValueChange?.(props.value) } as any)
         }
         return child
       })}
