@@ -66,12 +66,13 @@ export function ContabilidadCentralView() {
       <div className="space-y-6">
         <Breadcrumb
           items={[
+            { label: 'Inicio', href: '/' },
             { label: 'Contabilidad', href: '/contabilidad' },
             { label: 'Central' },
           ]}
         />
         <div className="flex items-center justify-center py-12">
-          <div className="text-slate-500">Cargando...</div>
+          <div className="text-slate-500">Cargando contabilidad...</div>
         </div>
       </div>
     )
@@ -81,30 +82,37 @@ export function ContabilidadCentralView() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
+          { label: 'Inicio', href: '/' },
           { label: 'Contabilidad', href: '/contabilidad' },
           { label: 'Central' },
         ]}
       />
 
       <div className="flex items-center justify-between gap-4">
-        <div>
+        <div className="space-y-1">
           <h1 className="text-3xl font-bold text-slate-900">Contabilidad Central</h1>
-          <p className="text-sm text-slate-600 mt-1">Gestiona los gastos generales de la empresa</p>
+          <p className="text-sm text-slate-600">Gestiona los gastos generales de la empresa</p>
         </div>
       </div>
 
       {error && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
-          <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3 items-start">
+          <AlertCircle className="w-5 h-5 text-yellow-700 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-yellow-800">{error}</p>
         </div>
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-3 w-full border-b-0">
-          <TabsTrigger value="gastos">Gastos ({gastos.length})</TabsTrigger>
-          <TabsTrigger value="categorias">Categorías</TabsTrigger>
-          <TabsTrigger value="flujo">Flujo de Caja</TabsTrigger>
+        <TabsList className="grid grid-cols-3 w-full bg-white border-b border-slate-200">
+          <TabsTrigger value="gastos" className="data-[state=active]:text-yellow-600 data-[state=active]:border-b-2 data-[state=active]:border-yellow-600">
+            Gastos ({gastos.length})
+          </TabsTrigger>
+          <TabsTrigger value="categorias" className="data-[state=active]:text-yellow-600 data-[state=active]:border-b-2 data-[state=active]:border-yellow-600">
+            Categorías
+          </TabsTrigger>
+          <TabsTrigger value="flujo" className="data-[state=active]:text-yellow-600 data-[state=active]:border-b-2 data-[state=active]:border-yellow-600">
+            Flujo de Caja
+          </TabsTrigger>
         </TabsList>
 
         {/* Gastos Tab */}
@@ -118,8 +126,9 @@ export function ContabilidadCentralView() {
               onUpdate={handleSuccess}
             />
           ) : (
-            <div className="text-center py-8 text-slate-500">
-              No hay gastos centrales. Crea el primero usando el formulario arriba.
+            <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-200">
+              <p className="text-slate-600 font-medium">No hay gastos centrales</p>
+              <p className="text-sm text-slate-500 mt-1">Crea el primero usando el formulario arriba</p>
             </div>
           )}
         </TabsContent>
@@ -134,8 +143,9 @@ export function ContabilidadCentralView() {
           {flujoCaja.length > 0 ? (
             <FlujoCajaCentralChart flujoCaja={flujoCaja} anio={currentYear} />
           ) : (
-            <div className="text-center py-8 text-slate-500">
-              No hay datos de flujo de caja para {currentYear}. Agrega gastos para ver el análisis.
+            <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-200">
+              <p className="text-slate-600 font-medium">No hay datos de flujo de caja para {currentYear}</p>
+              <p className="text-sm text-slate-500 mt-1">Agrega gastos para ver el análisis</p>
             </div>
           )}
         </TabsContent>
