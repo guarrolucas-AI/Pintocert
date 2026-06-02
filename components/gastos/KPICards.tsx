@@ -26,23 +26,25 @@ export function KPICards({ dataByMonth, anio }: KPICardsProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
       {/* Total Egresos Card */}
-      <div className="bg-red-50 rounded-lg p-4 border border-red-100">
-        <p className="text-sm text-red-600 mb-1 font-medium">Total Egresos ({anio})</p>
-        <p className="text-2xl font-bold text-red-700">{formatARS(totalEgresos)}</p>
+      <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+        <p className="text-xs font-medium text-red-600 uppercase tracking-wide mb-2">Total Egresos ({anio})</p>
+        <p className="text-2xl font-bold text-red-900">{formatARS(totalEgresos)}</p>
       </div>
 
       {/* Final Saldo Card */}
-      <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-        <p className="text-sm text-blue-600 mb-1 font-medium">Saldo Final</p>
-        <p className={`text-2xl font-bold ${finalSaldo >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+      <div className={`rounded-lg p-4 border ${finalSaldo >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
+        <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{color: finalSaldo >= 0 ? '#1e40af' : '#991b1b'}}>
+          Saldo Final
+        </p>
+        <p className={`text-2xl font-bold ${finalSaldo >= 0 ? 'text-blue-900' : 'text-red-900'}`}>
           {formatARS(finalSaldo)}
         </p>
       </div>
 
       {/* Average Monthly Card */}
-      <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
-        <p className="text-sm text-slate-600 mb-1 font-medium">Promedio Mensual</p>
-        <p className="text-2xl font-bold text-slate-700">{formatARS(avgMonthly)}</p>
+      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">Promedio Mensual</p>
+        <p className="text-2xl font-bold text-slate-900">{formatARS(avgMonthly)}</p>
       </div>
     </div>
   )
