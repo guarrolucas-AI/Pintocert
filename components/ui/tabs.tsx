@@ -7,6 +7,7 @@ interface TabsProps {
   value: string
   onValueChange: (value: string) => void
   children: React.ReactNode
+  className?: string
 }
 
 interface TabsListProps {
@@ -25,9 +26,9 @@ interface TabsContentProps {
   children: React.ReactNode
 }
 
-export function Tabs({ value, onValueChange, children }: TabsProps) {
+export function Tabs({ value, onValueChange, children, className = '' }: TabsProps) {
   return (
-    <div>
+    <div className={className}>
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child) && child.type === TabsList) {
           return React.cloneElement(child, { value, onValueChange } as any)
