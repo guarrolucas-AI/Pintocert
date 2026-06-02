@@ -130,7 +130,7 @@ export function ContabilidadCentralView() {
         </TabsContent>
 
         {/* Flujo de Caja Tab */}
-        <TabsContent value="flujo" className="pt-6">
+        <TabsContent value="flujo" className="space-y-6 pt-6">
           {flujoCaja.length > 0 ? (
             <FlujoCajaCentralChart flujoCaja={flujoCaja} anio={currentYear} />
           ) : (
