@@ -28,12 +28,11 @@ export async function uploadFotoObra({
   if (!titulo.trim()) return { error: 'Título requerido' }
   if (!archivo) return { error: 'Archivo requerido' }
 
-  // Check that obra exists and belongs to user
+  // Check that obra exists
   const { data: obra, error: obraError } = await supabase
     .from('obras')
     .select('id')
     .eq('id', obraId)
-    .eq('created_by', user.id)
     .single()
 
   if (obraError || !obra) return { error: 'Obra no encontrada' }
