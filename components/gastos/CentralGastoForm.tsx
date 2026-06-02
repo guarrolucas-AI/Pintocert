@@ -83,6 +83,7 @@ export function CentralGastoForm({ categorias, onSuccess }: CentralGastoFormProp
     return (
       <Button
         onClick={() => setIsExpanded(true)}
+        size="lg"
         className="w-full"
       >
         + Agregar Gasto Central
@@ -91,8 +92,18 @@ export function CentralGastoForm({ categorias, onSuccess }: CentralGastoFormProp
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border rounded-lg p-4 space-y-4 bg-slate-50">
-      <h3 className="font-semibold text-lg">Nuevo Gasto Central</h3>
+    <form onSubmit={handleSubmit} className="border border-slate-200 rounded-lg p-6 space-y-5 bg-white">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-lg text-slate-900">Nuevo Gasto Central</h3>
+        <button
+          type="button"
+          onClick={() => setIsExpanded(false)}
+          className="text-slate-400 hover:text-slate-600"
+          title="Cerrar formulario"
+        >
+          ✕
+        </button>
+      </div>
 
       {error && (
         <div className="bg-red-100 text-red-700 p-3 rounded text-sm">
@@ -221,7 +232,7 @@ export function CentralGastoForm({ categorias, onSuccess }: CentralGastoFormProp
       </div>
 
       {/* Buttons */}
-      <div className="flex gap-2 justify-end">
+      <div className="flex gap-2 justify-end pt-2">
         <Button
           type="button"
           variant="outline"

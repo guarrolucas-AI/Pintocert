@@ -101,14 +101,14 @@ export function ContabilidadCentralView() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid grid-cols-3 w-full border-b-0">
           <TabsTrigger value="gastos">Gastos ({gastos.length})</TabsTrigger>
           <TabsTrigger value="categorias">Categorías</TabsTrigger>
           <TabsTrigger value="flujo">Flujo de Caja</TabsTrigger>
         </TabsList>
 
         {/* Gastos Tab */}
-        <TabsContent value="gastos" className="space-y-6">
+        <TabsContent value="gastos" className="space-y-6 pt-6">
           <CentralGastoForm categorias={categorias} onSuccess={handleSuccess} />
           {gastos.length > 0 ? (
             <CentralGastosTable
@@ -125,12 +125,12 @@ export function ContabilidadCentralView() {
         </TabsContent>
 
         {/* Categorías Tab */}
-        <TabsContent value="categorias">
+        <TabsContent value="categorias" className="pt-6">
           <CategoriasGastoCentralModal categorias={categorias} onSuccess={handleSuccess} />
         </TabsContent>
 
         {/* Flujo de Caja Tab */}
-        <TabsContent value="flujo">
+        <TabsContent value="flujo" className="pt-6">
           {flujoCaja.length > 0 ? (
             <FlujoCajaCentralChart flujoCaja={flujoCaja} anio={currentYear} />
           ) : (
