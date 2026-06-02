@@ -22,7 +22,6 @@ export default async function FotosPage({ params }: { params: { id: string } }) 
     .from('obras')
     .select('*')
     .eq('id', params.id)
-    .eq('created_by', user.id)
     .single()
 
   if (obraError || !obra) {
