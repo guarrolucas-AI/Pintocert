@@ -61,6 +61,7 @@ export default function ContabilidadPage() {
               </div>
             </div>
           </div>
+        </div>
       </div>
     </div>
   )
