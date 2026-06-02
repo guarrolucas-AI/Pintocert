@@ -48,7 +48,7 @@ export function Topbar({ perfil }: TopbarProps) {
             Presupuestos
           </Link>
           <Link
-            href="/contabilidad/central"
+            href="/contabilidad"
             className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block"
           >
             Contabilidad
@@ -107,7 +107,7 @@ export function Topbar({ perfil }: TopbarProps) {
             Presupuestos
           </Link>
           <Link
-            href="/contabilidad/central"
+            href="/contabilidad"
             className="block text-sm text-white/70 hover:text-white transition-colors py-2"
             onClick={() => setMobileMenuOpen(false)}
           >
