@@ -7,13 +7,13 @@ import { formatARS } from '@/lib/utils'
 import { Trash2, Edit2 } from 'lucide-react'
 import type { GastoCentral, CategoriaGastoCentral } from '@/lib/types'
 
-const TIPO_GASTO_COLORS: Record<string, { color: string; label: string }> = {
-  sueldo: { color: '#10B981', label: 'Sueldo' },
-  combustible: { color: '#F59E0B', label: 'Combustible' },
-  maquina: { color: '#6366F1', label: 'Máquina' },
-  material: { color: '#3B82F6', label: 'Material' },
-  retiro_socio: { color: '#EF4444', label: 'Retiro de Socio' },
-  otro: { color: '#8B5CF6', label: 'Otro' },
+const TIPO_GASTO_COLORS: Record<string, { label: string; bgColor: string; textColor: string; dotColor: string; borderColor: string }> = {
+  sueldo: { label: 'Sueldo', bgColor: 'bg-red-50', textColor: 'text-red-900', dotColor: 'bg-red-600', borderColor: 'border-red-300' },
+  combustible: { label: 'Combustible', bgColor: 'bg-orange-50', textColor: 'text-orange-900', dotColor: 'bg-orange-600', borderColor: 'border-orange-300' },
+  maquina: { label: 'Máquina', bgColor: 'bg-blue-50', textColor: 'text-blue-900', dotColor: 'bg-blue-600', borderColor: 'border-blue-300' },
+  material: { label: 'Material', bgColor: 'bg-green-50', textColor: 'text-green-900', dotColor: 'bg-green-600', borderColor: 'border-green-300' },
+  retiro_socio: { label: 'Retiro de Socio', bgColor: 'bg-purple-50', textColor: 'text-purple-900', dotColor: 'bg-purple-600', borderColor: 'border-purple-300' },
+  otro: { label: 'Otro', bgColor: 'bg-slate-50', textColor: 'text-slate-900', dotColor: 'bg-slate-600', borderColor: 'border-slate-300' },
 }
 
 interface CentralGastosTableProps {
@@ -88,86 +88,82 @@ export function CentralGastosTable({ gastos, categorias, onDelete, onUpdate }: C
   return (
     <div className="space-y-4">
       {/* Filter Bar */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={filterTipo === '' ? 'default' : 'outline'}
-          size="sm"
+      <div className="flex flex-wrap gap-2 pb-4 border-b border-slate-200">
+        <button
           onClick={() => setFilterTipo('')}
+          className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${
+            filterTipo === ''
+              ? 'bg-yellow-600 text-white border-yellow-600'
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+          }`}
         >
           Todos ({gastos.length})
-        </Button>
-        {Object.entries(TIPO_GASTO_COLORS).map(([tipo, { label, color }]) => {
+        </button>
+        {Object.entries(TIPO_GASTO_COLORS).map(([tipo, { label, bgColor, textColor, dotColor }]) => {
           const count = gastos.filter((g) => g.tipo_gasto === tipo).length
           const total = tipoStats[tipo] || 0
           if (count === 0) return null
 
           return (
-            <Button
+            <button
               key={tipo}
-              variant={filterTipo === tipo ? 'default' : 'outline'}
-              size="sm"
               onClick={() => setFilterTipo(filterTipo === tipo ? '' : tipo)}
-              style={{
-                backgroundColor: filterTipo === tipo ? color : 'transparent',
-                color: filterTipo === tipo ? 'white' : color,
-                borderColor: color,
-              }}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors flex items-center gap-1 ${
+                filterTipo === tipo
+                  ? `${bgColor} ${textColor} border-transparent ring-2 ring-offset-1 ring-slate-300`
+                  : `bg-white ${textColor} border-slate-200 hover:${bgColor}`
+              }`}
             >
-              {label} ({count}) - {formatARS(total)}
-            </Button>
+              <span className={`w-2 h-2 rounded-full ${dotColor}`}></span>
+              {label} ({count})
+            </button>
           )
         })}
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden sm:block overflow-x-auto">
+      <div className="hidden sm:block overflow-x-auto bg-white border border-slate-200 rounded-lg">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-2 px-3">Fecha</th>
-              <th className="text-left py-2 px-3">Tipo</th>
-              <th className="text-left py-2 px-3">Categoría</th>
-              <th className="text-left py-2 px-3">Descripción</th>
-              <th className="text-right py-2 px-3">Monto</th>
-              <th className="text-center py-2 px-3">Acciones</th>
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="text-left py-3 px-4 font-semibold text-slate-900">Fecha</th>
+              <th className="text-left py-3 px-4 font-semibold text-slate-900">Tipo</th>
+              <th className="text-left py-3 px-4 font-semibold text-slate-900">Categoría</th>
+              <th className="text-left py-3 px-4 font-semibold text-slate-900">Descripción</th>
+              <th className="text-right py-3 px-4 font-semibold text-slate-900">Monto</th>
+              <th className="text-center py-3 px-4 font-semibold text-slate-900">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {filteredGastos.map((gasto) => (
-              <tr key={gasto.id} className="border-b hover:bg-slate-50">
-                <td className="py-2 px-3">{gasto.fecha}</td>
-                <td className="py-2 px-3">
-                  <span
-                    style={{
-                      backgroundColor: TIPO_GASTO_COLORS[gasto.tipo_gasto]?.color,
-                      color: 'white',
-                    }}
-                    className="px-2 py-1 rounded text-xs font-medium"
-                  >
-                    {TIPO_GASTO_COLORS[gasto.tipo_gasto]?.label || gasto.tipo_gasto}
-                  </span>
+            {filteredGastos.map((gasto, idx) => (
+              <tr key={gasto.id} className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                <td className="py-3 px-4 text-slate-600">{gasto.fecha}</td>
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${TIPO_GASTO_COLORS[gasto.tipo_gasto]?.dotColor || 'bg-slate-400'}`}></span>
+                    <span className="text-sm font-medium text-slate-900">{TIPO_GASTO_COLORS[gasto.tipo_gasto]?.label}</span>
+                  </div>
                 </td>
-                <td className="py-2 px-3">{gasto.categoria}</td>
-                <td className="py-2 px-3">{gasto.descripcion}</td>
-                <td className="text-right py-2 px-3 font-semibold">{formatARS(gasto.monto)}</td>
-                <td className="text-center py-2 px-3 space-x-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                <td className="py-3 px-4 text-slate-700">{gasto.categoria}</td>
+                <td className="py-3 px-4 text-slate-600 max-w-md truncate">{gasto.descripcion}</td>
+                <td className="text-right py-3 px-4 font-semibold text-slate-900">{formatARS(gasto.monto)}</td>
+                <td className="text-center py-3 px-4 space-x-1">
+                  <button
                     onClick={() => handleEdit(gasto)}
                     disabled={isLoading}
+                    className="inline-block p-1.5 hover:bg-blue-50 text-blue-600 rounded transition-colors"
+                    title="Editar"
                   >
                     <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                  </button>
+                  <button
                     onClick={() => handleDelete(gasto.id)}
                     disabled={isLoading}
-                    className="text-red-600 hover:text-red-700"
+                    className="inline-block p-1.5 hover:bg-red-50 text-red-600 rounded transition-colors"
+                    title="Eliminar"
                   >
                     <Trash2 className="w-4 h-4" />
-                  </Button>
+                  </button>
                 </td>
               </tr>
             ))}
@@ -176,77 +172,75 @@ export function CentralGastosTable({ gastos, categorias, onDelete, onUpdate }: C
       </div>
 
       {/* Mobile Card View */}
-      <div className="sm:hidden space-y-2">
+      <div className="sm:hidden space-y-3">
         {filteredGastos.map((gasto) => (
-          <div key={gasto.id} className="border rounded-lg p-3 space-y-2">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="flex gap-2 items-center">
-                  <span
-                    style={{
-                      backgroundColor: TIPO_GASTO_COLORS[gasto.tipo_gasto]?.color,
-                      color: 'white',
-                    }}
-                    className="px-2 py-1 rounded text-xs font-medium"
-                  >
-                    {TIPO_GASTO_COLORS[gasto.tipo_gasto]?.label}
-                  </span>
-                  <span className="text-xs text-slate-500">{gasto.fecha}</span>
-                </div>
-                <p className="font-medium mt-1">{gasto.descripcion}</p>
-                <p className="text-xs text-slate-500">{gasto.categoria}</p>
+          <div key={gasto.id} className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+            {/* Header with tipo and fecha */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <span className={`w-3 h-3 rounded-full ${TIPO_GASTO_COLORS[gasto.tipo_gasto]?.dotColor}`}></span>
+                <span className="text-sm font-medium text-slate-900">{TIPO_GASTO_COLORS[gasto.tipo_gasto]?.label}</span>
               </div>
-              <p className="text-right font-semibold">{formatARS(gasto.monto)}</p>
+              <span className="text-xs text-slate-500">{gasto.fecha}</span>
             </div>
 
+            {/* Description and details */}
+            <div className="space-y-1">
+              <p className="font-medium text-slate-900">{gasto.descripcion}</p>
+              <p className="text-xs text-slate-500">Categoría: {gasto.categoria}</p>
+            </div>
+
+            {/* Amount */}
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+              <span className="text-slate-600 text-sm">Monto:</span>
+              <span className="text-lg font-semibold text-slate-900">{formatARS(gasto.monto)}</span>
+            </div>
+
+            {/* Edit form */}
             {editingId === gasto.id && (
-              <div className="border-t pt-2 space-y-2">
+              <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200">
                 <textarea
                   value={editData.notas || ''}
                   onChange={(e) => setEditData({ ...editData, notas: e.target.value })}
-                  className="w-full border rounded px-2 py-1 text-sm"
+                  className="w-full border border-slate-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   placeholder="Notas"
                 />
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
+                <div className="flex gap-2 pt-2">
+                  <button
                     onClick={() => handleSaveEdit(gasto.id)}
                     disabled={isLoading}
+                    className="flex-1 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium rounded-md transition-colors"
                   >
                     Guardar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  </button>
+                  <button
                     onClick={() => setEditingId(null)}
                     disabled={isLoading}
+                    className="flex-1 px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-md transition-colors"
                   >
                     Cancelar
-                  </Button>
+                  </button>
                 </div>
               </div>
             )}
 
+            {/* Action buttons */}
             {editingId !== gasto.id && (
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
+              <div className="flex gap-2 pt-2">
+                <button
                   onClick={() => handleEdit(gasto)}
                   disabled={isLoading}
-                  className="flex-1"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium rounded-md transition-colors"
                 >
-                  <Edit2 className="w-4 h-4 mr-1" /> Editar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                  <Edit2 className="w-4 h-4" /> Editar
+                </button>
+                <button
                   onClick={() => handleDelete(gasto.id)}
                   disabled={isLoading}
-                  className="text-red-600 hover:text-red-700"
+                  className="px-3 py-1.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 rounded-md transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
             )}
           </div>
@@ -254,9 +248,9 @@ export function CentralGastosTable({ gastos, categorias, onDelete, onUpdate }: C
       </div>
 
       {/* Summary Footer */}
-      <div className="border-t pt-4 flex justify-between items-center font-semibold text-lg">
-        <span>Total Filtrado:</span>
-        <span>{formatARS(totalFiltered)}</span>
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex justify-between items-center">
+        <span className="text-sm font-medium text-slate-600">Total Filtrado:</span>
+        <span className="text-2xl font-bold text-slate-900">{formatARS(totalFiltered)}</span>
       </div>
     </div>
   )
