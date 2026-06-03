@@ -38,6 +38,8 @@ const CATEGORIAS_PREDEFINIDAS = [
   { id: 'materiales', nombre: 'Materiales', color: '#3B82F6' },
   { id: 'mano_obra', nombre: 'Mano de Obra', color: '#10B981' },
   { id: 'otros', nombre: 'Otros', color: '#8B5CF6' },
+  { id: 'seguros', nombre: 'Seguros', color: '#F59E0B' },
+  { id: 'impuestos', nombre: 'Impuestos', color: '#EF4444' },
 ]
 
 export function GastoObraForm({ obraId, onSuccess }: GastoObraFormProps) {

@@ -937,6 +937,8 @@ function TabAgente({
   // sin esperar a que Supabase guarde ni a que el padre re-renderice.
   const [datosLocales, setDatosLocales] = useState<unknown>(datosGenerados)
   const [distribuyendo, setDistribuyendo] = useState(false)
+  const [editandoPrecio, setEditandoPrecio] = useState(false)
+  const [nuevoPrecio, setNuevoPrecio] = useState('')
 
   // Si el padre actualiza (ej: refresh desde DB), sincronizar
   useEffect(() => {
@@ -954,6 +956,23 @@ function TabAgente({
     setDistribuyendo(true)
     await onDistribuirPrecios(datosLocales)
     setDistribuyendo(false)
+  }
+
+  function handleGuardarPrecio() {
+    const precio = parseFloat(nuevoPrecio.replace(/\./g, '').replace(',', '.'))
+    if (isNaN(precio) || precio <= 0) {
+      toast.error('Ingresá un precio válido')
+      return
+    }
+    const datosActualizados = {
+      ...(datosLocales as Record<string, unknown>),
+      precio_venta: precio,
+      ganancia_bruta: 0, // forzar recalculo en AnalisisView
+    }
+    setDatosLocales(datosActualizados)
+    onDataGenerada('analisis_completo', datosActualizados)
+    setEditandoPrecio(false)
+    toast.success('Precio de venta actualizado')
   }
 
   const hayDatos = !!datosLocales
@@ -995,6 +1014,57 @@ function TabAgente({
               >
                 Resetear
               </Button>
+            )}
+            {onDistribuirPrecios && hayDatos && !editandoPrecio && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const d = datosLocales as Record<string, any>
+                  const precio = d?.precio_venta ?? d?.datos?.precio_venta ?? 0
+                  setNuevoPrecio(precio > 0 ? String(precio) : '')
+                  setEditandoPrecio(true)
+                }}
+                title="Editar el precio de venta manualmente"
+                className="text-xs text-slate-600 border-slate-200 hover:bg-slate-50 gap-1.5"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                Editar precio
+              </Button>
+            )}
+            {editandoPrecio && (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={nuevoPrecio}
+                  onChange={(e) => setNuevoPrecio(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleGuardarPrecio()
+                    if (e.key === 'Escape') setEditandoPrecio(false)
+                  }}
+                  placeholder="Ej: 3500000"
+                  className="w-36 text-xs border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleGuardarPrecio}
+                  className="text-xs text-green-700 hover:bg-green-50 h-7 px-2"
+                  title="Confirmar precio"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditandoPrecio(false)}
+                  className="text-xs text-slate-500 hover:bg-slate-50 h-7 px-2"
+                  title="Cancelar"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </div>
             )}
             {onDistribuirPrecios && hayDatos && (
               <Button
