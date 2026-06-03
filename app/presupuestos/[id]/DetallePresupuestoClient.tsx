@@ -229,8 +229,8 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
       return
     }
 
-    // precio_venta incluye IVA → calculamos subtotal sin IVA
-    const totalSinIva = Math.round(precioVenta / (1 + presupuesto.iva_porcentaje / 100))
+    // precio_venta es el subtotal sin IVA (lo que muestra el KPI)
+    const totalSinIva = Math.round(precioVenta)
 
     toast.loading('Distribuyendo precios con IA...', { id: 'distribuir' })
 
