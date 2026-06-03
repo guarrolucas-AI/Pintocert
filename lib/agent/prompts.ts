@@ -115,10 +115,39 @@ export function getSystemPrompt(modo: ModuloAgente, contexto?: Record<string, un
 
 // ─── MÓDULO: PRESUPUESTO ──────────────────────────────────────────────────────
 
+function formatPresupuestosAnteriores(lista: unknown[]): string {
+  if (!lista || lista.length === 0) return ''
+
+  const items = lista.map((p: any, i: number) => {
+    const fecha = p.created_at
+      ? new Date(p.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' })
+      : ''
+    const contacto = [p.cliente_email, p.cliente_telefono].filter(Boolean).join(' | ')
+    const preciosRef = (p.items as any[] ?? [])
+      .slice(0, 6)
+      .map((it: any) => `${it.descripcion} ($${it.precio_unitario.toLocaleString('es-AR')}/${it.unidad})`)
+      .join(' · ')
+    return `[${i + 1}] ${p.cliente}${contacto ? ` | ${contacto}` : ''} | ${p.obra_localidad} | ${fecha}
+    Obra: ${p.obra_descripcion || '—'}
+    Precios: ${preciosRef || '—'}
+    Total: $${(p.total ?? 0).toLocaleString('es-AR')}`
+  })
+
+  return `HISTORIAL DE PRESUPUESTOS (últimos ${lista.length} — usá para referencia de precios y datos de clientes):
+
+${items.join('\n\n')}
+
+Si el usuario menciona un cliente que aparece en el historial, usá sus datos de contacto sin volver a preguntar.
+Si la obra es similar a una anterior, tomá esos precios como referencia actualizada.`
+}
+
 function promptPresupuesto(ctx?: Record<string, unknown>) {
   const notas = ctx?.erroresPrevios ? `\nERRORES A EVITAR (de iteraciones anteriores):\n${ctx.erroresPrevios}` : ''
+  const historial = formatPresupuestosAnteriores((ctx?.presupuestosAnteriores as unknown[]) ?? [])
 
   return `${BASE_CONTEXT}
+
+${historial}
 
 Tu tarea es ayudar a confeccionar un presupuesto de obra de construcción/refacción para enviarle al cliente.
 

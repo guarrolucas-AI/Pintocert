@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
@@ -80,6 +80,20 @@ export function NuevoPresupuestoClient({ userId }: Props) {
   const [editedPresupuesto, setEditedPresupuesto] = useState<Presupuesto | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [presupuestosAnteriores, setPresupuestosAnteriores] = useState<unknown[]>([])
+
+  useEffect(() => {
+    async function fetchAnteriores() {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('presupuestos')
+        .select('cliente, cliente_email, cliente_telefono, obra_descripcion, obra_localidad, items, total, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10)
+      if (data) setPresupuestosAnteriores(data)
+    }
+    fetchAnteriores()
+  }, [])
 
   function handleDataGenerada(tipo: string, datos: unknown) {
     if (tipo === 'presupuesto_completo') {
@@ -165,6 +179,7 @@ export function NuevoPresupuestoClient({ userId }: Props) {
         </div>
         <AgentChat
           modo="presupuesto"
+          contexto={{ presupuestosAnteriores }}
           onDataGenerada={handleDataGenerada}
           onMensajesActualizados={setMensajes}
           placeholder="Completá los datos de la obra..."
