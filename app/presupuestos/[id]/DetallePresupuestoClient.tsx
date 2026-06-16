@@ -677,6 +677,21 @@ function TabResumen({
             )}
           </div>
         </div>
+
+        <div className="mt-4">
+          <label className="text-xs text-slate-500 font-medium">Descripción de la obra</label>
+          {editMode ? (
+            <textarea
+              value={p.obra_descripcion || ''}
+              onChange={(e) => onEditChange('obra_descripcion', e.target.value)}
+              rows={3}
+              className="w-full border border-slate-200 rounded px-3 py-2 mt-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              placeholder="Describí el trabajo a realizar..."
+            />
+          ) : (
+            <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{p.obra_descripcion || '—'}</p>
+          )}
+        </div>
       </div>
 
       {/* Resumen financiero */}
