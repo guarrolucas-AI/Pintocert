@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { Button } from '@/components/ui/button'
-import { PresupuestoCard } from '@/components/presupuestos/PresupuestoCard'
+import { PresupuestoPipeline } from '@/components/presupuestos/PresupuestoPipeline'
 import type { Presupuesto } from '@/lib/types'
 import { Plus } from 'lucide-react'
 
@@ -64,11 +64,7 @@ export default async function PresupuestosPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(presupuestos as Presupuesto[]).map((p) => (
-            <PresupuestoCard key={p.id} presupuesto={p} />
-          ))}
-        </div>
+        <PresupuestoPipeline presupuestos={presupuestos as Presupuesto[]} />
       )}
     </div>
   )
