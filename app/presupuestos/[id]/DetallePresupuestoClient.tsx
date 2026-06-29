@@ -320,8 +320,11 @@ export function DetallePresupuestoClient({ presupuesto: initialP, mensajesPorMod
   }
 
   async function handleGuardarEdicion() {
-    const dataToSave = editedPresupuesto || presupuesto
-    if (!dataToSave) return
+    const raw = editedPresupuesto || presupuesto
+    if (!raw) return
+
+    const { subtotal, iva, total } = calculatePresupuestoTotals(raw)
+    const dataToSave = { ...raw, subtotal, monto_iva: iva, total }
 
     try {
       const supabase = createClient()
@@ -700,15 +703,30 @@ function TabResumen({
           <h3 className="text-sm font-semibold text-slate-700 mb-4">Resumen financiero</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-slate-600">
-              <span>Subtotal sin IVA</span>
+              <span>Subtotal</span>
               <span className="font-semibold">{formatARS(subtotal)}</span>
             </div>
-            <div className="flex justify-between text-slate-600">
-              <span>IVA ({p.iva_porcentaje}%)</span>
-              <span className="font-semibold">{formatARS(iva)}</span>
-            </div>
+            {p.iva_porcentaje > 0 && (
+              <div className="flex justify-between text-slate-600">
+                <span>IVA ({p.iva_porcentaje}%)</span>
+                <span className="font-semibold">{formatARS(iva)}</span>
+              </div>
+            )}
+            {editMode && (
+              <button
+                type="button"
+                onClick={() => onEditChange('iva_porcentaje', p.iva_porcentaje > 0 ? 0 : 21)}
+                className={`w-full text-xs font-medium py-1.5 rounded-md border transition-colors ${
+                  p.iva_porcentaje > 0
+                    ? 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                    : 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                }`}
+              >
+                {p.iva_porcentaje > 0 ? 'Quitar IVA (factura sin IVA)' : 'Agregar IVA 21%'}
+              </button>
+            )}
             <div className="flex justify-between py-2 px-3 rounded-lg bg-slate-900 text-white mt-2">
-              <span className="font-bold">TOTAL</span>
+              <span className="font-bold">TOTAL{p.iva_porcentaje === 0 ? ' (sin IVA)' : ''}</span>
               <span className="font-bold text-base">{formatARS(total)}</span>
             </div>
           </div>

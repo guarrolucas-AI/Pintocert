@@ -213,16 +213,18 @@ export function PresupuestoPDF({ presupuesto: p }: Props) {
         <View style={s.totalesContainer}>
           <View style={s.totalesBox}>
             <View style={s.totalRow}>
-              <Text style={s.totalLabel}>Subtotal sin IVA</Text>
+              <Text style={s.totalLabel}>Subtotal</Text>
               <Text style={s.totalValue}>{formatARS(subtotal)}</Text>
             </View>
-            <View style={s.totalRow}>
-              <Text style={s.totalLabel}>IVA ({p.iva_porcentaje}%)</Text>
-              <Text style={s.totalValue}>{formatARS(iva)}</Text>
-            </View>
+            {p.iva_porcentaje > 0 && (
+              <View style={s.totalRow}>
+                <Text style={s.totalLabel}>IVA ({p.iva_porcentaje}%)</Text>
+                <Text style={s.totalValue}>{formatARS(iva)}</Text>
+              </View>
+            )}
             <View style={[s.totalRowBorder, { backgroundColor: '#f1f5f9', borderRadius: 4 }]}>
               <Text style={[s.totalLabel, { fontFamily: 'Helvetica-Bold', color: '#0f172a', fontSize: 9 }]}>
-                TOTAL
+                TOTAL{p.iva_porcentaje === 0 ? ' (sin IVA)' : ''}
               </Text>
               <Text style={[s.totalValue, { fontSize: 11 }]}>{formatARS(total)}</Text>
             </View>

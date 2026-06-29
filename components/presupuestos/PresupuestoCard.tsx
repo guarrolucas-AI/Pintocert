@@ -61,7 +61,7 @@ export function PresupuestoCard({ presupuesto: p }: { presupuesto: Presupuesto }
       </div>
 
       <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-        <span className="text-xs text-muted-foreground">{p.items.length} ítem{p.items.length !== 1 ? 's' : ''} · IVA {p.iva_porcentaje}%</span>
+        <span className="text-xs text-muted-foreground">{p.items.length} ítem{p.items.length !== 1 ? 's' : ''} · {p.iva_porcentaje > 0 ? `IVA ${p.iva_porcentaje}%` : 'Sin IVA'}</span>
         <span className="font-bold text-slate-900 text-sm">
           {p.total > 0 ? formatARS(p.total) : '—'}
         </span>
