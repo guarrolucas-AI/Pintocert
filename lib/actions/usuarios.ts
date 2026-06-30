@@ -75,6 +75,20 @@ export async function cambiarRolUsuario(userId: string, nuevoRol: string) {
   return { success: true }
 }
 
+export async function resetearPassword(userId: string, newPassword: string) {
+  const { error, admin } = await requireAdminUser()
+  if (error || !admin) return { error: error ?? 'Error' }
+
+  if (newPassword.length < 6) return { error: 'Mínimo 6 caracteres' }
+
+  const { error: authError } = await admin.auth.admin.updateUserById(userId, {
+    password: newPassword,
+  })
+  if (authError) return { error: authError.message }
+
+  return { success: true }
+}
+
 export async function updateUsuario(
   userId: string,
   updates: { nombre?: string; email?: string }
