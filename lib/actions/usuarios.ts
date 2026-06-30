@@ -47,7 +47,7 @@ export async function eliminarUsuario(userId: string) {
   const { error, admin } = await requireAdminUser()
   if (error || !admin) return { error: error ?? 'Error' }
 
-  await admin.from('perfiles').delete().eq('id', userId)
+  // Deleting from auth.users cascades to perfiles, which sets NULL on obras/presupuestos/gastos
   const { error: authError } = await admin.auth.admin.deleteUser(userId)
   if (authError) return { error: authError.message }
 
