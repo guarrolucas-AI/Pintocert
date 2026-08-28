@@ -4,7 +4,7 @@ import { formatARS } from '@/lib/utils'
 import { PagoForm } from './PagoForm'
 import { eliminarPago } from '@/lib/actions/pagos'
 import { toast } from 'sonner'
-import { Trash2 } from 'lucide-react'
+import { Trash2, FileImage } from 'lucide-react'
 import type { Pago } from '@/lib/types'
 
 function PagoRow({ pago, obraId }: { pago: Pago; obraId: string }) {
@@ -26,6 +26,21 @@ function PagoRow({ pago, obraId }: { pago: Pago; obraId: string }) {
       <td className="px-4 py-3 font-semibold text-slate-900">{formatARS(pago.importe)}</td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{pago.referencia ?? '—'}</td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{pago.notas ?? ''}</td>
+      <td className="px-4 py-3 text-center">
+        {pago.comprobante_url ? (
+          <a
+            href={pago.comprobante_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Ver comprobante"
+            className="inline-flex text-blue-500 hover:text-blue-700 transition-colors"
+          >
+            <FileImage className="h-3.5 w-3.5" />
+          </a>
+        ) : (
+          <span className="text-slate-300">—</span>
+        )}
+      </td>
       <td className="px-4 py-3 text-right">
         <button
           onClick={handleDelete}
@@ -82,6 +97,7 @@ export function PagosPanel({ obraId, pagos, totalCertificado, isAdmin }: PagosPa
                 <th className="px-4 py-2 text-left">Importe</th>
                 <th className="px-4 py-2 text-left">Referencia</th>
                 <th className="px-4 py-2 text-left">Notas</th>
+                <th className="px-4 py-2 text-center">Comprobante</th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>

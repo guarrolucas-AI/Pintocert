@@ -87,6 +87,7 @@ export interface Pago {
   importe: number
   referencia: string | null
   notas: string | null
+  comprobante_url: string | null
   created_by: string
   created_at: string
 }

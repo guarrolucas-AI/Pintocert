@@ -20,12 +20,27 @@ export async function registrarPago(obraId: string, formData: FormData) {
   const importe = parseFloat(formData.get('importe') as string)
   if (isNaN(importe) || importe <= 0) return { error: 'Importe inválido' }
 
+  // Upload comprobante if provided
+  let comprobante_url: string | null = null
+  const archivo = formData.get('comprobante') as File | null
+  if (archivo && archivo.size > 0) {
+    const ext = archivo.name.split('.').pop() ?? 'png'
+    const fileName = `${user.id}/${obraId}/pago_${Date.now()}.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('comprobantes_gastos')
+      .upload(fileName, archivo, { upsert: false })
+    if (uploadError) return { error: `Error subiendo comprobante: ${uploadError.message}` }
+    const { data: urlData } = supabase.storage.from('comprobantes_gastos').getPublicUrl(fileName)
+    comprobante_url = urlData?.publicUrl ?? null
+  }
+
   const { error: dbError } = await supabase.from('pagos').insert({
     obra_id: obraId,
     fecha_pago: formData.get('fecha_pago') as string,
     importe,
     referencia: (formData.get('referencia') as string) || null,
     notas: (formData.get('notas') as string) || null,
+    comprobante_url,
     created_by: user.id,
   })
 
