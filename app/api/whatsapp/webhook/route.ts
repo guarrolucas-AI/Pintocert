@@ -438,6 +438,7 @@ export async function POST(req: NextRequest) {
 
   const from = message.from as string
   const texto = (message.text?.body as string)?.trim()
+  console.log('WA incoming | from:', from, '| texto:', texto)
   if (!texto) return NextResponse.json({ ok: true })
 
   const admin = createAdminClient()
