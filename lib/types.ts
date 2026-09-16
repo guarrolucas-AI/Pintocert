@@ -42,6 +42,7 @@ export interface Perfil {
   nombre: string
   email: string
   rol: Rol
+  whatsapp_number: string | null
   created_at: string
 }
 

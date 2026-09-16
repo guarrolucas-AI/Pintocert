@@ -91,7 +91,7 @@ export async function resetearPassword(userId: string, newPassword: string) {
 
 export async function updateUsuario(
   userId: string,
-  updates: { nombre?: string; email?: string }
+  updates: { nombre?: string; email?: string; whatsapp_number?: string }
 ) {
   const { error, admin } = await requireAdminUser()
   if (error || !admin) return { error: error ?? 'Error' }
@@ -118,9 +118,13 @@ export async function updateUsuario(
   }
 
   // Actualizar perfil en BD
-  const updateData: Record<string, string> = {}
+  const updateData: Record<string, string | null> = {}
   if (nombre) updateData.nombre = nombre
   if (email) updateData.email = email
+  if (updates.whatsapp_number !== undefined) {
+    const wa = updates.whatsapp_number.trim().replace(/\D/g, '')
+    updateData.whatsapp_number = wa || null
+  }
 
   const { error: updateError } = await admin
     .from('perfiles')

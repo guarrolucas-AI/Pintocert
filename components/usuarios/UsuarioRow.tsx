@@ -18,6 +18,7 @@ export function UsuarioRow({ perfil, currentUserId }: { perfil: Perfil; currentU
   const [editingProfile, setEditingProfile] = useState(false)
   const [nombre, setNombre] = useState(perfil.nombre)
   const [email, setEmail] = useState(perfil.email)
+  const [whatsapp, setWhatsapp] = useState(perfil.whatsapp_number ?? '')
   const [editingPassword, setEditingPassword] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const isSelf = perfil.id === currentUserId
@@ -54,7 +55,7 @@ export function UsuarioRow({ perfil, currentUserId }: { perfil: Perfil; currentU
   }
 
   function handleUpdateProfile() {
-    if (nombre === perfil.nombre && email === perfil.email) {
+    if (nombre === perfil.nombre && email === perfil.email && whatsapp === (perfil.whatsapp_number ?? '')) {
       setEditingProfile(false)
       return
     }
@@ -63,11 +64,12 @@ export function UsuarioRow({ perfil, currentUserId }: { perfil: Perfil; currentU
       return
     }
     startTransition(async () => {
-      const res = await updateUsuario(perfil.id, { nombre, email })
+      const res = await updateUsuario(perfil.id, { nombre, email, whatsapp_number: whatsapp })
       if (res.error) {
         toast.error(res.error)
         setNombre(perfil.nombre)
         setEmail(perfil.email)
+        setWhatsapp(perfil.whatsapp_number ?? '')
       } else {
         toast.success('Usuario actualizado')
         setEditingProfile(false)
@@ -97,6 +99,7 @@ export function UsuarioRow({ perfil, currentUserId }: { perfil: Perfil; currentU
     setEditingProfile(false)
     setNombre(perfil.nombre)
     setEmail(perfil.email)
+    setWhatsapp(perfil.whatsapp_number ?? '')
   }
 
   // Fixed date format to avoid server/client hydration mismatch
@@ -109,18 +112,34 @@ export function UsuarioRow({ perfil, currentUserId }: { perfil: Perfil; currentU
     <tr className="border-b last:border-0">
       <td className="px-4 py-3">
         {editingProfile ? (
-          <input
-            type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            className="text-sm border border-slate-200 rounded px-2 py-1 w-full"
-            disabled={isPending}
-          />
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="text-sm border border-slate-200 rounded px-2 py-1 w-full"
+              disabled={isPending}
+              placeholder="Nombre"
+            />
+            <input
+              type="tel"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              className="text-sm border border-slate-200 rounded px-2 py-1 w-full"
+              disabled={isPending}
+              placeholder="WhatsApp (ej: 5491155551234)"
+            />
+          </div>
         ) : (
           <div className="flex items-center justify-between group">
-            <div className="font-medium text-slate-900">
-              {perfil.nombre}
-              {isSelf && <span className="ml-2 text-xs text-muted-foreground">(vos)</span>}
+            <div>
+              <div className="font-medium text-slate-900">
+                {perfil.nombre}
+                {isSelf && <span className="ml-2 text-xs text-muted-foreground">(vos)</span>}
+              </div>
+              {perfil.whatsapp_number && (
+                <div className="text-xs text-green-700 mt-0.5">📱 {perfil.whatsapp_number}</div>
+              )}
             </div>
             {!isSelf && !editingProfile && (
               <Button
