@@ -208,14 +208,29 @@ async function registrarGasto(
 
 // ── Claude: conversational AI agent ──────────────────────────────────
 
+interface ItemPresupuesto {
+  descripcion: string
+  unidad: string
+  cantidad: number
+  precio_unitario: number
+  subtotal: number
+}
+
 interface ClaudeResponse {
-  'intención'?: 'gasto' | 'compromiso' | 'pago_compromiso'
+  'intención'?: 'gasto' | 'compromiso' | 'pago_compromiso' | 'presupuesto'
   pregunta?: string
   listo?: boolean
   datos?: GastoDatos & {
     monto_total?: number
     monto_pago?: number
     categoria?: string
+    // presupuesto fields
+    cliente?: string
+    obra_descripcion?: string
+    obra_direccion?: string
+    obra_localidad?: string
+    items?: ItemPresupuesto[]
+    notas?: string
   }
 }
 
@@ -226,11 +241,12 @@ async function llamarAgente(
 ): Promise<ClaudeResponse> {
   const listaObras = obras.map(o => `- "${o.nombre}" (id: ${o.id})`).join('\n')
 
-  const systemPrompt = `Sos un asistente de WhatsApp para registrar movimientos económicos de una empresa constructora argentina. Podés registrar dos tipos de cosas:
+  const systemPrompt = `Sos un asistente de WhatsApp para una empresa constructora argentina. Podés hacer cuatro cosas:
 
-1. GASTO REAL: algo que ya se pagó o se gastó
-2. COMPROMISO: un presupuesto cerrado con un proveedor que todavía no se pagó (o se pagó parcialmente)
-3. PAGO DE COMPROMISO: un pago parcial o total contra un compromiso ya existente
+1. GASTO REAL: registrar algo que ya se pagó o se gastó
+2. COMPROMISO: registrar un presupuesto cerrado con un proveedor que todavía no se pagó
+3. PAGO DE COMPROMISO: registrar un pago parcial/total contra un compromiso existente
+4. NUEVO PRESUPUESTO: armar un presupuesto para presentarle a un cliente (con ítems, montos y link final)
 
 OBRAS DISPONIBLES EN EL SISTEMA:
 ${listaObras || '(ninguna cargada)'}
@@ -241,20 +257,21 @@ ${JSON.stringify(datosActuales, null, 2)}
 INSTRUCCIONES:
 - Conversá en español argentino informal (tuteá)
 - Detectá automáticamente si el usuario quiere registrar un gasto, un compromiso nuevo, o un pago de compromiso
-- Claves para detectar COMPROMISO: "presupuesto", "comprometí", "cerramos con", "acuerdo con", "anticipo" (si mencionan un proveedor y monto total a pagar)
-- Claves para detectar PAGO DE COMPROMISO: "le pagué", "anticipo a [proveedor]", "pagué a [proveedor]"
+- Claves para COMPROMISO: "cerramos con", "acuerdo con", "comprometí" + proveedor + monto total
+- Claves para PAGO DE COMPROMISO: "le pagué", "anticipo a [proveedor]", "pagué a [proveedor]"
+- Claves para NUEVO PRESUPUESTO: "hacer un presupuesto", "armar presupuesto", "presupuesto para [cliente]", "nuevo presupuesto"
 - Extraé todo lo que puedas de un solo mensaje
 - Si menciona una obra, buscá el match más cercano en la lista y usá ese id/nombre
 - Cuando no está claro la obra, mostrá las opciones numeradas
-- Cuando tengas todos los datos necesarios, devolvé listo:true
 
-Para GASTO: necesitás tipo, descripcion, monto, categoria, obra_id/obra_nombre (si es obra) o categoria_central (si es central), proveedor (opcional)
-Para COMPROMISO: necesitás obra_id/obra_nombre, descripcion, proveedor, monto_total, categoria
-Para PAGO COMPROMISO: necesitás obra_id/obra_nombre, proveedor o descripcion del compromiso, monto_pago, fecha
+Para GASTO: tipo, descripcion, monto, categoria, obra_id/obra_nombre o categoria_central, proveedor (opcional)
+Para COMPROMISO: obra_id/obra_nombre, descripcion, proveedor, monto_total, categoria
+Para PAGO COMPROMISO: obra_id/obra_nombre, proveedor o descripcion, monto_pago, fecha
+Para NUEVO PRESUPUESTO: cliente (nombre), obra_descripcion (tipo de trabajo), obra_direccion, obra_localidad, items (array con descripcion/unidad/cantidad/precio_unitario/subtotal). Preguntá los ítems de a uno o pedile que los describa todos juntos. Calculá subtotal = cantidad × precio_unitario para cada ítem.
 
 FORMATO DE RESPUESTA — solo JSON válido, sin texto extra:
-Si falta info: {"intención": "gasto"|"compromiso"|"pago_compromiso", "pregunta": "texto al usuario", "datos": {...}}
-Si está completo: {"intención": "gasto"|"compromiso"|"pago_compromiso", "listo": true, "datos": {...todos los datos...}}
+Si falta info: {"intención": "gasto"|"compromiso"|"pago_compromiso"|"presupuesto", "pregunta": "texto al usuario", "datos": {...}}
+Si está completo: {"intención": "gasto"|"compromiso"|"pago_compromiso"|"presupuesto", "listo": true, "datos": {...todos los datos...}}
 
 La fecha siempre es hoy: ${new Date().toISOString().split('T')[0]}`
 
@@ -420,6 +437,38 @@ export async function POST(req: NextRequest) {
         } else {
           const lista = matching.map((m, i) => `${i + 1}. ${m.descripcion} (${formatARS(m.monto_total)})`).join('\n')
           await send(from, `¿A cuál compromiso corresponde el pago?\n${lista}\nRespondé con el número.`)
+        }
+      } else if (intencion === 'presupuesto') {
+        const items = datos.items ?? []
+        const subtotal = items.reduce((s: number, it: ItemPresupuesto) => s + it.subtotal, 0)
+        const iva = Math.round(subtotal * 0.21)
+        const total = subtotal + iva
+
+        const { data: nuevo, error } = await admin.from('presupuestos').insert({
+          cliente: datos.cliente ?? 'Sin nombre',
+          obra_descripcion: datos.obra_descripcion ?? '',
+          obra_direccion: datos.obra_direccion ?? '',
+          obra_localidad: datos.obra_localidad ?? 'Buenos Aires',
+          items,
+          subtotal,
+          monto_iva: iva,
+          total,
+          iva_porcentaje: 21,
+          notas: datos.notas ?? null,
+          created_by: perfil.id,
+          estado: 'borrador',
+        }).select('id').single()
+
+        await clearSession(admin, from)
+        if (error) {
+          await send(from, `❌ Error al crear presupuesto: ${error.message}`)
+        } else {
+          const url = `https://cert.flippinghouses.com.ar/presupuestos/${nuevo.id}`
+          await send(from,
+            `✅ Presupuesto creado para *${datos.cliente}*\n` +
+            `📋 ${items.length} ítem(s) — Total: ${formatARS(total)}\n\n` +
+            `👉 Ver y descargar PDF:\n${url}`
+          )
         }
       } else {
         // Regular gasto → ask for comprobante
