@@ -32,9 +32,9 @@ async function send(to: string, text: string) {
   }
 }
 
-// ── Session helpers ───────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────
 
-interface GastoPendiente {
+interface GastoDatos {
   tipo?: 'obra' | 'central'
   categoria_obra?: 'materiales' | 'mano_obra' | 'otros'
   categoria_central?: 'sueldo' | 'combustible' | 'maquina' | 'material' | 'retiro_socio' | 'otro'
@@ -42,29 +42,25 @@ interface GastoPendiente {
   monto?: number
   obra_id?: string
   obra_nombre?: string
-  proveedor?: string
-  comprobante_url?: string
+  proveedor?: string | null
+  comprobante_url?: string | null
   fecha?: string
 }
 
-type Estado =
-  | 'idle'
-  | 'ask_tipo'
-  | 'ask_descripcion'
-  | 'ask_monto'
-  | 'ask_obra'
-  | 'seleccionar_obra'
-  | 'ask_categoria_obra'
-  | 'ask_categoria_central'
-  | 'ask_proveedor'
-  | 'ask_comprobante'
-  | 'confirmar'
+type Estado = 'recolectando' | 'ask_comprobante' | 'confirmar'
+
+interface MensajeHistorial {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 interface Session {
   estado: Estado
-  gasto_pendiente: GastoPendiente
-  opciones_obra?: { id: string; nombre: string }[]
+  datos: GastoDatos
+  historial: MensajeHistorial[]
 }
+
+// ── Session helpers ───────────────────────────────────────────────────
 
 async function getSession(db: ReturnType<typeof createAdminClient>, number: string): Promise<Session> {
   const { data } = await db
@@ -74,22 +70,18 @@ async function getSession(db: ReturnType<typeof createAdminClient>, number: stri
     .single()
 
   return {
-    estado: (data?.estado as Estado) ?? 'idle',
-    gasto_pendiente: (data?.gasto_pendiente as GastoPendiente) ?? {},
-    opciones_obra: data?.opciones_obra ?? undefined,
+    estado: (data?.estado as Estado) ?? 'recolectando',
+    datos: (data?.gasto_pendiente as GastoDatos) ?? {},
+    historial: (data?.historial as MensajeHistorial[]) ?? [],
   }
 }
 
-async function saveSession(
-  db: ReturnType<typeof createAdminClient>,
-  number: string,
-  session: Session
-) {
+async function saveSession(db: ReturnType<typeof createAdminClient>, number: string, session: Session) {
   await db.from('whatsapp_sessions').upsert({
     whatsapp_number: number,
     estado: session.estado,
-    gasto_pendiente: session.gasto_pendiente,
-    opciones_obra: session.opciones_obra ?? null,
+    gasto_pendiente: session.datos,
+    historial: session.historial,
     updated_at: new Date().toISOString(),
   })
 }
@@ -98,61 +90,44 @@ async function clearSession(db: ReturnType<typeof createAdminClient>, number: st
   await db.from('whatsapp_sessions').delete().eq('whatsapp_number', number)
 }
 
-// ── Claude: extract what it can from a free-form message ──────────────
+// ── Media upload ──────────────────────────────────────────────────────
 
-interface ExtraccionParcial {
-  tipo?: 'obra' | 'central'
-  categoria_obra?: 'materiales' | 'mano_obra' | 'otros'
-  categoria_central?: 'sueldo' | 'combustible' | 'maquina' | 'material' | 'retiro_socio' | 'otro'
-  descripcion?: string
-  monto?: number
-  obra_nombre?: string
-  proveedor?: string
-}
-
-async function extraerDatos(texto: string): Promise<ExtraccionParcial> {
-  const prompt = `Extraé los datos que puedas de este mensaje de gasto de construcción en Argentina.
-Respondé SOLO con JSON, sin texto extra. Si algo no está claro o no se menciona, omití el campo.
-
-Mensaje: "${texto}"
-
-Categorías de obra: materiales (cemento, hierro, pintura, ladrillos, arena, etc), mano_obra (jornales, albañiles, electricistas, etc), otros
-Categorías centrales: sueldo, combustible, maquina, material, retiro_socio, otro
-tipo "obra" si menciona una obra/proyecto/dirección específica, "central" si es gasto general de empresa
-
-JSON (solo los campos que puedas deducir con seguridad):
-{
-  "tipo": "obra"|"central",
-  "categoria_obra": "materiales"|"mano_obra"|"otros",
-  "categoria_central": "sueldo"|"combustible"|"maquina"|"material"|"retiro_socio"|"otro",
-  "descripcion": "string",
-  "monto": number,
-  "obra_nombre": "string",
-  "proveedor": "string"
-}`
-
+async function uploadComprobante(
+  db: ReturnType<typeof createAdminClient>,
+  mediaId: string,
+  datos: GastoDatos
+): Promise<string | null> {
   try {
-    const resp = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 300,
-      messages: [{ role: 'user', content: prompt }],
+    const metaRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
+      headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
     })
-    const text = resp.content[0]?.type === 'text' ? resp.content[0].text : ''
-    const match = text.match(/\{[\s\S]*\}/)
-    if (!match) return {}
-    return JSON.parse(match[0])
-  } catch {
-    return {}
+    if (!metaRes.ok) return null
+    const { url: mediaUrl, mime_type } = await metaRes.json()
+
+    const imgRes = await fetch(mediaUrl, {
+      headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
+    })
+    if (!imgRes.ok) return null
+    const buffer = await imgRes.arrayBuffer()
+
+    const ext = (mime_type as string)?.includes('png') ? 'png' : 'jpg'
+    const prefix = datos.obra_id ? `obra_${datos.obra_id}` : 'central'
+    const filename = `${prefix}/${Date.now()}.${ext}`
+
+    const { error } = await db.storage
+      .from('comprobantes_gastos')
+      .upload(filename, buffer, { contentType: mime_type ?? 'image/jpeg', upsert: false })
+    if (error) { console.error('Storage upload error:', error.message); return null }
+
+    const { data: urlData } = db.storage.from('comprobantes_gastos').getPublicUrl(filename)
+    return urlData.publicUrl ?? null
+  } catch (err) {
+    console.error('uploadComprobante error:', err)
+    return null
   }
 }
 
 // ── Format helpers ────────────────────────────────────────────────────
-
-const LABELS_CATEGORIA_OBRA: Record<string, string> = {
-  materiales: 'Materiales',
-  mano_obra: 'Mano de obra',
-  otros: 'Otros',
-}
 
 const LABELS_CATEGORIA_CENTRAL: Record<string, string> = {
   sueldo: 'Sueldo',
@@ -163,15 +138,17 @@ const LABELS_CATEGORIA_CENTRAL: Record<string, string> = {
   otro: 'Otro',
 }
 
-function formatARS(n: number) {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(n)
+const LABELS_CATEGORIA_OBRA: Record<string, string> = {
+  materiales: 'Materiales',
+  mano_obra: 'Mano de obra',
+  otros: 'Otros',
 }
 
-function resumenConfirmacion(g: GastoPendiente): string {
+function formatARS(n: number) {
+  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+}
+
+function resumenConfirmacion(g: GastoDatos): string {
   const lines = ['📋 *Confirmá el gasto:*', '']
   if (g.tipo === 'obra') {
     lines.push(`🏗 Obra: ${g.obra_nombre}`)
@@ -183,66 +160,22 @@ function resumenConfirmacion(g: GastoPendiente): string {
   lines.push(`📝 Descripción: ${g.descripcion}`)
   lines.push(`💰 Monto: ${formatARS(g.monto!)}`)
   if (g.proveedor) lines.push(`🏪 Proveedor: ${g.proveedor}`)
+  if (g.comprobante_url) lines.push(`📎 Comprobante: adjunto`)
   lines.push(`📅 Fecha: ${g.fecha}`)
   lines.push('')
   lines.push('Respondé *sí* para registrar o *no* para cancelar.')
   return lines.join('\n')
 }
 
-// ── Media download + Supabase upload ─────────────────────────────────
-
-async function uploadComprobante(
-  db: ReturnType<typeof createAdminClient>,
-  mediaId: string,
-  gastoPendiente: GastoPendiente
-): Promise<string | null> {
-  try {
-    // 1. Get media URL from Meta
-    const metaRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
-      headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
-    })
-    if (!metaRes.ok) return null
-    const { url: mediaUrl, mime_type } = await metaRes.json()
-
-    // 2. Download the image bytes
-    const imgRes = await fetch(mediaUrl, {
-      headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
-    })
-    if (!imgRes.ok) return null
-    const buffer = await imgRes.arrayBuffer()
-
-    // 3. Build a filename
-    const ext = (mime_type as string)?.includes('png') ? 'png' : 'jpg'
-    const timestamp = Date.now()
-    const prefix = gastoPendiente.obra_id ? `obra_${gastoPendiente.obra_id}` : 'central'
-    const filename = `${prefix}/${timestamp}.${ext}`
-
-    // 4. Upload to Supabase Storage
-    const { error } = await db.storage
-      .from('comprobantes_gastos')
-      .upload(filename, buffer, { contentType: mime_type ?? 'image/jpeg', upsert: false })
-    if (error) { console.error('Storage upload error:', error.message); return null }
-
-    // 5. Get public URL
-    const { data: urlData } = db.storage.from('comprobantes_gastos').getPublicUrl(filename)
-    return urlData.publicUrl ?? null
-  } catch (err) {
-    console.error('uploadComprobante error:', err)
-    return null
-  }
-}
-
 // ── Insert gasto ──────────────────────────────────────────────────────
 
 async function registrarGasto(
   db: ReturnType<typeof createAdminClient>,
-  g: GastoPendiente,
+  g: GastoDatos,
   perfilId: string
 ): Promise<string> {
-  const hoy = new Date().toISOString().split('T')[0]
-  const fecha = g.fecha ?? hoy
-
-  const comprobanteUrl = (g.comprobante_url && g.comprobante_url !== 'null') ? g.comprobante_url : null
+  const fecha = g.fecha ?? new Date().toISOString().split('T')[0]
+  const comprobanteUrl = g.comprobante_url ?? null
 
   if (g.tipo === 'obra') {
     const { error } = await db.from('gastos_obra').insert({
@@ -273,221 +206,70 @@ async function registrarGasto(
   }
 }
 
-// ── Conversation state machine ────────────────────────────────────────
+// ── Claude: conversational AI agent ──────────────────────────────────
 
-async function procesarMensaje(
-  db: ReturnType<typeof createAdminClient>,
-  from: string,
-  texto: string,
-  perfilId: string
-): Promise<string> {
-  const session = await getSession(db, from)
-  const { estado, gasto_pendiente: g } = session
-  const txt = texto.trim().toLowerCase()
-
-  // Cancel any time
-  if (['cancelar', 'cancel', 'salir', 'no gracias'].includes(txt)) {
-    await clearSession(db, from)
-    return '❌ Registro cancelado. Mandame un nuevo gasto cuando quieras.'
-  }
-
-  // ── CONFIRMACIÓN ───────────────────────────────────────────────────
-  if (estado === 'confirmar') {
-    if (['sí', 'si', 'yes', 'ok', 'dale', 'confirmar', 'confirmo'].includes(txt)) {
-      const msg = await registrarGasto(db, g, perfilId)
-      await clearSession(db, from)
-      return msg
-    }
-    if (['no', 'nope'].includes(txt)) {
-      await clearSession(db, from)
-      return '❌ Registro cancelado.'
-    }
-    return 'Respondé *sí* para confirmar o *no* para cancelar.'
-  }
-
-  // ── SELECCIÓN DE OBRA (cuando hay varias coincidencias) ───────────
-  if (estado === 'seleccionar_obra') {
-    const num = parseInt(txt)
-    const opciones = session.opciones_obra ?? []
-    if (!isNaN(num) && num >= 1 && num <= opciones.length) {
-      const obra = opciones[num - 1]
-      g.obra_id = obra.id
-      g.obra_nombre = obra.nombre
-      const next = await siguientePaso(db, from, { ...session, gasto_pendiente: g, estado: 'seleccionar_obra' })
-      return next
-    }
-    const lista = opciones.map((o, i) => `${i + 1}. ${o.nombre}`).join('\n')
-    return `Elegí el número de la obra:\n${lista}`
-  }
-
-  // ── RESPUESTAS A PREGUNTAS ESPECÍFICAS ────────────────────────────
-
-  if (estado === 'ask_tipo') {
-    if (['1', 'obra'].includes(txt)) g.tipo = 'obra'
-    else if (['2', 'central', 'empresa', 'general'].includes(txt)) g.tipo = 'central'
-    else return '¿Es un gasto de:\n1. Una obra específica\n2. Gastos generales de la empresa'
-  }
-
-  if (estado === 'ask_descripcion') {
-    if (txt.length < 2) return '¿Qué se compró o gastó? (ej: cemento, jornal electricista, combustible)'
-    g.descripcion = texto.trim()
-  }
-
-  if (estado === 'ask_monto') {
-    const n = parseFloat(txt.replace(/[.$,\s]/g, '').replace(',', '.'))
-    if (isNaN(n) || n <= 0) return '¿Cuánto fue el monto? Solo el número (ej: 15000)'
-    g.monto = n
-  }
-
-  if (estado === 'ask_obra') {
-    // Store whatever the user typed as a search hint
-    g.obra_nombre = texto.trim()
-  }
-
-  if (estado === 'ask_categoria_obra') {
-    if (['1', 'materiales', 'material'].includes(txt)) g.categoria_obra = 'materiales'
-    else if (['2', 'mano de obra', 'mano_obra', 'jornal', 'jornales'].includes(txt)) g.categoria_obra = 'mano_obra'
-    else if (['3', 'otros', 'otro'].includes(txt)) g.categoria_obra = 'otros'
-    else return '¿Categoría del gasto?\n1. Materiales\n2. Mano de obra\n3. Otros'
-  }
-
-  if (estado === 'ask_categoria_central') {
-    const map: Record<string, typeof g.categoria_central> = {
-      '1': 'sueldo', 'sueldo': 'sueldo',
-      '2': 'combustible', 'combustible': 'combustible',
-      '3': 'maquina', 'maquina': 'maquina', 'máquina': 'maquina',
-      '4': 'material', 'material': 'material',
-      '5': 'retiro_socio', 'retiro': 'retiro_socio',
-      '6': 'otro', 'otros': 'otro',
-    }
-    if (map[txt]) g.categoria_central = map[txt]
-    else return '¿Categoría?\n1. Sueldo\n2. Combustible\n3. Máquina/Equipo\n4. Material\n5. Retiro de socio\n6. Otro'
-  }
-
-  if (estado === 'ask_proveedor') {
-    if (['no', 'ninguno', 'n/a', '-', 'no sé', 'nose'].includes(txt)) {
-      g.proveedor = undefined
-    } else {
-      g.proveedor = texto.trim()
-    }
-  }
-
-  if (estado === 'ask_comprobante') {
-    // Text reply while waiting for photo — "no" skips it
-    if (['no', 'n/a', '-', 'omitir', 'sin comprobante'].includes(txt)) {
-      g.comprobante_url = null as unknown as undefined // mark as answered/skipped
-    } else {
-      return '📸 Mandá la foto del comprobante, o escribí "no" para omitir.'
-    }
-  }
-
-  // ── MENSAJE NUEVO (estado idle) ───────────────────────────────────
-  if (estado === 'idle') {
-    const extraido = await extraerDatos(texto)
-    Object.assign(g, extraido)
-    g.fecha = new Date().toISOString().split('T')[0]
-  }
-
-  return await siguientePaso(db, from, { estado, gasto_pendiente: g, opciones_obra: session.opciones_obra })
+interface ClaudeResponse {
+  pregunta?: string
+  listo?: boolean
+  datos?: GastoDatos
 }
 
-async function siguientePaso(
-  db: ReturnType<typeof createAdminClient>,
-  from: string,
-  session: Session
-): Promise<string> {
-  const g = session.gasto_pendiente
-  const admin = db
+async function llamarAgente(
+  historial: MensajeHistorial[],
+  datosActuales: GastoDatos,
+  obras: { id: string; nombre: string }[]
+): Promise<ClaudeResponse> {
+  const listaObras = obras.map(o => `- "${o.nombre}" (id: ${o.id})`).join('\n')
 
-  // 1. Tipo
-  if (!g.tipo) {
-    await saveSession(db, from, { ...session, estado: 'ask_tipo' })
-    return '¿Es un gasto de:\n1. Una obra específica\n2. Gastos generales de la empresa'
+  const systemPrompt = `Sos un asistente de WhatsApp para registrar gastos de una empresa constructora argentina. Tu trabajo es conversar naturalmente para recolectar los datos necesarios de cada gasto y devolver un JSON estructurado.
+
+OBRAS DISPONIBLES EN EL SISTEMA:
+${listaObras || '(ninguna cargada)'}
+
+DATOS QUE NECESITÁS RECOLECTAR:
+- tipo: "obra" (si el gasto es de una obra específica) o "central" (gasto general de la empresa)
+- descripcion: qué se compró o gastó (texto libre)
+- monto: número en pesos argentinos
+- Si tipo=obra: categoria_obra ("materiales", "mano_obra" u "otros") + obra_id + obra_nombre (de la lista de arriba)
+- Si tipo=central: categoria_central ("sueldo", "combustible", "maquina", "material", "retiro_socio" u "otro")
+- proveedor: nombre del proveedor (opcional, puede ser null)
+
+DATOS YA RECOLECTADOS:
+${JSON.stringify(datosActuales, null, 2)}
+
+INSTRUCCIONES:
+- Conversá en español argentino informal (tuteá)
+- Extraé todo lo que puedas de cada mensaje (monto, descripción, obra, todo a la vez)
+- Si el usuario menciona una obra, buscá el match más cercano en la lista y usá ese id/nombre
+- Si no queda claro a qué obra se refiere, mostrá las opciones con números para que elija
+- No preguntes por el proveedor si ya tenés los datos obligatorios — preguntalo al final de todo
+- Cuando tengas TODOS los datos obligatorios completos, devolvé listo:true
+- Siempre respondé con JSON válido, sin texto extra
+
+FORMATO DE RESPUESTA:
+Si falta info: {"pregunta": "texto que mandás al usuario", "datos": {...datos parciales actualizados...}}
+Si está completo: {"listo": true, "datos": {...todos los datos...}}
+
+La fecha siempre es hoy: ${new Date().toISOString().split('T')[0]}`
+
+  const messages = historial.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
+  try {
+    const resp = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 500,
+      system: systemPrompt,
+      messages,
+    })
+
+    const text = resp.content[0]?.type === 'text' ? resp.content[0].text : ''
+    const match = text.match(/\{[\s\S]*\}/)
+    if (!match) return { pregunta: 'No entendí. ¿Podés repetir el gasto?' }
+    return JSON.parse(match[0]) as ClaudeResponse
+  } catch (err) {
+    console.error('Claude agent error:', err)
+    return { pregunta: '❌ Error interno. Intentá de nuevo.' }
   }
-
-  // 2. Descripción
-  if (!g.descripcion) {
-    await saveSession(db, from, { ...session, estado: 'ask_descripcion' })
-    return '¿Qué se compró o gastó? (ej: cemento, jornal electricista, combustible cargado)'
-  }
-
-  // 3. Monto
-  if (!g.monto || g.monto <= 0) {
-    await saveSession(db, from, { ...session, estado: 'ask_monto' })
-    return `¿Cuánto fue el monto de "${g.descripcion}"? (solo el número, sin $)`
-  }
-
-  // 4. Categoría
-  if (g.tipo === 'obra' && !g.categoria_obra) {
-    await saveSession(db, from, { ...session, estado: 'ask_categoria_obra' })
-    return '¿Categoría del gasto?\n1. Materiales\n2. Mano de obra\n3. Otros'
-  }
-
-  if (g.tipo === 'central' && !g.categoria_central) {
-    await saveSession(db, from, { ...session, estado: 'ask_categoria_central' })
-    return '¿Categoría?\n1. Sueldo\n2. Combustible\n3. Máquina/Equipo\n4. Material\n5. Retiro de socio\n6. Otro'
-  }
-
-  // 5. Obra: buscar y resolver
-  if (g.tipo === 'obra') {
-    if (!g.obra_id) {
-      // Fetch all active obras first
-      const { data: todasObras } = await admin
-        .from('obras')
-        .select('id, nombre')
-        .order('nombre')
-        .limit(20)
-
-      // If no active obras at all
-      if (!todasObras || todasObras.length === 0) {
-        await saveSession(db, from, { ...session, estado: 'idle', gasto_pendiente: {} })
-        return '❌ No hay obras activas en el sistema. Contactá al administrador.'
-      }
-
-      // If we have a search term, try to match
-      if (g.obra_nombre) {
-        const searchTerms = g.obra_nombre.toLowerCase().split(/[\s-]+/).filter(t => t.length > 2)
-        const matches = todasObras.filter(o =>
-          searchTerms.some(term => o.nombre.toLowerCase().includes(term))
-        )
-
-        if (matches.length === 1) {
-          g.obra_id = matches[0].id
-          g.obra_nombre = matches[0].nombre
-        } else if (matches.length > 1) {
-          const lista = matches.map((o, i) => `${i + 1}. ${o.nombre}`).join('\n')
-          await saveSession(db, from, { ...session, estado: 'seleccionar_obra', gasto_pendiente: g, opciones_obra: matches })
-          return `Encontré ${matches.length} obras. ¿Cuál es?\n${lista}`
-        } else {
-          // No match → show all obras
-          const lista = todasObras.map((o, i) => `${i + 1}. ${o.nombre}`).join('\n')
-          await saveSession(db, from, { ...session, estado: 'seleccionar_obra', gasto_pendiente: { ...g, obra_nombre: undefined }, opciones_obra: todasObras })
-          return `No encontré "${g.obra_nombre}". Elegí la obra:\n${lista}`
-        }
-      } else {
-        // No search term → show all obras
-        const lista = todasObras.map((o, i) => `${i + 1}. ${o.nombre}`).join('\n')
-        await saveSession(db, from, { ...session, estado: 'seleccionar_obra', gasto_pendiente: g, opciones_obra: todasObras })
-        return `¿A qué obra corresponde?\n${lista}`
-      }
-    }
-  }
-
-  // 6. Proveedor (opcional)
-  if (g.proveedor === undefined && session.estado !== 'ask_proveedor') {
-    await saveSession(db, from, { ...session, estado: 'ask_proveedor', gasto_pendiente: g })
-    return '¿Tenés nombre del proveedor? (o escribí "no" para omitir)'
-  }
-
-  // 7. Comprobante (foto, opcional)
-  if (g.comprobante_url === undefined && session.estado !== 'ask_comprobante') {
-    await saveSession(db, from, { ...session, estado: 'ask_comprobante', gasto_pendiente: g })
-    return '📸 ¿Tenés foto del comprobante? Mandala ahora o escribí "no" para omitir.'
-  }
-
-  // 8. Confirmación final
-  await saveSession(db, from, { ...session, estado: 'confirmar', gasto_pendiente: g })
-  return resumenConfirmacion(g)
 }
 
 // ── Route handlers ────────────────────────────────────────────────────
@@ -506,7 +288,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-
   const entry = body?.entry?.[0]
   const change = entry?.changes?.[0]
   const message = change?.value?.messages?.[0]
@@ -527,34 +308,83 @@ export async function POST(req: NextRequest) {
   if (!perfil) return NextResponse.json({ ok: true })
 
   try {
-    // Handle image messages
-    if (message.type === 'image') {
-      const mediaId = message.image?.id as string | undefined
-      if (mediaId) {
-        const session = await getSession(admin, from)
-        if (session.estado === 'ask_comprobante') {
-          const g = session.gasto_pendiente
-          const publicUrl = await uploadComprobante(admin, mediaId, g)
-          if (publicUrl) {
-            g.comprobante_url = publicUrl
-            await saveSession(admin, from, { ...session, gasto_pendiente: g })
-            const resumen = resumenConfirmacion(g)
-            await send(from, `✅ Comprobante guardado.\n\n${resumen}`)
-          } else {
-            await send(from, '❌ No pude guardar la foto. Intentá de nuevo o escribí "no" para omitir.')
-          }
-          return NextResponse.json({ ok: true })
-        }
+    const session = await getSession(admin, from)
+    const txt = (message.text?.body as string)?.trim() ?? ''
+    const txtLower = txt.toLowerCase()
+
+    // Cancel any time
+    if (['cancelar', 'cancel', 'salir'].includes(txtLower)) {
+      await clearSession(admin, from)
+      await send(from, '❌ Registro cancelado. Mandame un nuevo gasto cuando quieras.')
+      return NextResponse.json({ ok: true })
+    }
+
+    // ── CONFIRMAR ────────────────────────────────────────────────────
+    if (session.estado === 'confirmar') {
+      if (['sí', 'si', 'yes', 'ok', 'dale', 'confirmar', 'confirmo'].includes(txtLower)) {
+        const msg = await registrarGasto(admin, session.datos, perfil.id)
+        await clearSession(admin, from)
+        await send(from, msg)
+      } else if (['no', 'nope'].includes(txtLower)) {
+        await clearSession(admin, from)
+        await send(from, '❌ Registro cancelado.')
+      } else {
+        await send(from, 'Respondé *sí* para confirmar o *no* para cancelar.')
       }
       return NextResponse.json({ ok: true })
     }
 
-    // Handle text messages
-    const texto = (message.text?.body as string)?.trim()
-    if (!texto) return NextResponse.json({ ok: true })
+    // ── ASK COMPROBANTE ──────────────────────────────────────────────
+    if (session.estado === 'ask_comprobante') {
+      if (message.type === 'image') {
+        const mediaId = message.image?.id as string | undefined
+        if (mediaId) {
+          const publicUrl = await uploadComprobante(admin, mediaId, session.datos)
+          if (publicUrl) session.datos.comprobante_url = publicUrl
+        }
+        session.estado = 'confirmar'
+        await saveSession(admin, from, session)
+        await send(from, resumenConfirmacion(session.datos))
+      } else if (['no', 'n/a', '-', 'omitir', 'sin comprobante'].includes(txtLower)) {
+        session.datos.comprobante_url = null
+        session.estado = 'confirmar'
+        await saveSession(admin, from, session)
+        await send(from, resumenConfirmacion(session.datos))
+      } else {
+        await send(from, '📸 Mandá la foto del comprobante, o escribí "no" para omitir.')
+      }
+      return NextResponse.json({ ok: true })
+    }
 
-    const respuesta = await procesarMensaje(admin, from, texto, perfil.id)
-    await send(from, respuesta)
+    // ── RECOLECTANDO (Claude agent) ──────────────────────────────────
+    if (message.type !== 'text' || !txt) return NextResponse.json({ ok: true })
+
+    // Add user message to history
+    session.historial.push({ role: 'user', content: txt })
+
+    // Fetch obras
+    const { data: obras } = await admin.from('obras').select('id, nombre').order('nombre').limit(20)
+
+    // Call Claude
+    const respuesta = await llamarAgente(session.historial, session.datos, obras ?? [])
+
+    if (respuesta.listo && respuesta.datos) {
+      // All data collected — ask for comprobante
+      session.datos = { ...session.datos, ...respuesta.datos, fecha: new Date().toISOString().split('T')[0] }
+      session.estado = 'ask_comprobante'
+      session.historial.push({ role: 'assistant', content: '📸 ¿Tenés foto del comprobante? Mandala ahora o escribí "no" para omitir.' })
+      await saveSession(admin, from, session)
+      await send(from, '📸 ¿Tenés foto del comprobante? Mandala ahora o escribí "no" para omitir.')
+    } else if (respuesta.pregunta) {
+      // Update partial data if Claude extracted more
+      if (respuesta.datos) session.datos = { ...session.datos, ...respuesta.datos }
+      session.historial.push({ role: 'assistant', content: respuesta.pregunta })
+      await saveSession(admin, from, session)
+      await send(from, respuesta.pregunta)
+    } else {
+      await send(from, '❌ No pude procesar el gasto. Intentá de nuevo.')
+    }
+
   } catch (err) {
     console.error('whatsapp webhook error:', err)
     await send(from, '❌ Ocurrió un error interno. Intentá de nuevo.')
