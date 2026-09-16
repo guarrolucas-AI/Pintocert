@@ -275,15 +275,17 @@ Si está completo: {"intención": "gasto"|"compromiso"|"pago_compromiso"|"presup
 
 La fecha siempre es hoy: ${new Date().toISOString().split('T')[0]}`
 
-  const messages = historial.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+  // Keep only last 8 messages to minimize context size
+  const recentHistory = historial.slice(-8)
+  const messages = recentHistory.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
   try {
     const resp = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 500,
-      system: systemPrompt,
+      max_tokens: 300,
+      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
       messages,
-    })
+    } as Parameters<typeof anthropic.messages.create>[0])
 
     const text = resp.content[0]?.type === 'text' ? resp.content[0].text : ''
     const match = text.match(/\{[\s\S]*\}/)
