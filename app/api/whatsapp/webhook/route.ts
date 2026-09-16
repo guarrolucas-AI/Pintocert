@@ -177,6 +177,19 @@ async function registrarGasto(
   const fecha = g.fecha ?? new Date().toISOString().split('T')[0]
   const comprobanteUrl = g.comprobante_url ?? null
 
+  // Sanitize categoria_central — Claude sometimes returns boolean or wrong type
+  const VALID_CENTRAL = ['sueldo', 'combustible', 'maquina', 'material', 'retiro_socio', 'otro'] as const
+  if (g.categoria_central && !VALID_CENTRAL.includes(g.categoria_central as typeof VALID_CENTRAL[number])) {
+    // Try to infer from description
+    const desc = (g.descripcion ?? '').toLowerCase()
+    if (desc.includes('sueldo') || desc.includes('jornal') || desc.includes('salario')) g.categoria_central = 'sueldo'
+    else if (desc.includes('combustible') || desc.includes('nafta') || desc.includes('gasoil')) g.categoria_central = 'combustible'
+    else if (desc.includes('maquina') || desc.includes('equipo') || desc.includes('herramienta')) g.categoria_central = 'maquina'
+    else if (desc.includes('material')) g.categoria_central = 'material'
+    else if (desc.includes('retiro') || desc.includes('socio')) g.categoria_central = 'retiro_socio'
+    else g.categoria_central = 'otro'
+  }
+
   if (g.tipo === 'obra') {
     const { error } = await db.from('gastos_obra').insert({
       obra_id: g.obra_id,
@@ -264,7 +277,7 @@ INSTRUCCIONES:
 - Si menciona una obra, buscá el match más cercano en la lista y usá ese id/nombre
 - Cuando no está claro la obra, mostrá las opciones numeradas
 
-Para GASTO: tipo, descripcion, monto, categoria, obra_id/obra_nombre o categoria_central, proveedor (opcional)
+Para GASTO: tipo ("obra" o "central"), descripcion, monto (número), categoria_obra ("materiales"|"mano_obra"|"otros") si tipo=obra, categoria_central ("sueldo"|"combustible"|"maquina"|"material"|"retiro_socio"|"otro") si tipo=central — SIEMPRE string exacto, nunca boolean, obra_id/obra_nombre si tipo=obra, proveedor (opcional)
 Para COMPROMISO: obra_id/obra_nombre, descripcion, proveedor, monto_total, categoria
 Para PAGO COMPROMISO: obra_id/obra_nombre, proveedor o descripcion, monto_pago, fecha
 Para NUEVO PRESUPUESTO: cliente (nombre), obra_descripcion (tipo de trabajo), obra_direccion, obra_localidad, items (array con descripcion/unidad/cantidad/precio_unitario/subtotal). Preguntá los ítems de a uno o pedile que los describa todos juntos. Calculá subtotal = cantidad × precio_unitario para cada ítem.
