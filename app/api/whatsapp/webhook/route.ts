@@ -445,7 +445,8 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (!perfil) {
-    await send(from, '❌ Tu número no está registrado en PintoCert. Pedile al admin que lo configure.')
+    // DEBUG: echo back the from number so we can verify format
+    await send(from, `DEBUG: tu número en Meta es "${from}". Avisale al admin para registrarlo.`)
     return NextResponse.json({ ok: true })
   }
 
