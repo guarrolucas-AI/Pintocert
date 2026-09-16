@@ -15,6 +15,8 @@ import { formatARS, nombreMes } from '@/lib/utils'
 import type { Obra, ItemObra, Certificado, ObraConAvance, Pago } from '@/lib/types'
 import { Plus, Pencil, Camera } from 'lucide-react'
 import { ObraActions } from '@/components/obras/ObraActions'
+import { CompromisosPanel } from '@/components/obras/CompromisosPanel'
+import type { CompromisoResumen, CompromisoPago } from '@/lib/types'
 
 export const revalidate = 0
 
@@ -38,7 +40,7 @@ export default async function ObraDetailPage({ params }: { params: Promise<{ id:
   if (!user) redirect('/login')
 
   const admin = createAdminClient()
-  const [{ data: obra }, { data: items }, { data: certificados }, { data: avance }, { data: perfil }, { data: pagos }] =
+  const [{ data: obra }, { data: items }, { data: certificados }, { data: avance }, { data: perfil }, { data: pagos }, { data: compromisos }, { data: todosPagos }] =
     await Promise.all([
       supabase.from('obras').select('*').eq('id', id).single(),
       supabase.from('items_obra').select('*').eq('obra_id', id).order('orden'),
@@ -50,11 +52,21 @@ export default async function ObraDetailPage({ params }: { params: Promise<{ id:
       supabase.from('obras_avance').select('*').eq('obra_id', id).single(),
       admin.from('perfiles').select('rol').eq('id', user.id).single(),
       supabase.from('pagos').select('*').eq('obra_id', id).order('fecha_pago', { ascending: false }),
+      admin.from('compromisos_resumen').select('*').eq('obra_id', id).order('created_at', { ascending: false }),
+      admin.from('compromiso_pagos').select('*, compromisos_proveedor!inner(obra_id)').eq('compromisos_proveedor.obra_id', id).order('fecha'),
     ])
 
   if (!obra) notFound()
 
   const canEdit = perfil?.rol === 'admin' || perfil?.rol === 'capataz'
+
+  // Build pagos-per-compromiso map
+  const pagosPorCompromiso: Record<string, CompromisoPago[]> = {}
+  for (const p of (todosPagos ?? [])) {
+    const pid = (p as CompromisoPago & { compromiso_id: string }).compromiso_id
+    if (!pagosPorCompromiso[pid]) pagosPorCompromiso[pid] = []
+    pagosPorCompromiso[pid].push(p as CompromisoPago)
+  }
   const avancePct =
     avance && avance.presupuesto_total > 0
       ? Math.round((avance.ejecutado_total / avance.presupuesto_total) * 100)
@@ -150,6 +162,24 @@ export default async function ObraDetailPage({ params }: { params: Promise<{ id:
 
       {/* Gastos de la obra */}
       <GastosView obraId={id} />
+
+      <Separator />
+
+      {/* Compromisos con proveedores */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Compromisos con proveedores</h2>
+            <p className="text-xs text-muted-foreground">Presupuestos cerrados y pagos parciales</p>
+          </div>
+        </div>
+        <CompromisosPanel
+          obraId={id}
+          compromisos={(compromisos as CompromisoResumen[]) ?? []}
+          pagosPorCompromiso={pagosPorCompromiso}
+          isAdmin={perfil?.rol === 'admin'}
+        />
+      </div>
 
       <Separator />
 

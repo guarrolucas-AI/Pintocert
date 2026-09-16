@@ -1,4 +1,39 @@
 export type Rol = 'admin' | 'capataz' | 'operario'
+export type EstadoCompromiso = 'pendiente_aprobacion' | 'aprobado' | 'cancelado'
+export type CategoriaCompromiso = 'materiales' | 'mano_obra' | 'otros'
+
+export interface CompromisoProveedor {
+  id: string
+  obra_id: string
+  descripcion: string
+  proveedor: string | null
+  categoria: CategoriaCompromiso
+  monto_total: number
+  estado: EstadoCompromiso
+  comprobante_url: string | null
+  notas: string | null
+  created_by: string
+  aprobado_por: string | null
+  aprobado_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CompromisoResumen extends CompromisoProveedor {
+  monto_pagado: number
+  saldo_pendiente: number
+}
+
+export interface CompromisoPago {
+  id: string
+  compromiso_id: string
+  monto: number
+  fecha: string
+  descripcion: string | null
+  comprobante_url: string | null
+  created_by: string
+  created_at: string
+}
 export type EstadoObra = 'borrador' | 'enviado_aprobacion' | 'aprobado' | 'en_ejecucion' | 'terminado' | 'pausado' | 'rechazado'
 export type EstadoCertificado = 'borrador' | 'aprobado'
 

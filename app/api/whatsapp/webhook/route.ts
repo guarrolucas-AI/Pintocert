@@ -209,9 +209,14 @@ async function registrarGasto(
 // ── Claude: conversational AI agent ──────────────────────────────────
 
 interface ClaudeResponse {
+  'intención'?: 'gasto' | 'compromiso' | 'pago_compromiso'
   pregunta?: string
   listo?: boolean
-  datos?: GastoDatos
+  datos?: GastoDatos & {
+    monto_total?: number
+    monto_pago?: number
+    categoria?: string
+  }
 }
 
 async function llamarAgente(
@@ -221,34 +226,35 @@ async function llamarAgente(
 ): Promise<ClaudeResponse> {
   const listaObras = obras.map(o => `- "${o.nombre}" (id: ${o.id})`).join('\n')
 
-  const systemPrompt = `Sos un asistente de WhatsApp para registrar gastos de una empresa constructora argentina. Tu trabajo es conversar naturalmente para recolectar los datos necesarios de cada gasto y devolver un JSON estructurado.
+  const systemPrompt = `Sos un asistente de WhatsApp para registrar movimientos económicos de una empresa constructora argentina. Podés registrar dos tipos de cosas:
+
+1. GASTO REAL: algo que ya se pagó o se gastó
+2. COMPROMISO: un presupuesto cerrado con un proveedor que todavía no se pagó (o se pagó parcialmente)
+3. PAGO DE COMPROMISO: un pago parcial o total contra un compromiso ya existente
 
 OBRAS DISPONIBLES EN EL SISTEMA:
 ${listaObras || '(ninguna cargada)'}
-
-DATOS QUE NECESITÁS RECOLECTAR:
-- tipo: "obra" (si el gasto es de una obra específica) o "central" (gasto general de la empresa)
-- descripcion: qué se compró o gastó (texto libre)
-- monto: número en pesos argentinos
-- Si tipo=obra: categoria_obra ("materiales", "mano_obra" u "otros") + obra_id + obra_nombre (de la lista de arriba)
-- Si tipo=central: categoria_central ("sueldo", "combustible", "maquina", "material", "retiro_socio" u "otro")
-- proveedor: nombre del proveedor (opcional, puede ser null)
 
 DATOS YA RECOLECTADOS:
 ${JSON.stringify(datosActuales, null, 2)}
 
 INSTRUCCIONES:
 - Conversá en español argentino informal (tuteá)
-- Extraé todo lo que puedas de cada mensaje (monto, descripción, obra, todo a la vez)
-- Si el usuario menciona una obra, buscá el match más cercano en la lista y usá ese id/nombre
-- Si no queda claro a qué obra se refiere, mostrá las opciones con números para que elija
-- No preguntes por el proveedor si ya tenés los datos obligatorios — preguntalo al final de todo
-- Cuando tengas TODOS los datos obligatorios completos, devolvé listo:true
-- Siempre respondé con JSON válido, sin texto extra
+- Detectá automáticamente si el usuario quiere registrar un gasto, un compromiso nuevo, o un pago de compromiso
+- Claves para detectar COMPROMISO: "presupuesto", "comprometí", "cerramos con", "acuerdo con", "anticipo" (si mencionan un proveedor y monto total a pagar)
+- Claves para detectar PAGO DE COMPROMISO: "le pagué", "anticipo a [proveedor]", "pagué a [proveedor]"
+- Extraé todo lo que puedas de un solo mensaje
+- Si menciona una obra, buscá el match más cercano en la lista y usá ese id/nombre
+- Cuando no está claro la obra, mostrá las opciones numeradas
+- Cuando tengas todos los datos necesarios, devolvé listo:true
 
-FORMATO DE RESPUESTA:
-Si falta info: {"pregunta": "texto que mandás al usuario", "datos": {...datos parciales actualizados...}}
-Si está completo: {"listo": true, "datos": {...todos los datos...}}
+Para GASTO: necesitás tipo, descripcion, monto, categoria, obra_id/obra_nombre (si es obra) o categoria_central (si es central), proveedor (opcional)
+Para COMPROMISO: necesitás obra_id/obra_nombre, descripcion, proveedor, monto_total, categoria
+Para PAGO COMPROMISO: necesitás obra_id/obra_nombre, proveedor o descripcion del compromiso, monto_pago, fecha
+
+FORMATO DE RESPUESTA — solo JSON válido, sin texto extra:
+Si falta info: {"intención": "gasto"|"compromiso"|"pago_compromiso", "pregunta": "texto al usuario", "datos": {...}}
+Si está completo: {"intención": "gasto"|"compromiso"|"pago_compromiso", "listo": true, "datos": {...todos los datos...}}
 
 La fecha siempre es hoy: ${new Date().toISOString().split('T')[0]}`
 
@@ -369,20 +375,67 @@ export async function POST(req: NextRequest) {
     const respuesta = await llamarAgente(session.historial, session.datos, obras ?? [])
 
     if (respuesta.listo && respuesta.datos) {
-      // All data collected — ask for comprobante
-      session.datos = { ...session.datos, ...respuesta.datos, fecha: new Date().toISOString().split('T')[0] }
-      session.estado = 'ask_comprobante'
-      session.historial.push({ role: 'assistant', content: '📸 ¿Tenés foto del comprobante? Mandala ahora o escribí "no" para omitir.' })
-      await saveSession(admin, from, session)
-      await send(from, '📸 ¿Tenés foto del comprobante? Mandala ahora o escribí "no" para omitir.')
+      const intencion = respuesta['intención'] ?? 'gasto'
+      const datos = respuesta.datos
+
+      if (intencion === 'compromiso') {
+        // Insert directly into compromisos_proveedor
+        const { error } = await admin.from('compromisos_proveedor').insert({
+          obra_id: datos.obra_id,
+          descripcion: datos.descripcion,
+          proveedor: datos.proveedor ?? null,
+          categoria: datos.categoria ?? datos.categoria_obra ?? 'otros',
+          monto_total: datos.monto_total ?? datos.monto,
+          notas: null,
+          created_by: perfil.id,
+          estado: 'pendiente_aprobacion',
+        })
+        await clearSession(admin, from)
+        if (error) await send(from, `❌ Error al registrar compromiso: ${error.message}`)
+        else await send(from, `📋 Compromiso cargado en *${datos.obra_nombre}*\n${datos.descripcion} — ${formatARS(datos.monto_total ?? datos.monto ?? 0)}\n\n⏳ Pendiente de aprobación del administrador.`)
+      } else if (intencion === 'pago_compromiso') {
+        // Find the compromiso to pay
+        const { data: matching } = await admin
+          .from('compromisos_proveedor')
+          .select('id, descripcion, monto_total')
+          .eq('obra_id', datos.obra_id)
+          .eq('estado', 'aprobado')
+          .ilike('proveedor', `%${datos.proveedor ?? ''}%`)
+          .limit(3)
+
+        if (!matching || matching.length === 0) {
+          await clearSession(admin, from)
+          await send(from, `❌ No encontré compromisos aprobados para ese proveedor en la obra. Verificá en la app.`)
+        } else if (matching.length === 1) {
+          const { error } = await admin.from('compromiso_pagos').insert({
+            compromiso_id: matching[0].id,
+            monto: datos.monto_pago ?? datos.monto,
+            fecha: datos.fecha ?? new Date().toISOString().split('T')[0],
+            descripcion: datos.descripcion ?? null,
+            created_by: perfil.id,
+          })
+          await clearSession(admin, from)
+          if (error) await send(from, `❌ Error al registrar pago: ${error.message}`)
+          else await send(from, `✅ Pago registrado\n${matching[0].descripcion} — ${formatARS(datos.monto_pago ?? datos.monto ?? 0)}`)
+        } else {
+          const lista = matching.map((m, i) => `${i + 1}. ${m.descripcion} (${formatARS(m.monto_total)})`).join('\n')
+          await send(from, `¿A cuál compromiso corresponde el pago?\n${lista}\nRespondé con el número.`)
+        }
+      } else {
+        // Regular gasto → ask for comprobante
+        session.datos = { ...session.datos, ...datos, fecha: new Date().toISOString().split('T')[0] }
+        session.estado = 'ask_comprobante'
+        session.historial.push({ role: 'assistant', content: '📸 ¿Tenés foto del comprobante? Mandala ahora o escribí "no" para omitir.' })
+        await saveSession(admin, from, session)
+        await send(from, '📸 ¿Tenés foto del comprobante? Mandala ahora o escribí "no" para omitir.')
+      }
     } else if (respuesta.pregunta) {
-      // Update partial data if Claude extracted more
       if (respuesta.datos) session.datos = { ...session.datos, ...respuesta.datos }
       session.historial.push({ role: 'assistant', content: respuesta.pregunta })
       await saveSession(admin, from, session)
       await send(from, respuesta.pregunta)
     } else {
-      await send(from, '❌ No pude procesar el gasto. Intentá de nuevo.')
+      await send(from, '❌ No pude procesar el mensaje. Intentá de nuevo.')
     }
 
   } catch (err) {
