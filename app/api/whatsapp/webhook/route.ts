@@ -43,6 +43,7 @@ interface GastoPendiente {
   obra_id?: string
   obra_nombre?: string
   proveedor?: string
+  comprobante_url?: string
   fecha?: string
 }
 
@@ -56,6 +57,7 @@ type Estado =
   | 'ask_categoria_obra'
   | 'ask_categoria_central'
   | 'ask_proveedor'
+  | 'ask_comprobante'
   | 'confirmar'
 
 interface Session {
@@ -187,6 +189,49 @@ function resumenConfirmacion(g: GastoPendiente): string {
   return lines.join('\n')
 }
 
+// ── Media download + Supabase upload ─────────────────────────────────
+
+async function uploadComprobante(
+  db: ReturnType<typeof createAdminClient>,
+  mediaId: string,
+  gastoPendiente: GastoPendiente
+): Promise<string | null> {
+  try {
+    // 1. Get media URL from Meta
+    const metaRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
+      headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
+    })
+    if (!metaRes.ok) return null
+    const { url: mediaUrl, mime_type } = await metaRes.json()
+
+    // 2. Download the image bytes
+    const imgRes = await fetch(mediaUrl, {
+      headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
+    })
+    if (!imgRes.ok) return null
+    const buffer = await imgRes.arrayBuffer()
+
+    // 3. Build a filename
+    const ext = (mime_type as string)?.includes('png') ? 'png' : 'jpg'
+    const timestamp = Date.now()
+    const prefix = gastoPendiente.obra_id ? `obra_${gastoPendiente.obra_id}` : 'central'
+    const filename = `${prefix}/${timestamp}.${ext}`
+
+    // 4. Upload to Supabase Storage
+    const { error } = await db.storage
+      .from('comprobantes_gastos')
+      .upload(filename, buffer, { contentType: mime_type ?? 'image/jpeg', upsert: false })
+    if (error) { console.error('Storage upload error:', error.message); return null }
+
+    // 5. Get public URL
+    const { data: urlData } = db.storage.from('comprobantes_gastos').getPublicUrl(filename)
+    return urlData.publicUrl ?? null
+  } catch (err) {
+    console.error('uploadComprobante error:', err)
+    return null
+  }
+}
+
 // ── Insert gasto ──────────────────────────────────────────────────────
 
 async function registrarGasto(
@@ -197,6 +242,8 @@ async function registrarGasto(
   const hoy = new Date().toISOString().split('T')[0]
   const fecha = g.fecha ?? hoy
 
+  const comprobanteUrl = (g.comprobante_url && g.comprobante_url !== 'null') ? g.comprobante_url : null
+
   if (g.tipo === 'obra') {
     const { error } = await db.from('gastos_obra').insert({
       obra_id: g.obra_id,
@@ -205,10 +252,11 @@ async function registrarGasto(
       descripcion: g.descripcion,
       monto: g.monto,
       proveedor: g.proveedor ?? null,
+      comprobante_url: comprobanteUrl,
       created_by: perfilId,
     })
     if (error) return `❌ Error al registrar: ${error.message}`
-    return `✅ Gasto registrado en obra *${g.obra_nombre}*\n${g.descripcion} — ${formatARS(g.monto!)}`
+    return `✅ Gasto registrado en obra *${g.obra_nombre}*\n${g.descripcion} — ${formatARS(g.monto!)}${comprobanteUrl ? '\n📎 Comprobante adjunto' : ''}`
   } else {
     const { error } = await db.from('gastos_central').insert({
       fecha,
@@ -217,10 +265,11 @@ async function registrarGasto(
       descripcion: g.descripcion,
       monto: g.monto,
       proveedor: g.proveedor ?? null,
+      comprobante_url: comprobanteUrl,
       created_by: perfilId,
     })
     if (error) return `❌ Error al registrar: ${error.message}`
-    return `✅ Gasto central registrado\n${g.descripcion} — ${formatARS(g.monto!)}`
+    return `✅ Gasto central registrado\n${g.descripcion} — ${formatARS(g.monto!)}${comprobanteUrl ? '\n📎 Comprobante adjunto' : ''}`
   }
 }
 
@@ -291,6 +340,7 @@ async function procesarMensaje(
   }
 
   if (estado === 'ask_obra') {
+    // Store whatever the user typed as a search hint
     g.obra_nombre = texto.trim()
   }
 
@@ -319,6 +369,15 @@ async function procesarMensaje(
       g.proveedor = undefined
     } else {
       g.proveedor = texto.trim()
+    }
+  }
+
+  if (estado === 'ask_comprobante') {
+    // Text reply while waiting for photo — "no" skips it
+    if (['no', 'n/a', '-', 'omitir', 'sin comprobante'].includes(txt)) {
+      g.comprobante_url = null as unknown as undefined // mark as answered/skipped
+    } else {
+      return '📸 Mandá la foto del comprobante, o escribí "no" para omitir.'
     }
   }
 
@@ -372,30 +431,45 @@ async function siguientePaso(
   // 5. Obra: buscar y resolver
   if (g.tipo === 'obra') {
     if (!g.obra_id) {
-      if (!g.obra_nombre) {
-        await saveSession(db, from, { ...session, estado: 'ask_obra' })
-        return '¿A qué obra corresponde este gasto? (nombre o dirección)'
-      }
-
-      const { data: obras } = await admin
+      // Fetch all active obras first
+      const { data: todasObras } = await admin
         .from('obras')
         .select('id, nombre')
-        .ilike('nombre', `%${g.obra_nombre}%`)
-        .in('estado', ['en_ejecucion', 'pausado'])
-        .limit(5)
+        .not('estado', 'in', '("archivado","cancelado")')
+        .order('nombre')
+        .limit(20)
 
-      if (!obras || obras.length === 0) {
-        await saveSession(db, from, { ...session, estado: 'ask_obra', gasto_pendiente: { ...g, obra_nombre: undefined } })
-        return `❌ No encontré ninguna obra activa con "${g.obra_nombre}".\n¿Cómo se llama la obra? (escribí el nombre completo o parte de la dirección)`
+      // If no active obras at all
+      if (!todasObras || todasObras.length === 0) {
+        await saveSession(db, from, { ...session, estado: 'idle', gasto_pendiente: {} })
+        return '❌ No hay obras activas en el sistema. Contactá al administrador.'
       }
 
-      if (obras.length === 1) {
-        g.obra_id = obras[0].id
-        g.obra_nombre = obras[0].nombre
+      // If we have a search term, try to match
+      if (g.obra_nombre) {
+        const searchTerms = g.obra_nombre.toLowerCase().split(/[\s-]+/).filter(t => t.length > 2)
+        const matches = todasObras.filter(o =>
+          searchTerms.some(term => o.nombre.toLowerCase().includes(term))
+        )
+
+        if (matches.length === 1) {
+          g.obra_id = matches[0].id
+          g.obra_nombre = matches[0].nombre
+        } else if (matches.length > 1) {
+          const lista = matches.map((o, i) => `${i + 1}. ${o.nombre}`).join('\n')
+          await saveSession(db, from, { ...session, estado: 'seleccionar_obra', gasto_pendiente: g, opciones_obra: matches })
+          return `Encontré ${matches.length} obras. ¿Cuál es?\n${lista}`
+        } else {
+          // No match → show all obras
+          const lista = todasObras.map((o, i) => `${i + 1}. ${o.nombre}`).join('\n')
+          await saveSession(db, from, { ...session, estado: 'seleccionar_obra', gasto_pendiente: { ...g, obra_nombre: undefined }, opciones_obra: todasObras })
+          return `No encontré "${g.obra_nombre}". Elegí la obra:\n${lista}`
+        }
       } else {
-        const lista = obras.map((o, i) => `${i + 1}. ${o.nombre}`).join('\n')
-        await saveSession(db, from, { ...session, estado: 'seleccionar_obra', gasto_pendiente: g, opciones_obra: obras })
-        return `Encontré ${obras.length} obras. ¿Cuál es?\n${lista}`
+        // No search term → show all obras
+        const lista = todasObras.map((o, i) => `${i + 1}. ${o.nombre}`).join('\n')
+        await saveSession(db, from, { ...session, estado: 'seleccionar_obra', gasto_pendiente: g, opciones_obra: todasObras })
+        return `¿A qué obra corresponde?\n${lista}`
       }
     }
   }
@@ -406,7 +480,13 @@ async function siguientePaso(
     return '¿Tenés nombre del proveedor? (o escribí "no" para omitir)'
   }
 
-  // 7. Confirmación final
+  // 7. Comprobante (foto, opcional)
+  if (g.comprobante_url === undefined && session.estado !== 'ask_comprobante') {
+    await saveSession(db, from, { ...session, estado: 'ask_comprobante', gasto_pendiente: g })
+    return '📸 ¿Tenés foto del comprobante? Mandala ahora o escribí "no" para omitir.'
+  }
+
+  // 8. Confirmación final
   await saveSession(db, from, { ...session, estado: 'confirmar', gasto_pendiente: g })
   return resumenConfirmacion(g)
 }
@@ -432,15 +512,11 @@ export async function POST(req: NextRequest) {
   const change = entry?.changes?.[0]
   const message = change?.value?.messages?.[0]
 
-  if (!message || message.type !== 'text') {
+  if (!message || !['text', 'image'].includes(message.type)) {
     return NextResponse.json({ ok: true })
   }
 
   const from = message.from as string
-  const texto = (message.text?.body as string)?.trim()
-  console.log('WA incoming | from:', from, '| texto:', texto)
-  if (!texto) return NextResponse.json({ ok: true })
-
   const admin = createAdminClient()
 
   const { data: perfil } = await admin
@@ -449,13 +525,35 @@ export async function POST(req: NextRequest) {
     .eq('whatsapp_number', from)
     .single()
 
-  if (!perfil) {
-    // DEBUG: echo back the from number so we can verify format
-    await send(from, `DEBUG: tu número en Meta es "${from}". Avisale al admin para registrarlo.`)
-    return NextResponse.json({ ok: true })
-  }
+  if (!perfil) return NextResponse.json({ ok: true })
 
   try {
+    // Handle image messages
+    if (message.type === 'image') {
+      const mediaId = message.image?.id as string | undefined
+      if (mediaId) {
+        const session = await getSession(admin, from)
+        if (session.estado === 'ask_comprobante') {
+          const g = session.gasto_pendiente
+          const publicUrl = await uploadComprobante(admin, mediaId, g)
+          if (publicUrl) {
+            g.comprobante_url = publicUrl
+            await saveSession(admin, from, { ...session, gasto_pendiente: g })
+            const resumen = resumenConfirmacion(g)
+            await send(from, `✅ Comprobante guardado.\n\n${resumen}`)
+          } else {
+            await send(from, '❌ No pude guardar la foto. Intentá de nuevo o escribí "no" para omitir.')
+          }
+          return NextResponse.json({ ok: true })
+        }
+      }
+      return NextResponse.json({ ok: true })
+    }
+
+    // Handle text messages
+    const texto = (message.text?.body as string)?.trim()
+    if (!texto) return NextResponse.json({ ok: true })
+
     const respuesta = await procesarMensaje(admin, from, texto, perfil.id)
     await send(from, respuesta)
   } catch (err) {
