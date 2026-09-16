@@ -10,7 +10,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 // ── WhatsApp send ─────────────────────────────────────────────────────
 
 async function send(to: string, text: string) {
-  await fetch(
+  const res = await fetch(
     `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
     {
       method: 'POST',
@@ -26,6 +26,10 @@ async function send(to: string, text: string) {
       }),
     }
   )
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    console.error('WhatsApp send error:', res.status, JSON.stringify(err))
+  }
 }
 
 // ── Session helpers ───────────────────────────────────────────────────
