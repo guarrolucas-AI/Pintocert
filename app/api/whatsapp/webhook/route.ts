@@ -435,7 +435,6 @@ async function siguientePaso(
       const { data: todasObras } = await admin
         .from('obras')
         .select('id, nombre')
-        .not('estado', 'in', '("archivado","cancelado")')
         .order('nombre')
         .limit(20)
 
