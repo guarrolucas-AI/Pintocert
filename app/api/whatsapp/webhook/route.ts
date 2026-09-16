@@ -298,9 +298,10 @@ La fecha siempre es hoy: ${new Date().toISOString().split('T')[0]}`
       max_tokens: 300,
       system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
       messages,
-    } as Parameters<typeof anthropic.messages.create>[0])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any) as { content: Array<{ type: string; text?: string }> }
 
-    const text = resp.content[0]?.type === 'text' ? resp.content[0].text : ''
+    const text = resp.content[0]?.type === 'text' ? (resp.content[0].text ?? '') : ''
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) return { pregunta: 'No entendí. ¿Podés repetir el gasto?' }
     return JSON.parse(match[0]) as ClaudeResponse
