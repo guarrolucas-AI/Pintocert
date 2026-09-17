@@ -45,9 +45,18 @@ interface GastoDatos {
   proveedor?: string | null
   comprobante_url?: string | null
   fecha?: string
+  // presupuesto
+  cliente?: string
+  obra_descripcion?: string
+  obra_localidad?: string
+  obra_direccion?: string
+  items?: ItemPresupuesto[]
+  _item_desc?: string
+  _item_qty?: number
 }
 
 type Estado = 'recolectando' | 'ask_comprobante' | 'confirmar'
+  | 'items_desc' | 'items_qty' | 'items_price' | 'items_mas' | 'presupuesto_confirmar'
 
 interface MensajeHistorial {
   role: 'user' | 'assistant'
@@ -271,7 +280,7 @@ FECHA HOY: ${hoy}
 REGLAS:
 - Español argentino informal, tuteá
 - Extraé todo lo posible de cada mensaje
-- Para presupuesto: pedí cliente, obra_descripcion, obra_localidad, ítems. NUNCA marques listo:true si items está vacío — preguntá los ítems primero. Cada ítem: {descripcion:string, subtotal:number}. Ejemplo de items parseados de "tabique 30m2 a 30000 el m2, lijado 30m2 a 5000": [{"descripcion":"Armado de tabique 30m2","subtotal":900000},{"descripcion":"Lijado 30m2","subtotal":150000}]. Calculá subtotal=cantidad×precio_unitario vos mismo.
+- Para presupuesto: solo pedí cliente, obra_descripcion y obra_localidad. Cuando tengas esos tres campos marcá listo:true — los ítems los pide el sistema por separado, vos NO los pedís.
 - Para gasto: tipo("obra"|"central"), descripcion, monto, categoria_obra("materiales"|"mano_obra"|"otros") o categoria_central("sueldo"|"combustible"|"maquina"|"material"|"retiro_socio"|"otro") — siempre string, nunca boolean
 
 FORMATO OBLIGATORIO — solo JSON, sin texto extra:
@@ -385,6 +394,111 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // ── ITEMS PRESUPUESTO (estado máquina) ──────────────────────────
+    if (session.estado === 'items_desc') {
+      if (!txt) return NextResponse.json({ ok: true })
+      session.datos._item_desc = txt
+      session.estado = 'items_qty'
+      await saveSession(admin, from, session)
+      await send(from, '¿Cantidad? (número, ej: 30)')
+      return NextResponse.json({ ok: true })
+    }
+
+    if (session.estado === 'items_qty') {
+      const qty = parseFloat(txt.replace(',', '.'))
+      if (isNaN(qty) || qty <= 0) {
+        await send(from, '⚠️ Ingresá un número válido para la cantidad.')
+        return NextResponse.json({ ok: true })
+      }
+      session.datos._item_qty = qty
+      session.estado = 'items_price'
+      await saveSession(admin, from, session)
+      await send(from, '¿Precio unitario? (ej: 30000)')
+      return NextResponse.json({ ok: true })
+    }
+
+    if (session.estado === 'items_price') {
+      const price = parseFloat(txt.replace(/\./g, '').replace(',', '.'))
+      if (isNaN(price) || price <= 0) {
+        await send(from, '⚠️ Ingresá un precio válido.')
+        return NextResponse.json({ ok: true })
+      }
+      const qty = session.datos._item_qty ?? 1
+      const subtotal = qty * price
+      const item: ItemPresupuesto = {
+        descripcion: session.datos._item_desc ?? 'Ítem',
+        unidad: 'global',
+        cantidad: qty,
+        precio_unitario: price,
+        subtotal,
+      }
+      session.datos.items = [...(session.datos.items ?? []), item]
+      delete session.datos._item_desc
+      delete session.datos._item_qty
+      session.estado = 'items_mas'
+      await saveSession(admin, from, session)
+      await send(from, `✅ *${item.descripcion}* — ${qty} × ${formatARS(price)} = *${formatARS(subtotal)}*\n\n¿Agregás otro ítem? (sí/no)`)
+      return NextResponse.json({ ok: true })
+    }
+
+    if (session.estado === 'items_mas') {
+      if (['sí', 'si', 'yes', 'ok', 'dale', 's', '1'].includes(txtLower)) {
+        const n = (session.datos.items?.length ?? 0) + 1
+        session.estado = 'items_desc'
+        await saveSession(admin, from, session)
+        await send(from, `📝 Ítem ${n} — ¿Descripción?`)
+      } else if (['no', 'nope', 'listo', 'fin', 'terminar', '2'].includes(txtLower)) {
+        const items = session.datos.items ?? []
+        const sub = items.reduce((s, it) => s + it.subtotal, 0)
+        const iva = Math.round(sub * 0.21)
+        const total = sub + iva
+        const lineas = items.map((it, i) => `${i + 1}. ${it.descripcion} — ${formatARS(it.subtotal)}`).join('\n')
+        const resumen = `📋 *Presupuesto para ${session.datos.cliente}*\n${session.datos.obra_descripcion} — ${session.datos.obra_localidad}\n\n${lineas}\n\nSubtotal: ${formatARS(sub)}\nIVA 21%: ${formatARS(iva)}\n*Total: ${formatARS(total)}*\n\n¿Confirmás? (sí/no)`
+        session.estado = 'presupuesto_confirmar'
+        await saveSession(admin, from, session)
+        await send(from, resumen)
+      } else {
+        await send(from, 'Respondé *sí* para agregar otro ítem o *no* para terminar.')
+      }
+      return NextResponse.json({ ok: true })
+    }
+
+    if (session.estado === 'presupuesto_confirmar') {
+      if (['sí', 'si', 'yes', 'ok', 'dale', 'confirmar', 'confirmo'].includes(txtLower)) {
+        const items = session.datos.items ?? []
+        const sub = items.reduce((s, it) => s + it.subtotal, 0)
+        const iva = Math.round(sub * 0.21)
+        const total = sub + iva
+        const { data: nuevo, error } = await admin.from('presupuestos').insert({
+          cliente: session.datos.cliente ?? 'Sin nombre',
+          obra_descripcion: session.datos.obra_descripcion ?? '',
+          obra_direccion: session.datos.obra_direccion ?? '',
+          obra_localidad: session.datos.obra_localidad ?? 'Buenos Aires',
+          items,
+          subtotal: sub,
+          monto_iva: iva,
+          total,
+          iva_porcentaje: 21,
+          notas: null,
+          created_by: perfil.id,
+          estado: 'borrador',
+        }).select('id').single()
+        await clearSession(admin, from)
+        if (error) {
+          await send(from, `❌ Error al crear presupuesto: ${error.message}`)
+        } else {
+          const url = `https://cert.flippinghouses.com.ar/presupuestos/${nuevo.id}`
+          await send(from, `✅ Presupuesto creado para *${session.datos.cliente}*\n📋 ${items.length} ítem(s) — Total: ${formatARS(total)}\n\n👉 Ver y descargar PDF:\n${url}`)
+        }
+      } else if (['no', 'nope', 'cancelar'].includes(txtLower)) {
+        await clearSession(admin, from)
+        await send(from, '❌ Presupuesto cancelado.')
+      } else {
+        await send(from, 'Respondé *sí* para crear el presupuesto o *no* para cancelar.')
+      }
+      return NextResponse.json({ ok: true })
+    }
+
     // ── RECOLECTANDO (Claude agent) ──────────────────────────────────
     if (message.type !== 'text' || !txt) return NextResponse.json({ ok: true })
 
@@ -451,54 +565,18 @@ export async function POST(req: NextRequest) {
           await send(from, `¿A cuál compromiso corresponde el pago?\n${lista}\nRespondé con el número.`)
         }
       } else if (intencion === 'presupuesto') {
-        // Normalize items — accept {descripcion, subtotal} or full ItemPresupuesto
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawItems: any[] = datos.items ?? []
-        const items: ItemPresupuesto[] = rawItems
-          .filter(it => it.descripcion && (it.subtotal > 0 || it.precio_unitario > 0))
-          .map(it => ({
-            descripcion: it.descripcion,
-            unidad: it.unidad ?? 'global',
-            cantidad: it.cantidad ?? 1,
-            precio_unitario: it.precio_unitario ?? it.subtotal,
-            subtotal: it.subtotal ?? (it.cantidad ?? 1) * (it.precio_unitario ?? 0),
-          }))
-        if (items.length === 0) {
-          session.historial.push({ role: 'assistant', content: '¿Qué ítems tiene el presupuesto? Ejemplo: "Tabique 30m2 a $30000 el m2, Lijado 30m2 a $5000 el m2"' })
-          await saveSession(admin, from, session)
-          await send(from, '¿Qué ítems tiene el presupuesto? Ejemplo: "Tabique 30m2 a $30000 el m2, Lijado 30m2 a $5000 el m2"')
-          return NextResponse.json({ ok: true })
-        }
-        const subtotal = items.reduce((s: number, it: ItemPresupuesto) => s + it.subtotal, 0)
-        const iva = Math.round(subtotal * 0.21)
-        const total = subtotal + iva
-
-        const { data: nuevo, error } = await admin.from('presupuestos').insert({
-          cliente: datos.cliente ?? 'Sin nombre',
-          obra_descripcion: datos.obra_descripcion ?? '',
-          obra_direccion: datos.obra_direccion ?? '',
+        // Save basic info and start item-by-item collection
+        session.datos = {
+          ...session.datos,
+          cliente: datos.cliente,
+          obra_descripcion: datos.obra_descripcion,
           obra_localidad: datos.obra_localidad ?? 'Buenos Aires',
-          items,
-          subtotal,
-          monto_iva: iva,
-          total,
-          iva_porcentaje: 21,
-          notas: datos.notas ?? null,
-          created_by: perfil.id,
-          estado: 'borrador',
-        }).select('id').single()
-
-        await clearSession(admin, from)
-        if (error) {
-          await send(from, `❌ Error al crear presupuesto: ${error.message}`)
-        } else {
-          const url = `https://cert.flippinghouses.com.ar/presupuestos/${nuevo.id}`
-          await send(from,
-            `✅ Presupuesto creado para *${datos.cliente}*\n` +
-            `📋 ${items.length} ítem(s) — Total: ${formatARS(total)}\n\n` +
-            `👉 Ver y descargar PDF:\n${url}`
-          )
+          obra_direccion: datos.obra_direccion ?? '',
+          items: [],
         }
+        session.estado = 'items_desc'
+        await saveSession(admin, from, session)
+        await send(from, `✅ Datos guardados — *${datos.cliente}*, ${datos.obra_descripcion} (${datos.obra_localidad ?? 'Buenos Aires'})\n\n📝 Ítem 1 — ¿Descripción?`)
       } else {
         // Regular gasto → ask for comprobante
         session.datos = { ...session.datos, ...datos, fecha: new Date().toISOString().split('T')[0] }
