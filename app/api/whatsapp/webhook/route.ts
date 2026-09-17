@@ -254,39 +254,29 @@ async function llamarAgente(
 ): Promise<ClaudeResponse> {
   const listaObras = obras.map(o => `- "${o.nombre}" (id: ${o.id})`).join('\n')
 
-  const systemPrompt = `Sos un asistente de WhatsApp para una empresa constructora argentina. Podés hacer cuatro cosas:
+  const hoy = new Date().toISOString().split('T')[0]
+  const datosJson = Object.keys(datosActuales).length ? JSON.stringify(datosActuales) : 'ninguno'
+  const systemPrompt = `REGLA ABSOLUTA: Respondé SIEMPRE con un JSON válido y nada más. Cero texto libre antes o después. Solo el objeto JSON.
 
-1. GASTO REAL: registrar algo que ya se pagó o se gastó
-2. COMPROMISO: registrar un presupuesto cerrado con un proveedor que todavía no se pagó
-3. PAGO DE COMPROMISO: registrar un pago parcial/total contra un compromiso existente
-4. NUEVO PRESUPUESTO: armar un presupuesto para presentarle a un cliente (con ítems, montos y link final)
+Sos un asistente de WhatsApp para una empresa constructora argentina. Manejás 4 intenciones:
+1. gasto — algo que ya se pagó
+2. compromiso — acuerdo cerrado con proveedor, sin pagar aún
+3. pago_compromiso — pago parcial/total de un compromiso existente
+4. presupuesto — armar presupuesto para presentar a un cliente
 
-OBRAS DISPONIBLES EN EL SISTEMA:
-${listaObras || '(ninguna cargada)'}
+DATOS YA RECOLECTADOS EN ESTA CONVERSACIÓN: ${datosJson}
+OBRAS EN EL SISTEMA: ${listaObras || 'ninguna'}
+FECHA HOY: ${hoy}
 
-DATOS YA RECOLECTADOS:
-${JSON.stringify(datosActuales, null, 2)}
+REGLAS:
+- Español argentino informal, tuteá
+- Extraé todo lo posible de cada mensaje
+- Para presupuesto: pedí cliente, obra_descripcion, obra_localidad, obra_direccion (opcional), ítems (descripcion/unidad/cantidad/precio_unitario/subtotal). Calculá subtotal=cantidad×precio_unitario.
+- Para gasto: tipo("obra"|"central"), descripcion, monto, categoria_obra("materiales"|"mano_obra"|"otros") o categoria_central("sueldo"|"combustible"|"maquina"|"material"|"retiro_socio"|"otro") — siempre string, nunca boolean
 
-INSTRUCCIONES:
-- Conversá en español argentino informal (tuteá)
-- Detectá automáticamente si el usuario quiere registrar un gasto, un compromiso nuevo, o un pago de compromiso
-- Claves para COMPROMISO: "cerramos con", "acuerdo con", "comprometí" + proveedor + monto total
-- Claves para PAGO DE COMPROMISO: "le pagué", "anticipo a [proveedor]", "pagué a [proveedor]"
-- Claves para NUEVO PRESUPUESTO: "hacer un presupuesto", "armar presupuesto", "presupuesto para [cliente]", "nuevo presupuesto"
-- Extraé todo lo que puedas de un solo mensaje
-- Si menciona una obra, buscá el match más cercano en la lista y usá ese id/nombre
-- Cuando no está claro la obra, mostrá las opciones numeradas
-
-Para GASTO: tipo ("obra" o "central"), descripcion, monto (número), categoria_obra ("materiales"|"mano_obra"|"otros") si tipo=obra, categoria_central ("sueldo"|"combustible"|"maquina"|"material"|"retiro_socio"|"otro") si tipo=central — SIEMPRE string exacto, nunca boolean, obra_id/obra_nombre si tipo=obra, proveedor (opcional)
-Para COMPROMISO: obra_id/obra_nombre, descripcion, proveedor, monto_total, categoria
-Para PAGO COMPROMISO: obra_id/obra_nombre, proveedor o descripcion, monto_pago, fecha
-Para NUEVO PRESUPUESTO: cliente (nombre), obra_descripcion (tipo de trabajo), obra_direccion, obra_localidad, items (array con descripcion/unidad/cantidad/precio_unitario/subtotal). Preguntá los ítems de a uno o pedile que los describa todos juntos. Calculá subtotal = cantidad × precio_unitario para cada ítem.
-
-FORMATO DE RESPUESTA — solo JSON válido, sin texto extra:
-Si falta info: {"intención": "gasto"|"compromiso"|"pago_compromiso"|"presupuesto", "pregunta": "texto al usuario", "datos": {...}}
-Si está completo: {"intención": "gasto"|"compromiso"|"pago_compromiso"|"presupuesto", "listo": true, "datos": {...todos los datos...}}
-
-La fecha siempre es hoy: ${new Date().toISOString().split('T')[0]}`
+FORMATO OBLIGATORIO — solo JSON, sin texto extra:
+Falta info: {"intención":"gasto"|"compromiso"|"pago_compromiso"|"presupuesto","pregunta":"...","datos":{...lo recolectado...}}
+Completo:   {"intención":"gasto"|"compromiso"|"pago_compromiso"|"presupuesto","listo":true,"datos":{...todo...}}`
 
   // Keep only last 8 messages to minimize context size
   const recentHistory = historial.slice(-8)
