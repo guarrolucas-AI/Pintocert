@@ -271,7 +271,7 @@ FECHA HOY: ${hoy}
 REGLAS:
 - Español argentino informal, tuteá
 - Extraé todo lo posible de cada mensaje
-- Para presupuesto: pedí cliente, obra_descripcion, obra_localidad, ítems. NUNCA marques listo:true si items está vacío o no existe — siempre preguntá los ítems antes de cerrar. Formato ítem: {descripcion, unidad, cantidad, precio_unitario, subtotal}. Calculá subtotal=cantidad×precio_unitario.
+- Para presupuesto: pedí cliente, obra_descripcion, obra_localidad, ítems. NUNCA marques listo:true si items está vacío — preguntá los ítems primero. Cada ítem: {descripcion:string, subtotal:number}. Ejemplo de items parseados de "tabique 30m2 a 30000 el m2, lijado 30m2 a 5000": [{"descripcion":"Armado de tabique 30m2","subtotal":900000},{"descripcion":"Lijado 30m2","subtotal":150000}]. Calculá subtotal=cantidad×precio_unitario vos mismo.
 - Para gasto: tipo("obra"|"central"), descripcion, monto, categoria_obra("materiales"|"mano_obra"|"otros") o categoria_central("sueldo"|"combustible"|"maquina"|"material"|"retiro_socio"|"otro") — siempre string, nunca boolean
 
 FORMATO OBLIGATORIO — solo JSON, sin texto extra:
@@ -451,12 +451,22 @@ export async function POST(req: NextRequest) {
           await send(from, `¿A cuál compromiso corresponde el pago?\n${lista}\nRespondé con el número.`)
         }
       } else if (intencion === 'presupuesto') {
-        const items: ItemPresupuesto[] = datos.items ?? []
+        // Normalize items — accept {descripcion, subtotal} or full ItemPresupuesto
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawItems: any[] = datos.items ?? []
+        const items: ItemPresupuesto[] = rawItems
+          .filter(it => it.descripcion && (it.subtotal > 0 || it.precio_unitario > 0))
+          .map(it => ({
+            descripcion: it.descripcion,
+            unidad: it.unidad ?? 'global',
+            cantidad: it.cantidad ?? 1,
+            precio_unitario: it.precio_unitario ?? it.subtotal,
+            subtotal: it.subtotal ?? (it.cantidad ?? 1) * (it.precio_unitario ?? 0),
+          }))
         if (items.length === 0) {
-          // Claude marked listo but forgot to ask for items
-          session.historial.push({ role: 'assistant', content: '¿Qué ítems tiene el presupuesto? Describí cada uno con descripción, cantidad y precio unitario.' })
+          session.historial.push({ role: 'assistant', content: '¿Qué ítems tiene el presupuesto? Ejemplo: "Tabique 30m2 a $30000 el m2, Lijado 30m2 a $5000 el m2"' })
           await saveSession(admin, from, session)
-          await send(from, '¿Qué ítems tiene el presupuesto? Describí cada uno con descripción, cantidad y precio unitario.')
+          await send(from, '¿Qué ítems tiene el presupuesto? Ejemplo: "Tabique 30m2 a $30000 el m2, Lijado 30m2 a $5000 el m2"')
           return NextResponse.json({ ok: true })
         }
         const subtotal = items.reduce((s: number, it: ItemPresupuesto) => s + it.subtotal, 0)
