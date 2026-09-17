@@ -295,7 +295,7 @@ La fecha siempre es hoy: ${new Date().toISOString().split('T')[0]}`
   try {
     const resp = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 300,
+      max_tokens: 700,
       system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
       messages,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -303,7 +303,7 @@ La fecha siempre es hoy: ${new Date().toISOString().split('T')[0]}`
 
     const text = resp.content[0]?.type === 'text' ? (resp.content[0].text ?? '') : ''
     const match = text.match(/\{[\s\S]*\}/)
-    if (!match) return { pregunta: 'No entendí. ¿Podés repetir el gasto?' }
+    if (!match) return { pregunta: 'No entendí bien. ¿Qué querés registrar? (gasto, compromiso, pago o presupuesto)' }
     return JSON.parse(match[0]) as ClaudeResponse
   } catch (err) {
     console.error('Claude agent error:', err)
@@ -397,6 +397,12 @@ export async function POST(req: NextRequest) {
 
     // ── RECOLECTANDO (Claude agent) ──────────────────────────────────
     if (message.type !== 'text' || !txt) return NextResponse.json({ ok: true })
+
+    // Reject messages that are too long for the bot to process
+    if (txt.length > 800) {
+      await send(from, '⚠️ Mensaje muy largo. El bot procesa mensajes cortos. Resumí en una o dos líneas qué querés registrar (ej: "presupuesto para Juan López, remodelación cocina").')
+      return NextResponse.json({ ok: true })
+    }
 
     // Add user message to history
     session.historial.push({ role: 'user', content: txt })
