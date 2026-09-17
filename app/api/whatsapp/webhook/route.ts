@@ -271,7 +271,7 @@ FECHA HOY: ${hoy}
 REGLAS:
 - Español argentino informal, tuteá
 - Extraé todo lo posible de cada mensaje
-- Para presupuesto: pedí cliente, obra_descripcion, obra_localidad, obra_direccion (opcional), ítems (descripcion/unidad/cantidad/precio_unitario/subtotal). Calculá subtotal=cantidad×precio_unitario.
+- Para presupuesto: pedí cliente, obra_descripcion, obra_localidad, ítems. NUNCA marques listo:true si items está vacío o no existe — siempre preguntá los ítems antes de cerrar. Formato ítem: {descripcion, unidad, cantidad, precio_unitario, subtotal}. Calculá subtotal=cantidad×precio_unitario.
 - Para gasto: tipo("obra"|"central"), descripcion, monto, categoria_obra("materiales"|"mano_obra"|"otros") o categoria_central("sueldo"|"combustible"|"maquina"|"material"|"retiro_socio"|"otro") — siempre string, nunca boolean
 
 FORMATO OBLIGATORIO — solo JSON, sin texto extra:
@@ -451,7 +451,14 @@ export async function POST(req: NextRequest) {
           await send(from, `¿A cuál compromiso corresponde el pago?\n${lista}\nRespondé con el número.`)
         }
       } else if (intencion === 'presupuesto') {
-        const items = datos.items ?? []
+        const items: ItemPresupuesto[] = datos.items ?? []
+        if (items.length === 0) {
+          // Claude marked listo but forgot to ask for items
+          session.historial.push({ role: 'assistant', content: '¿Qué ítems tiene el presupuesto? Describí cada uno con descripción, cantidad y precio unitario.' })
+          await saveSession(admin, from, session)
+          await send(from, '¿Qué ítems tiene el presupuesto? Describí cada uno con descripción, cantidad y precio unitario.')
+          return NextResponse.json({ ok: true })
+        }
         const subtotal = items.reduce((s: number, it: ItemPresupuesto) => s + it.subtotal, 0)
         const iva = Math.round(subtotal * 0.21)
         const total = subtotal + iva
