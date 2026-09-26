@@ -6,12 +6,24 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatARS(amount: number): string {
+  const hasDecimals = amount % 1 !== 0
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
   }).format(amount)
+}
+
+// Parsea montos en formato argentino: "1.500,50" → 1500.50, "1500,50" → 1500.50, "1500.50" → 1500.50
+export function parseMonto(str: string): number {
+  const s = str.trim().replace(/[$\s]/g, '')
+  // Si tiene coma → formato AR: quitar puntos de miles, reemplazar coma por punto
+  if (s.includes(',')) return parseFloat(s.replace(/\./g, '').replace(',', '.'))
+  // Si tiene punto seguido de exactamente 2 dígitos al final → decimal en formato EN
+  if (/\.\d{1,2}$/.test(s)) return parseFloat(s)
+  // Entero o punto como separador de miles → quitar puntos
+  return parseFloat(s.replace(/\./g, ''))
 }
 
 export function nombreMes(mes: number): string {

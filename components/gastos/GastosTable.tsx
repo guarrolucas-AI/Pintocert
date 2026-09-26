@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTransition } from 'react'
-import { formatARS } from '@/lib/utils'
+import { formatARS, parseMonto } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -97,7 +97,7 @@ export function GastosTable({
   const handleEditSave = () => {
     if (!editingGasto) return
 
-    const montoNum = parseFloat(editingMonto)
+    const montoNum = parseMonto(editingMonto)
     if (isNaN(montoNum) || montoNum <= 0) {
       toast.error('El monto debe ser mayor a 0')
       return

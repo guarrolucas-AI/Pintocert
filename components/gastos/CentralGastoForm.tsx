@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { createGastoCentral } from '@/lib/actions/gastos_central'
+import { parseMonto } from '@/lib/utils'
 import type { CategoriaGastoCentral } from '@/lib/types'
 
 const TIPOS_GASTO = [
@@ -47,7 +48,7 @@ export function CentralGastoForm({ categorias, onSuccess }: CentralGastoFormProp
         tipo_gasto: formData.tipo_gasto,
         categoria: formData.categoria,
         descripcion: formData.descripcion,
-        monto: parseFloat(formData.monto),
+        monto: parseMonto(formData.monto),
         comprobante_numero: formData.comprobante_numero || undefined,
         proveedor: formData.proveedor || undefined,
         notas: formData.notas || undefined,

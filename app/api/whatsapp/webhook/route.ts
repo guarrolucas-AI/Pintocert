@@ -405,7 +405,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (session.estado === 'items_qty') {
-      const qty = parseFloat(txt.replace(',', '.'))
+      const qty = parseFloat(txt.replace(/\./g, '').replace(',', '.'))
       if (isNaN(qty) || qty <= 0) {
         await send(from, '⚠️ Ingresá un número válido para la cantidad.')
         return NextResponse.json({ ok: true })

@@ -17,7 +17,8 @@ export async function registrarPago(obraId: string, formData: FormData) {
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error: error ?? 'Error' }
 
-  const importe = parseFloat(formData.get('importe') as string)
+  const rawImporte = (formData.get('importe') as string ?? '').replace(/\./g, '').replace(',', '.')
+  const importe = parseFloat(rawImporte)
   if (isNaN(importe) || importe <= 0) return { error: 'Importe inválido' }
 
   // Upload comprobante if provided
