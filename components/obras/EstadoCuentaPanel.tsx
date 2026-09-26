@@ -1,28 +1,31 @@
 'use client'
 
 import { formatARS } from '@/lib/utils'
-import type { Pago, GastoObra, CompromisoPago } from '@/lib/types'
+import type { Pago, GastoObra, CompromisoResumen } from '@/lib/types'
 
 interface Props {
   cobros: Pago[]
   gastos: GastoObra[]
-  pagosProveedores: CompromisoPago[]
+  compromisos: CompromisoResumen[]
 }
 
 type Movimiento = {
   fecha: string
-  tipo: 'cobro' | 'gasto' | 'pago_proveedor'
+  tipo: 'cobro' | 'gasto'
   descripcion: string
   ingreso: number
   egreso: number
 }
 
-export function EstadoCuentaPanel({ cobros, gastos, pagosProveedores }: Props) {
+export function EstadoCuentaPanel({ cobros, gastos, compromisos }: Props) {
   const totalCobrado = cobros.reduce((s, p) => s + p.importe, 0)
-  const totalGastos = gastos.reduce((s, g) => s + g.monto, 0)
-  const totalProveedores = pagosProveedores.reduce((s, p) => s + p.monto, 0)
-  const totalEgresado = totalGastos + totalProveedores
-  const saldo = totalCobrado - totalEgresado
+  const totalGastado = gastos.reduce((s, g) => s + g.monto, 0)
+  const saldoCaja = totalCobrado - totalGastado
+
+  // Devengado: compromisos aprobados con saldo pendiente
+  const aPagar = compromisos
+    .filter(c => c.estado === 'aprobado' && c.saldo_pendiente > 0)
+    .reduce((s, c) => s + c.saldo_pendiente, 0)
 
   const movimientos: Movimiento[] = [
     ...cobros.map(p => ({
@@ -39,16 +42,8 @@ export function EstadoCuentaPanel({ cobros, gastos, pagosProveedores }: Props) {
       ingreso: 0,
       egreso: g.monto,
     })),
-    ...pagosProveedores.map(p => ({
-      fecha: p.fecha,
-      tipo: 'pago_proveedor' as const,
-      descripcion: p.descripcion || 'Pago a proveedor',
-      ingreso: 0,
-      egreso: p.monto,
-    })),
   ].sort((a, b) => a.fecha.localeCompare(b.fecha))
 
-  // Saldo acumulado por movimiento
   let acum = 0
   const rows = movimientos.map(m => {
     acum += m.ingreso - m.egreso
@@ -58,33 +53,35 @@ export function EstadoCuentaPanel({ cobros, gastos, pagosProveedores }: Props) {
   const tipoConfig = {
     cobro: { label: 'Cobro', color: 'text-green-700 bg-green-50' },
     gasto: { label: 'Gasto', color: 'text-red-700 bg-red-50' },
-    pago_proveedor: { label: 'Proveedor', color: 'text-orange-700 bg-orange-50' },
   }
 
   return (
     <div className="space-y-4">
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-4 rounded-lg border bg-white p-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 rounded-lg border bg-white p-4">
         <div>
           <p className="text-xs text-muted-foreground">Total cobrado</p>
           <p className="text-lg font-bold text-green-700">{formatARS(totalCobrado)}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{cobros.length} cobros</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{cobros.length} cobro{cobros.length !== 1 ? 's' : ''}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Total gastado</p>
-          <p className="text-lg font-bold text-red-700">{formatARS(totalEgresado)}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {formatARS(totalGastos)} gastos · {formatARS(totalProveedores)} proveedores
-          </p>
+          <p className="text-lg font-bold text-red-700">{formatARS(totalGastado)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{gastos.length} gasto{gastos.length !== 1 ? 's' : ''}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Saldo caja</p>
-          <p className={`text-lg font-bold ${saldo >= 0 ? 'text-slate-900' : 'text-red-700'}`}>
-            {formatARS(saldo)}
+          <p className={`text-lg font-bold ${saldoCaja >= 0 ? 'text-slate-900' : 'text-red-700'}`}>
+            {formatARS(saldoCaja)}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {saldo >= 0 ? 'A favor' : 'En rojo'}
+            {saldoCaja >= 0 ? 'A favor' : 'En rojo'}
           </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">A pagar (devengado)</p>
+          <p className="text-lg font-bold text-orange-700">{formatARS(aPagar)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Compromisos pendientes</p>
         </div>
       </div>
 

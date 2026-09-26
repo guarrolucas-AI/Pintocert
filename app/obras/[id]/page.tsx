@@ -227,7 +227,7 @@ export default async function ObraDetailPage({ params }: { params: Promise<{ id:
         <EstadoCuentaPanel
           cobros={(pagos as Pago[]) ?? []}
           gastos={(gastosObra as GastoObra[]) ?? []}
-          pagosProveedores={(todosPagos as CompromisoPago[]) ?? []}
+          compromisos={(compromisos as CompromisoResumen[]) ?? []}
         />
       </div>
 
