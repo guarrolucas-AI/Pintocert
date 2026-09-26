@@ -16,7 +16,8 @@ import type { Obra, ItemObra, Certificado, ObraConAvance, Pago } from '@/lib/typ
 import { Plus, Pencil, Camera } from 'lucide-react'
 import { ObraActions } from '@/components/obras/ObraActions'
 import { CompromisosPanel } from '@/components/obras/CompromisosPanel'
-import type { CompromisoResumen, CompromisoPago } from '@/lib/types'
+import { EstadoCuentaPanel } from '@/components/obras/EstadoCuentaPanel'
+import type { CompromisoResumen, CompromisoPago, GastoObra } from '@/lib/types'
 
 export const revalidate = 0
 
@@ -40,7 +41,7 @@ export default async function ObraDetailPage({ params }: { params: Promise<{ id:
   if (!user) redirect('/login')
 
   const admin = createAdminClient()
-  const [{ data: obra }, { data: items }, { data: certificados }, { data: avance }, { data: perfil }, { data: pagos }, { data: compromisos }, { data: todosPagos }] =
+  const [{ data: obra }, { data: items }, { data: certificados }, { data: avance }, { data: perfil }, { data: pagos }, { data: compromisos }, { data: todosPagos }, { data: gastosObra }] =
     await Promise.all([
       supabase.from('obras').select('*').eq('id', id).single(),
       supabase.from('items_obra').select('*').eq('obra_id', id).order('orden'),
@@ -54,6 +55,7 @@ export default async function ObraDetailPage({ params }: { params: Promise<{ id:
       supabase.from('pagos').select('*').eq('obra_id', id).order('fecha_pago', { ascending: false }),
       admin.from('compromisos_resumen').select('*').eq('obra_id', id).order('created_at', { ascending: false }),
       admin.from('compromiso_pagos').select('*, compromisos_proveedor!inner(obra_id)').eq('compromisos_proveedor.obra_id', id).order('fecha'),
+      supabase.from('gastos_obra').select('id, fecha, descripcion, categoria, monto, proveedor').eq('obra_id', id).order('fecha'),
     ])
 
   if (!obra) notFound()
@@ -211,6 +213,21 @@ export default async function ObraDetailPage({ params }: { params: Promise<{ id:
           pagos={(pagos as Pago[]) ?? []}
           totalCertificado={avance?.ejecutado_total ?? 0}
           isAdmin={perfil?.rol === 'admin'}
+        />
+      </div>
+
+      <Separator />
+
+      {/* Estado de cuenta / Flujo de fondos */}
+      <div>
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-slate-900">Flujo de fondos</h2>
+          <p className="text-xs text-muted-foreground">Cobros vs. gastos — saldo de caja real</p>
+        </div>
+        <EstadoCuentaPanel
+          cobros={(pagos as Pago[]) ?? []}
+          gastos={(gastosObra as GastoObra[]) ?? []}
+          pagosProveedores={(todosPagos as CompromisoPago[]) ?? []}
         />
       </div>
 
