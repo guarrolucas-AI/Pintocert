@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { verifyMetaSignature, officeCommand } from '@/lib/office-bridge'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -325,7 +326,17 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json()
+  // Se lee el cuerpo crudo para poder verificar la firma de Meta
+  const raw = await req.text()
+  const signed = verifyMetaSignature(raw, req.headers.get('x-hub-signature-256'))
+  // Con WHATSAPP_APP_SECRET configurado, se rechaza todo lo que no venga firmado por Meta
+  if (process.env.WHATSAPP_APP_SECRET && !signed) {
+    return NextResponse.json({ ok: false }, { status: 401 })
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any
+  try { body = JSON.parse(raw) } catch { return NextResponse.json({ ok: true }) }
   const entry = body?.entry?.[0]
   const change = entry?.changes?.[0]
   const message = change?.value?.messages?.[0]
@@ -336,6 +347,23 @@ export async function POST(req: NextRequest) {
 
   const from = message.from as string
   const admin = createAdminClient()
+
+  // ── OFICINA DE AGENTES: "oficina <pedido>" desde el número de Lucas ───
+  const pedido = message.type === 'text' ? officeCommand(from, String(message.text?.body ?? '')) : null
+  if (pedido !== null) {
+    if (!signed) {
+      // Sin firma verificada nunca se encolan órdenes para la PC
+      await send(from, '⚠️ La oficina todavía no está habilitada (falta WHATSAPP_APP_SECRET en Vercel).')
+    } else if (!pedido) {
+      await send(from, '🏢 Escribí *oficina* seguido de tu pedido. Ej: _oficina calendario de diciembre para Plannit_')
+    } else {
+      const { error } = await admin.from('office_inbox').insert({ from_number: from, text: pedido.slice(0, 4000) })
+      await send(from, error
+        ? '❌ No pude pasar el pedido a la oficina. Probá de nuevo en un rato.'
+        : '📨 Recibido. La oficina se pone a trabajar y te respondo por acá (la PC tiene que estar prendida).')
+    }
+    return NextResponse.json({ ok: true })
+  }
 
   const { data: perfil } = await admin
     .from('perfiles')
