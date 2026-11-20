@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyMetaSignature, officeCommand } from '@/lib/office-bridge'
+import { crmRelayActivo, reenviarAlCrm } from '@/lib/crm-relay'
+import { after } from 'next/server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -340,13 +342,33 @@ export async function POST(req: NextRequest) {
   const entry = body?.entry?.[0]
   const change = entry?.changes?.[0]
   const message = change?.value?.messages?.[0]
+  const admin = createAdminClient()
+  // Sin WHATSAPP_APP_SECRET no se puede verificar la firma de Meta: se reenvía igual para no perder
+  // consultas (el CRM solo responde dentro de la ventana de 24 h que abre el propio cliente).
+  const confiable = signed || !process.env.WHATSAPP_APP_SECRET
 
-  if (!message || !['text', 'image'].includes(message.type)) {
+  // Estados de entrega (enviado/entregado/leído) de mensajes del CRM: se reenvían tal cual
+  if (!message) {
+    if (change?.value?.statuses && confiable && crmRelayActivo()) after(() => reenviarAlCrm(raw))
     return NextResponse.json({ ok: true })
   }
 
   const from = message.from as string
-  const admin = createAdminClient()
+
+  // ── CONSULTAS DE CLIENTES → CRM DE FLIPPING REAL ESTATE ─────────────
+  // Todo número que no es del equipo (perfiles) ni una orden de oficina va al CRM.
+  const esOficina = message.type === 'text' && officeCommand(from, String(message.text?.body ?? '')) !== null
+  if (!esOficina) {
+    const { data: delEquipo } = await admin.from('perfiles').select('id').eq('whatsapp_number', from).maybeSingle()
+    if (!delEquipo) {
+      if (confiable && crmRelayActivo()) after(() => reenviarAlCrm(raw))
+      return NextResponse.json({ ok: true })
+    }
+  }
+
+  if (!['text', 'image'].includes(message.type)) {
+    return NextResponse.json({ ok: true })
+  }
 
   // ── OFICINA DE AGENTES: "oficina <pedido>" desde el número de Lucas ───
   const pedido = message.type === 'text' ? officeCommand(from, String(message.text?.body ?? '')) : null
